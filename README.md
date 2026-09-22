@@ -4,8 +4,6 @@ Plugin audio JUCE (VST3 / AU / Standalone) créé avec le Projucer pour un cours
 
 > **Metulifer** is a digital sequencer with 6 different programmable sequences. Each sequence has its own synth, based on 2 VCOs, 2 ADSRs, and a filter.
 
-> **Metulifer** is a digital sequencer with 6 different programmable sequences. Each sequence has its own synth, based on 2 VCOs, 2 ADSRs, and a filter.
-
 ## Structure du projet
 
 ```
