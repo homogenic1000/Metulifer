@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="tPYili" name="NewProject" projectType="guiapp" useAppConfig="0"
+<JUCERPROJECT id="kMa8Lm" name="NewProject" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
-  <MAINGROUP id="jUsILF" name="NewProject">
-    <GROUP id="{4E9E867B-3129-92B1-401E-67155C3E5A3F}" name="Source">
-      <FILE id="H1jtl8" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
-      <FILE id="nrxosw" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
-      <FILE id="esieqC" name="MainComponent.cpp" compile="1" resource="0"
-            file="Source/MainComponent.cpp"/>
+  <MAINGROUP id="NUJ2dn" name="NewProject">
+    <GROUP id="{F8E48046-1DE7-2052-852A-347DBC8F9C3A}" name="Source">
+      <FILE id="p8c8HG" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="Source/PluginProcessor.cpp"/>
+      <FILE id="ccAjVx" name="PluginProcessor.h" compile="0" resource="0"
+            file="Source/PluginProcessor.h"/>
+      <FILE id="obABsV" name="PluginEditor.cpp" compile="1" resource="0"
+            file="Source/PluginEditor.cpp"/>
+      <FILE id="VWb30n" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES/>
-  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1"/>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
