@@ -8,11 +8,11 @@
     <key>CFBundleIconFile</key>
     <string></string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.metulifer</string>
+    <string>com.Saumure.Metulifer</string>
     <key>CFBundleName</key>
-    <string>metulifer</string>
+    <string>Metulifer</string>
     <key>CFBundleDisplayName</key>
-    <string>metulifer</string>
+    <string>Metulifer</string>
     <key>CFBundlePackageType</key>
     <string>BNDL</string>
     <key>CFBundleSignature</key>
@@ -29,11 +29,11 @@
     <array>
       <dict>
         <key>name</key>
-        <string>yourcompany: metulifer</string>
+        <string>Saumure: Metulifer</string>
         <key>description</key>
-        <string>metulifer</string>
+        <string>Metulifer</string>
         <key>factoryFunction</key>
-        <string>metuliferAUFactory</string>
+        <string>MetuliferAUFactory</string>
         <key>manufacturer</key>
         <string>Manu</string>
         <key>type</key>

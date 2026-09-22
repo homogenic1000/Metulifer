@@ -8,11 +8,11 @@
     <key>CFBundleIconFile</key>
     <string></string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourcompany.metulifer</string>
+    <string>com.Saumure.Metulifer</string>
     <key>CFBundleName</key>
-    <string>metulifer</string>
+    <string>Metulifer</string>
     <key>CFBundleDisplayName</key>
-    <string>metulifer</string>
+    <string>Metulifer</string>
     <key>CFBundlePackageType</key>
     <string></string>
     <key>CFBundleSignature</key>

@@ -1,6 +1,8 @@
-# metulifer
+# Metulifer
 
-Plugin audio JUCE (VST3 / AU / Standalone) créé avec le Projucer pour un cours.
+Plugin audio JUCE (VST3 / AU / Standalone) créé avec le Projucer pour un cours — fabricant **Saumure**.
+
+> **Metulifer** is a digital sequencer with 6 different programmable sequences. Each sequence has its own synth, based on 2 VCOs, 2 ADSRs, and a filter.
 
 > **Metulifer** is a digital sequencer with 6 different programmable sequences. Each sequence has its own synth, based on 2 VCOs, 2 ADSRs, and a filter.
 
@@ -8,7 +10,7 @@ Plugin audio JUCE (VST3 / AU / Standalone) créé avec le Projucer pour un cours
 
 ```
 Metulifer/
-├── metulifer.jucer           # Fichier projet du Projucer (format XML)
+├── Metulifer.jucer           # Fichier projet du Projucer (format XML)
 ├── Source/                   # Ton code (le seul dossier à modifier)
 │   ├── PluginProcessor.h/.cpp  # Le "cerveau" du plugin (AudioProcessor)
 │   ├── PluginEditor.h/.cpp     # L'interface graphique (AudioProcessorEditor)
@@ -17,15 +19,15 @@ Metulifer/
 │   ├── JuceHeader.h          #     (écrasé à chaque sauvegarde du Projucer)
 │   └── include_juce_*.cpp/mm #     includes des modules JUCE
 ├── Builds/                   # Projets natifs générés (Xcode, etc.)
-│   └── MacOSX/               #     metulifer.xcodeproj + plists (AU/VST3/Standalone)
+│   └── MacOSX/               #     Metulifer.xcodeproj + plists (AU/VST3/Standalone)
 ├── .gitignore
 └── README.md
 ```
 
 ## Rôle des fichiers
 
-### metulifer.jucer
-C'est la source de vérité du projet. Le Projucer l'ouvre (`.jucer`) et y régénère les fichiers de build (`Builds/`) et du code JUCE (`JuceLibraryCode/`). On y configure : type de projet (`audioplug`), nom du plugin (`pluginName="metulifer"`), modules activés, targets d'export, options (`JUCE_*`), deployment target.
+### Metulifer.jucer
+C'est la source de vérité du projet. Le Projucer l'ouvre (`.jucer`) et y régénère les fichiers de build (`Builds/`) et du code JUCE (`JuceLibraryCode/`). On y configure : type de projet (`audioplug`), nom du plugin (`pluginName="Metulifer"`), modules activés, targets d'export, options (`JUCE_*`), deployment target.
 
 > **Règle d'or** : ne modifie jamais `JuceLibraryCode/` ni les projets dans `Builds/` à la main. Tout changement se passe dans le `.jucer`, puis *File → Save Project*.
 
@@ -36,7 +38,7 @@ C'est la source de vérité du projet. Le Projucer l'ouvre (`.jucer`) et y rég�
 - l'initialisation DSP se fait dans `prepareToPlay()` / `releaseResources()`,
 - gère la **persistance de l'état** via `getStateInformation()` / `setStateInformation()`,
 - instancie son éditeur graphique dans `createEditor()`,
-- expose le nom affiché par le DAW via `getName()` (retourne `JucePlugin_Name` = `"metulifer"`).
+- expose le nom affiché par le DAW via `getName()` (retourne `JucePlugin_Name` = `"Metulifer"`).
 
 ### Source/PluginEditor (la vue)
 `MetuliferAudioProcessorEditor` hérite de `juce::AudioProcessorEditor`. C'est l'UI du plugin :
@@ -73,18 +75,18 @@ Le « vrai » modèle, c'est souvent un `AudioProcessorValueTreeState` (APVTS) *
 
 ## Construire avec Xcode
 
-1. Ouvrir `Builds/MacOSX/metulifer.xcodeproj` dans Xcode.
-2. Choisir le scheme voulu : **`metulifer - Standalone Plugin`** (app de test), `metulifer - VST3`, `metulifer - AU`, ou `metulifer - All`.
+1. Ouvrir `Builds/MacOSX/Metulifer.xcodeproj` dans Xcode.
+2. Choisir le scheme voulu : **`Metulifer - Standalone Plugin`** (app de test), `Metulifer - VST3`, `Metulifer - AU`, ou `Metulifer - All`.
 3. ⌘R pour builder/lancer.
 
 Les binaires sont générés dans `Builds/MacOSX/build/Debug/` :
-- `metulifer.app` — app standalone (à lancer pour tester),
-- `metulifer.vst3` — plugin VST3,
-- `metulifer.component` — composant AU.
+- `Metulifer.app` — app standalone (à lancer pour tester),
+- `Metulifer.vst3` — plugin VST3,
+- `Metulifer.component` — composant AU.
 
 > Alternatives depuis un terminal :
-> - Régénérer le projet après un changement de `.jucer` : `Projucer --resave metulifer.jucer`
-> - Builder : `xcodebuild -project Builds/MacOSX/metulifer.xcodeproj -scheme "metulifer - Standalone Plugin" -configuration Debug build`
+> - Régénérer le projet après un changement de `.jucer` : `Projucer --resave Metulifer.jucer`
+> - Builder : `xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj -scheme "Metulifer - Standalone Plugin" -configuration Debug build`
 > - Si `xcodebuild` n'est pas trouvé : `xcode-select -s /Applications/Xcode.app`
 
 > **Dépannage « erreur de build »** : les causes classiques sont (1) `MACOSX_DEPLOYMENT_TARGET` trop vieux → remonter à `12.0` dans le `.jucer` ; (2) modules manquants dans `<MODULES>` du `.jucer` → les cocher dans le Projucer ; (3) chemin de JUCE introuvable → vérifier `~/JUCE/modules`.
@@ -92,7 +94,7 @@ Les binaires sont générés dans `Builds/MacOSX/build/Debug/` :
 ## Déploiement des binaires dans un DAW
 
 Pour utiliser le plugin Release dans un DAW, copier vers les dossiers système :
-- `metulifer.vst3` → `~/Library/Audio/Plug-Ins/VST3/`
-- `metulifer.component` → `~/Library/Audio/Plug-Ins/Components/`
+- `Metulifer.vst3` → `~/Library/Audio/Plug-Ins/VST3/`
+- `Metulifer.component` → `~/Library/Audio/Plug-Ins/Components/`
 
 puis redémarrer le DAW (ou vider son cache de plugins).
