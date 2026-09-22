@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXAggregateTarget section */
-		1197F0EA4A7E1F62DCC0B91A /* NewProject - All */ = {
+		1197F0EA4A7E1F62DCC0B91A /* metulifer - All */ = {
 			isa = PBXAggregateTarget;
 			buildConfigurationList = E7E3F11CD3EAD08DA0583A4C;
 			buildPhases = (
@@ -19,8 +19,8 @@
 				EE1A74A3A4009B27B3446E2C,
 				C5AAF648606336A60877AC97,
 			);
-			name = "NewProject - All";
-			productName = NewProject;
+			name = "metulifer - All";
+			productName = metulifer;
 		};
 /* End PBXAggregateTarget section */
 
@@ -157,12 +157,12 @@
 		73372D0263C428EEECE98FAF /* include_juce_audio_basics.mm */ /* include_juce_audio_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_basics.mm; path = ../../JuceLibraryCode/include_juce_audio_basics.mm; sourceTree = SOURCE_ROOT; };
 		7355F41CC9326CF088E9289C /* include_juce_audio_plugin_client_Standalone.cpp */ /* include_juce_audio_plugin_client_Standalone.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_plugin_client_Standalone.cpp; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_Standalone.cpp; sourceTree = SOURCE_ROOT; };
 		79EA8C58B26F55F03EA170DF /* Info-VST3.plist */ /* Info-VST3.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Info-VST3.plist"; path = "Info-VST3.plist"; sourceTree = SOURCE_ROOT; };
-		7B2F77A5355E0628344EC20C /* Standalone Plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NewProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B2F77A5355E0628344EC20C /* Standalone Plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = metulifer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FD3A3C0493F8CFAAC99D7E3 /* include_juce_graphics_libjpg_3.c */ /* include_juce_graphics_libjpg_3.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_graphics_libjpg_3.c; path = ../../JuceLibraryCode/include_juce_graphics_libjpg_3.c; sourceTree = SOURCE_ROOT; };
 		83D3F4122156C1B95CB51561 /* Cocoa.framework */ /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		87AB254C3AC79BF1E7E16ACE /* include_juce_audio_devices.mm */ /* include_juce_audio_devices.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_devices.mm; path = ../../JuceLibraryCode/include_juce_audio_devices.mm; sourceTree = SOURCE_ROOT; };
 		9058F33E76DB73E52FC20D04 /* include_juce_audio_plugin_client_AU_2.mm */ /* include_juce_audio_plugin_client_AU_2.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_plugin_client_AU_2.mm; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_AU_2.mm; sourceTree = SOURCE_ROOT; };
-		9096EDD398C25490EF972806 /* VST3 */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NewProject.vst3; sourceTree = BUILT_PRODUCTS_DIR; };
+		9096EDD398C25490EF972806 /* VST3 */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = metulifer.vst3; sourceTree = BUILT_PRODUCTS_DIR; };
 		9AEE0E6031A0CF95C43ACA98 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		9DE31243AEF25FC1D1B5335B /* QuartzCore.framework */ /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		A432B8F72E11ABA118CDB02D /* include_juce_audio_processors_headless.mm */ /* include_juce_audio_processors_headless.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors_headless.mm; path = ../../JuceLibraryCode/include_juce_audio_processors_headless.mm; sourceTree = SOURCE_ROOT; };
@@ -170,7 +170,7 @@
 		A5E5407CB1DA38885B8B95D3 /* include_juce_audio_formats.mm */ /* include_juce_audio_formats.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_formats.mm; path = ../../JuceLibraryCode/include_juce_audio_formats.mm; sourceTree = SOURCE_ROOT; };
 		A7A89CE1ED3F2C704E7BF0B3 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		A7F6FA8B997A1B8A0C48B4AB /* include_juce_audio_plugin_client_VST3.mm */ /* include_juce_audio_plugin_client_VST3.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_plugin_client_VST3.mm; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_VST3.mm; sourceTree = SOURCE_ROOT; };
-		A888AAE1623CEECCCB0DF24A /* AU */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NewProject.component; sourceTree = BUILT_PRODUCTS_DIR; };
+		A888AAE1623CEECCCB0DF24A /* AU */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = metulifer.component; sourceTree = BUILT_PRODUCTS_DIR; };
 		AAAC271323498DED3B5AC2C1 /* include_juce_audio_processors_headless_ara.cpp */ /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_ara.cpp; sourceTree = SOURCE_ROOT; };
 		AFF176EFDC7C7765117D8D10 /* Info-AU.plist */ /* Info-AU.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Info-AU.plist"; path = "Info-AU.plist"; sourceTree = SOURCE_ROOT; };
 		B29922CCE83AB665C3283341 /* PluginEditor.cpp */ /* PluginEditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = PluginEditor.cpp; path = ../../Source/PluginEditor.cpp; sourceTree = SOURCE_ROOT; };
@@ -193,7 +193,7 @@
 		EF90824FB037ABFF0664C0E5 /* VST3 Manifest Helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = juce_vst3_helper; sourceTree = BUILT_PRODUCTS_DIR; };
 		F13C55B6D9C88549F05F6207 /* include_juce_audio_formats_flac_2.c */ /* include_juce_audio_formats_flac_2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_audio_formats_flac_2.c; path = ../../JuceLibraryCode/include_juce_audio_formats_flac_2.c; sourceTree = SOURCE_ROOT; };
 		F24BA5A0D7FB81921A3357FF /* PluginEditor.h */ /* PluginEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PluginEditor.h; path = ../../Source/PluginEditor.h; sourceTree = SOURCE_ROOT; };
-		F85C5B6615C14852152B7304 /* Shared Code */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNewProject.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		F85C5B6615C14852152B7304 /* Shared Code */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libmetulifer.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		F86194B3088FF3BCBB9789F2 /* include_juce_gui_extra.mm */ /* include_juce_gui_extra.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_extra.mm; path = ../../JuceLibraryCode/include_juce_gui_extra.mm; sourceTree = SOURCE_ROOT; };
 		FEFBB3189D2A9CB17D485DEA /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -287,12 +287,12 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		408D580E19430ACE501848A9 /* NewProject */ = {
+		408D580E19430ACE501848A9 /* metulifer */ = {
 			isa = PBXGroup;
 			children = (
 				9045876708EEAD0FB8098976,
 			);
-			name = NewProject;
+			name = metulifer;
 			sourceTree = "<group>";
 		};
 		4B662D2A4FBBE7D7C9554941 /* Source */ = {
@@ -411,7 +411,7 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2E72ED855758C1B4FF0AFEEF /* NewProject - AU */ = {
+		2E72ED855758C1B4FF0AFEEF /* metulifer - AU */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B80015004A7541E21CF2C523;
 			buildPhases = (
@@ -426,12 +426,12 @@
 			dependencies = (
 				1FEB6A97F84289FCEBA71221,
 			);
-			name = "NewProject - AU";
-			productName = NewProject;
+			name = "metulifer - AU";
+			productName = metulifer;
 			productReference = A888AAE1623CEECCCB0DF24A;
 			productType = "com.apple.product-type.bundle";
 		};
-		361DE88066760A007EE5E807 /* NewProject - VST3 */ = {
+		361DE88066760A007EE5E807 /* metulifer - VST3 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CCA1918BAFFCCBBDD4BD98B4;
 			buildPhases = (
@@ -448,12 +448,12 @@
 				56FEC8274B1FC134E3CFA08C,
 				953ECD7D6DE11479A9F35D9D,
 			);
-			name = "NewProject - VST3";
-			productName = NewProject;
+			name = "metulifer - VST3";
+			productName = metulifer;
 			productReference = 9096EDD398C25490EF972806;
 			productType = "com.apple.product-type.bundle";
 		};
-		51A58401054AC2036F8543E1 /* NewProject - Standalone Plugin */ = {
+		51A58401054AC2036F8543E1 /* metulifer - Standalone Plugin */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F65B6C4E408327C114425895;
 			buildPhases = (
@@ -467,12 +467,12 @@
 			dependencies = (
 				311BAD08A536594AB1193784,
 			);
-			name = "NewProject - Standalone Plugin";
-			productName = NewProject;
+			name = "metulifer - Standalone Plugin";
+			productName = metulifer;
 			productReference = 7B2F77A5355E0628344EC20C;
 			productType = "com.apple.product-type.application";
 		};
-		A492964A9BEB1668797A996E /* NewProject - VST3 Manifest Helper */ = {
+		A492964A9BEB1668797A996E /* metulifer - VST3 Manifest Helper */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2E7F5A1F05896C36459BFE6F;
 			buildPhases = (
@@ -484,12 +484,12 @@
 			);
 			dependencies = (
 			);
-			name = "NewProject - VST3 Manifest Helper";
-			productName = NewProject;
+			name = "metulifer - VST3 Manifest Helper";
+			productName = metulifer;
 			productReference = EF90824FB037ABFF0664C0E5;
 			productType = "com.apple.product-type.tool";
 		};
-		B244915E6DB2EC113DE2AC44 /* NewProject - Shared Code */ = {
+		B244915E6DB2EC113DE2AC44 /* metulifer - Shared Code */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E896F6992B02D18D64199C37;
 			buildPhases = (
@@ -499,8 +499,8 @@
 			);
 			dependencies = (
 			);
-			name = "NewProject - Shared Code";
-			productName = NewProject;
+			name = "metulifer - Shared Code";
+			productName = metulifer;
 			productReference = F85C5B6615C14852152B7304;
 			productType = "com.apple.product-type.library.static";
 		};
@@ -947,8 +947,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -968,11 +968,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -980,13 +980,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1010,10 +1010,10 @@
 				MTL_HEADER_SEARCH_PATHS = "$(HOME)/JUCE/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules $(HOME)/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -bundle -lNewProject";
+				OTHER_LDFLAGS = "$(inherited) -bundle -lmetulifer";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1068,8 +1068,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1089,11 +1089,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1101,13 +1101,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1129,9 +1129,9 @@
 				MTL_HEADER_SEARCH_PATHS = "$(HOME)/JUCE/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules $(HOME)/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -lNewProject";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				OTHER_LDFLAGS = "$(inherited) -lmetulifer";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1185,8 +1185,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1206,11 +1206,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1218,13 +1218,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1249,9 +1249,9 @@
 				MTL_HEADER_SEARCH_PATHS = "$(HOME)/JUCE/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules $(HOME)/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -bundle -lNewProject";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				OTHER_LDFLAGS = "$(inherited) -bundle -lmetulifer";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1306,8 +1306,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1327,11 +1327,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1339,13 +1339,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1369,9 +1369,9 @@
 				MTL_HEADER_SEARCH_PATHS = "$(HOME)/JUCE/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules $(HOME)/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -bundle -lNewProject";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				OTHER_LDFLAGS = "$(inherited) -bundle -lmetulifer";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1422,7 +1422,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--dryrun";
-				PRODUCT_NAME = "NewProject";
+				PRODUCT_NAME = "metulifer";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
 				ZERO_LINK = NO;
@@ -1476,8 +1476,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1497,11 +1497,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1509,13 +1509,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1536,9 +1536,9 @@
 				MTL_HEADER_SEARCH_PATHS = "$(HOME)/JUCE/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules $(HOME)/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -lNewProject";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				OTHER_LDFLAGS = "$(inherited) -lmetulifer";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
@@ -1592,8 +1592,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1613,11 +1613,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1625,13 +1625,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1653,8 +1653,8 @@
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				USE_HEADERMAP = NO;
@@ -1710,8 +1710,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1731,11 +1731,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1743,13 +1743,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1772,7 +1772,7 @@
 				OTHER_CODE_SIGN_FLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
 				PRODUCT_NAME = "juce_vst3_helper";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
@@ -1828,8 +1828,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -1849,11 +1849,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -1861,13 +1861,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -1891,7 +1891,7 @@
 				OTHER_CODE_SIGN_FLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
 				PRODUCT_NAME = "juce_vst3_helper";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
@@ -1941,7 +1941,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				OTHER_CODE_SIGN_FLAGS = "--dryrun";
-				PRODUCT_NAME = "NewProject";
+				PRODUCT_NAME = "metulifer";
 				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wreorder";
 				ZERO_LINK = NO;
@@ -1995,8 +1995,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -2016,11 +2016,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -2028,13 +2028,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -2057,8 +2057,8 @@
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				USE_HEADERMAP = NO;
@@ -2121,8 +2121,8 @@
 					"JucePlugin_Build_LV2=0",
 					"JucePlugin_Enable_IAA=0",
 					"JucePlugin_Enable_ARA=0",
-					"JucePlugin_Name=\\\"NewProject\\\"",
-					"JucePlugin_Desc=\\\"NewProject\\\"",
+					"JucePlugin_Name=\\\"metulifer\\\"",
+					"JucePlugin_Desc=\\\"metulifer\\\"",
 					"JucePlugin_Manufacturer=\\\"yourcompany\\\"",
 					"JucePlugin_ManufacturerWebsite=\\\"www.yourcompany.com\\\"",
 					"JucePlugin_ManufacturerEmail=\\\"\\\"",
@@ -2142,11 +2142,11 @@
 					"JucePlugin_Vst3Category=\\\"Fx\\\"",
 					"JucePlugin_AUMainType=\\'aufx\\'",
 					"JucePlugin_AUSubType=JucePlugin_PluginCode",
-					"JucePlugin_AUExportPrefix=NewProjectAU",
-					"JucePlugin_AUExportPrefixQuoted=\\\"NewProjectAU\\\"",
+					"JucePlugin_AUExportPrefix=metuliferAU",
+					"JucePlugin_AUExportPrefixQuoted=\\\"metuliferAU\\\"",
 					"JucePlugin_AUManufacturerCode=JucePlugin_ManufacturerCode",
-					"JucePlugin_CFBundleIdentifier=com.yourcompany.NewProject",
-					"JucePlugin_AAXIdentifier=com.yourcompany.NewProject",
+					"JucePlugin_CFBundleIdentifier=com.yourcompany.metulifer",
+					"JucePlugin_AAXIdentifier=com.yourcompany.metulifer",
 					"JucePlugin_AAXManufacturerCode=JucePlugin_ManufacturerCode",
 					"JucePlugin_AAXProductId=JucePlugin_PluginCode",
 					"JucePlugin_AAXCategory=0",
@@ -2154,13 +2154,13 @@
 					"JucePlugin_AAXDisableMultiMono=0",
 					"JucePlugin_IAAType=0x61757278",
 					"JucePlugin_IAASubType=JucePlugin_PluginCode",
-					"JucePlugin_IAAName=\\\"yourcompany:\\ NewProject\\\"",
+					"JucePlugin_IAAName=\\\"yourcompany:\\ metulifer\\\"",
 					"JucePlugin_VSTNumMidiInputs=16",
 					"JucePlugin_VSTNumMidiOutputs=16",
 					"JucePlugin_ARAContentTypes=0",
 					"JucePlugin_ARATransformationFlags=0",
-					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.NewProject.factory\\\"",
-					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.NewProject.aradocumentarchive.1.0.0\\\"",
+					"JucePlugin_ARAFactoryID=\\\"com.yourcompany.metulifer.factory\\\"",
+					"JucePlugin_ARADocumentArchiveID=\\\"com.yourcompany.metulifer.aradocumentarchive.1.0.0\\\"",
 					"JucePlugin_ARACompatibleArchiveIDs=\\\"\\\"",
 					"JUCE_STANDALONE_APPLICATION=JucePlugin_Build_Standalone",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
@@ -2185,10 +2185,10 @@
 				MTL_HEADER_SEARCH_PATHS = "$(HOME)/JUCE/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../JuceLibraryCode $(HOME)/JUCE/modules $(HOME)/JUCE/modules/juce_audio_plugin_client/AU";
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CPLUSPLUSFLAGS = "$(inherited)";
-				OTHER_LDFLAGS = "$(inherited) -bundle -lNewProject";
+				OTHER_LDFLAGS = "$(inherited) -bundle -lmetulifer";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.NewProject;
-				PRODUCT_NAME = "NewProject";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.metulifer;
+				PRODUCT_NAME = "metulifer";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				USE_HEADERMAP = NO;
 				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
