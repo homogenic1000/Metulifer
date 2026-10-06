@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — fix env (alias Projucer + xcode-select)
+- **Tâche** : Réparer `Projucer --resave` (« no such file or directory ») et débloquer le build
+- **Fichiers** : `~/.zshrc` (alias corrigé, hors repo), `AGENTS.md`
+- **Modifs** : (1) alias `Projucer` corrigé : `$HOME/JUCE/Projucer.app/...` (n'existe pas) → `/Applications/Projucer.app/Contents/MacOS/Projucer` — Projucer est bien installé dans `/Applications`. (2) Licence Xcode acceptée par l'humain (`sudo xcodebuild -license accept`). (3) `xcode-select` pointe toujours sur `/Library/Developer/CommandLineTools` → builder avec `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild …` (alternative sans sudo, déjà notée §6). (4) `Projucer --resave Metulifer.jucer` exécuté avec succès : `Builds/` + `JuceLibraryCode/` régénérés (gitignorés).
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`, Standalone signé arm64)
+- **Commit** : — (ce commit)
+- **Next steps** : Implémenter le synthé (DSP/) et le séquenceur (Sequencer/)
+
 ### 2026-10-06 — setup CLI
 - **Tâche** : Alias shell `Projucer` + doc one-liner pour le binôme
 - **Fichiers** : `~/.zshrc` (alias local, hors repo), `AGENTS.md`
