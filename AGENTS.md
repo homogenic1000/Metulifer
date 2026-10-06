@@ -119,9 +119,10 @@ Metulifer/
 - **Tâche** : opencode.json moins restrictif
 - **Fichiers** : `opencode.json`, `AGENTS.md`
 - **Modifs** : permissions équilibrées — `edit` : allow partout sauf `deny` sur `JuceLibraryCode/` + `Builds/` ; `bash` : allow partout sauf `git push*` → ask et `rm -rf *` → deny. (Rappel : ordre des règles = large d'abord, spécifique après — la dernière règle correspondante gagne.)
-- **Build** : — (pas de code C++)
+- **Conflit** : rebase sur `7171765` (entrée journal du binôme) → conflit d'édit sur la section Journal (2 entrées au même endroit) → résolu en gardant les deux entrées. Effet de bord corrigé : le binôme a Projucer dans `/Applications/`, pas `~/JUCE/` → one-liner §6 rendu auto-détecteur des chemins (`~/JUCE/`, `/Applications/`, `~/Downloads/JUCE/`).
+- **Build** : ✅ OK (alias portable testé, resave régénère sans erreur)
 - **Commit** : — (ce commit)
-- **Next steps** : — (redémarrer opencode pour appliquer)
+- **Next steps** : — (redémarrer opencode pour appliquer les nouvelles permissions)
 
 ### 2026-10-06 — fix env (alias Projucer + xcode-select)
 - **Tâche** : Réparer `Projucer --resave` (« no such file or directory ») et débloquer le build
