@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — Phase 2 : squelette UI
+- **Tâche** : UI skeleton statique conforme à la spec Figma (§8) + assemblage de l'éditeur
+- **Fichiers** : `Source/UI/{SequenceRowComponent,SequencerPanel,DisplayScreen,SynthPanel,VCFPanel,ClockPanel}.{h,cpp}` (12 neufs), `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`
+- **Modifs** : (1) `SequenceRowComponent` : 32 steps toggle, Copy/Paste, Length (0–32) + Volume (0–1), highlight sélection, clic = `onSelected` via `RowMouseListener` (`addMouseListener(this…, true)`). (2) `SequencerPanel` : 6 rangées (pitch 71.065, h 61.065), `setSelectedSequence`, `onSelectionChanged` → pagination écran. (3) `DisplayScreen` : écran sombre, « SEQ n » vert + param + barre RMS. (4) `SynthPanel` : VCO1/VCO2 (Octave + Wave), ADSR1/ADSR2 × 4 knobs 31px, Mix VCO1/VCO2, labels. (5) `VCFPanel` : boutons LPF/HPF exclusifs + cutoff skew 1 kHz. (6) `ClockPanel` : CLOCK + tempo knob 175 + bouton Play/Stop. (7) Éditeur 1280×720, bounds Figma absolus, fond `#E9E9E9`, clic rangée → écran SEQ n. (8) `.jucer` : GROUP « UI » (12 FILE) + `Projucer --resave`. **Pièges corrigés** : `juce::RotarySlider` n'existe pas → `juce::Slider` + `RotaryHorizontalVerticalDrag` ; macro `JUCE_DECLARE_NON_COPYABLE` = constructeur copie déclaré ⇒ **supprime le constructeur par défaut implicite** (chaque classe JUCE doit déclarer le sien — `DisplayScreen()` ajouté) ; `unique_ptr<T>` exige `T` complet dans le TU du destructeur (include plein dans `SequencerPanel.h`) ; `RowMouseListener` est un objet membre → `&mouseListener`, pas `.get()`.
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **` après fixes)
+- **Commit** : — (ce commit)
+- **Next steps** : Phase 3 — APVTS (`seq1_…`→`seq6_…`), re-binding des attachments au clic, steps en ValueTree, écran live (RMS + param touché)
+
 ### 2026-10-06 — spec UI Figma
 - **Tâche** : Gravure de la spec UI depuis le wireframe Figma
 - **Fichiers** : `AGENTS.md`

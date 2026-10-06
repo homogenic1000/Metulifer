@@ -13,9 +13,20 @@
 MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    addAndMakeVisible (sequencerPanel);
+    addAndMakeVisible (displayScreen);
+    addAndMakeVisible (clockPanel);
+    addAndMakeVisible (synthPanel);
+    addAndMakeVisible (vcfPanel);
+
+    sequencerPanel.onSelectionChanged = [this] (int index)
+    {
+        sequenceSelected (index);
+    };
+
+    displayScreen.setSequenceNumber (1);
+
+    setSize (1280, 720);
 }
 
 MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
@@ -25,16 +36,24 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 //==============================================================================
 void MetuliferAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+    g.fillAll (juce::Colour (0xffe9e9e9));
 
-    g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (15.0f));
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
+    g.setColour (juce::Colours::black);
+    g.setFont (juce::FontOptions (14.0f, juce::Font::bold));
+    g.drawText ("METULIFER", 32, 8, 200, 20, juce::Justification::centredLeft);
 }
 
 void MetuliferAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    sequencerPanel.setBounds (32, 32, 910, 417);
+    displayScreen.setBounds (986, 32, 247, 132);
+    clockPanel.setBounds (961, 164, 297, 284);
+    synthPanel.setBounds (32, 458, 786, 237);
+    vcfPanel.setBounds (684, 471, 105, 224);
+}
+
+void MetuliferAudioProcessorEditor::sequenceSelected (int index)
+{
+    displayScreen.setSequenceNumber (index + 1);
+    displayScreen.setParamText ("—");
 }

@@ -13,6 +13,20 @@
       <FILE id="obABsV" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="VWb30n" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <GROUP id="{2A1B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}" name="UI">
+        <FILE id="uiSq1a" name="SequenceRowComponent.cpp" compile="1" resource="0" file="Source/UI/SequenceRowComponent.cpp"/>
+        <FILE id="uiSq1b" name="SequenceRowComponent.h" compile="0" resource="0" file="Source/UI/SequenceRowComponent.h"/>
+        <FILE id="uiSp2a" name="SequencerPanel.cpp" compile="1" resource="0" file="Source/UI/SequencerPanel.cpp"/>
+        <FILE id="uiSp2b" name="SequencerPanel.h" compile="0" resource="0" file="Source/UI/SequencerPanel.h"/>
+        <FILE id="uiDs3a" name="DisplayScreen.cpp" compile="1" resource="0" file="Source/UI/DisplayScreen.cpp"/>
+        <FILE id="uiDs3b" name="DisplayScreen.h" compile="0" resource="0" file="Source/UI/DisplayScreen.h"/>
+        <FILE id="uiSy4a" name="SynthPanel.cpp" compile="1" resource="0" file="Source/UI/SynthPanel.cpp"/>
+        <FILE id="uiSy4b" name="SynthPanel.h" compile="0" resource="0" file="Source/UI/SynthPanel.h"/>
+        <FILE id="uiVc5a" name="VCFPanel.cpp" compile="1" resource="0" file="Source/UI/VCFPanel.cpp"/>
+        <FILE id="uiVc5b" name="VCFPanel.h" compile="0" resource="0" file="Source/UI/VCFPanel.h"/>
+        <FILE id="uiCl6a" name="ClockPanel.cpp" compile="1" resource="0" file="Source/UI/ClockPanel.cpp"/>
+        <FILE id="uiCl6b" name="ClockPanel.h" compile="0" resource="0" file="Source/UI/ClockPanel.h"/>
+      </GROUP>
     </GROUP>
   </MAINGROUP>
   <MODULES>

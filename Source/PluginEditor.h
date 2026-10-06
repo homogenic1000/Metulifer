@@ -10,6 +10,11 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "UI/SequencerPanel.h"
+#include "UI/DisplayScreen.h"
+#include "UI/ClockPanel.h"
+#include "UI/SynthPanel.h"
+#include "UI/VCFPanel.h"
 
 //==============================================================================
 /**
@@ -25,9 +30,15 @@ public:
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+    void sequenceSelected (int index);
+
     MetuliferAudioProcessor& audioProcessor;
+
+    SequencerPanel sequencerPanel;
+    DisplayScreen displayScreen;
+    ClockPanel clockPanel;
+    SynthPanel synthPanel;
+    VCFPanel vcfPanel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MetuliferAudioProcessorEditor)
 };
