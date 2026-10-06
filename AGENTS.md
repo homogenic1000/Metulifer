@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — allègement permissions
+- **Tâche** : opencode.json moins restrictif
+- **Fichiers** : `opencode.json`, `AGENTS.md`
+- **Modifs** : permissions équilibrées — `edit` : allow partout sauf `deny` sur `JuceLibraryCode/` + `Builds/` ; `bash` : allow partout sauf `git push*` → ask et `rm -rf *` → deny. (Rappel : ordre des règles = large d'abord, spécifique après — la dernière règle correspondante gagne.)
+- **Build** : — (pas de code C++)
+- **Commit** : — (ce commit)
+- **Next steps** : — (redémarrer opencode pour appliquer)
+
 ### 2026-10-06 — fix env (alias Projucer + xcode-select)
 - **Tâche** : Réparer `Projucer --resave` (« no such file or directory ») et débloquer le build
 - **Fichiers** : `~/.zshrc` (alias corrigé, hors repo), `AGENTS.md`
@@ -154,10 +162,12 @@ Metulifer/
 
 ### Régénérer les fichiers Projucer (si `Builds/` ou `JuceLibraryCode/` manquent)
 
-**Setup une seule fois** (ajoute l'alias `Projucer` au shell — à faire par chaque dev) :
+**Setup une seule fois** (ajoute l'alias `Projucer` au shell — à faire par chaque dev ;
+la commande auto-détecte l'emplacement de Projucer, présent dans `~/JUCE/` chez certains
+et dans `/Applications/` chez d'autres) :
 
 ```bash
-printf '\nalias Projucer="$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer"\n' >> ~/.zshrc && source ~/.zshrc
+printf '\nfor p in "$HOME/JUCE/Projucer.app" /Applications/Projucer.app "$HOME/Downloads/JUCE/Projucer.app"; do [ -x "$p/Contents/MacOS/Projucer" ] && alias Projucer="$p/Contents/MacOS/Projucer" && break; done\n' >> ~/.zshrc && source ~/.zshrc
 ```
 
 Puis à chaque fois :

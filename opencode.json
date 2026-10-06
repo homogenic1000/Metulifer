@@ -3,14 +3,14 @@
   "instructions": ["AGENTS.md"],
   "permission": {
     "edit": {
+      "*": "allow",
       "JuceLibraryCode/**": "deny",
-      "Builds/**": "deny",
-      "Metulifer.jucer": "ask",
-      "*": "ask"
+      "Builds/**": "deny"
     },
     "bash": {
+      "*": "allow",
       "git push*": "ask",
-      "*": "ask"
+      "rm -rf *": "deny"
     }
   }
 }
