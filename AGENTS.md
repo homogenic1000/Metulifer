@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — spec UI Figma
+- **Tâche** : Gravure de la spec UI depuis le wireframe Figma
+- **Fichiers** : `AGENTS.md`
+- **Modifs** : nouvelle §8 « Spec UI — Figma validé » (node `121:16` : 6 rangées, 32 steps, longueur/volume, écran multi-rôle, CLOCK + Play/Stop, SynthPanel pagination, VCF LPF/HPF+cutoff, Mix=niveaux VCO, LFO/reverb reportés) ; §7 Décisions complétées (APVTS 6 séquences + re-binding, steps en ValueTree) ; checklist renumérotée §9. Réunion de validation avec l'humain : hypothèses Wave=4 positions et LPF/HPF exclusifs acceptées.
+- **Build** : — (pas de code C++)
+- **Commit** : — (ce commit)
+- **Next steps** : Phase 2 — UI skeleton statique (SequenceRowComponent, DisplayScreen, SynthPanel)
+
 ### 2026-10-06 — allègement permissions
 - **Tâche** : opencode.json moins restrictif
 - **Fichiers** : `opencode.json`, `AGENTS.md`
@@ -209,12 +217,59 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | 2026-10-06 | Collaboration via `AGENTS.md` + `opencode.json` | Deux devs + agents opencode, éviter les conflits et les oublis | setup |
 | 2026-10-06 | `Source/` découpé en `DSP/`, `Sequencer/`, `UI/` | Structurer avant d'implémenter les 6 séquences et leurs synthés | restructuration |
 | 2026-10-06 | `JuceLibraryCode/` + `Builds/` gitignorés | Fichiers générés = bruit et conflits git ; régénérables via `Projucer --resave` | restructuration |
-| _à remplir_ | APVTS pour les paramètres | Pattern standard JUCE, UI↔DSP propre | — |
-| _à remplir_ | Structure classes (Voice, Sequencer, …) | À définir ensemble avant coding | — |
+| 2026-10-06 | **APVTS** avec params des 6 séquences (`seq1_…`→`seq6_…`) ; les attachments du SynthPanel sont **re-pointés au clic** sur une rangée (pagination) | Automation hôte correcte (pas de copie de valeurs) + un seul jeu de knobs | spec UI |
+| 2026-10-06 | **Steps** (32×6) stockés en `ValueTree` sérialisé dans `getStateInformation`, **pas** en 192 paramètres hôte | Évite de polluer l'automation hôte avec les steps | spec UI |
+| 2026-10-06 | **Spec UI validée depuis Figma** (node `121:16`, « FRAME DE MATHE ») — voir §8 | Wireframe = source de vérité layout, corrigée par le dev (24→32 steps) | spec UI |
+| 2026-10-06 | **LFO ×2 + reverb reportés** | UX/UI à designer plus tard (validation humaine) | spec UI |
+| 2026-10-06 | Hypothèses codées : `Wave` = knob pas-à-pas 4 positions ; LPF/HPF = 2 boutons exclusifs | Interprétation du wireframe, validée en séance | spec UI |
 
 ---
 
-## 8. Checklist rapide agent (à chaque session)
+## 8. Spec UI — Figma validé
+
+> Source : Figma « VST » node `121:16` « FRAME DE MATHE » (1280×720), validée le 2026-10-06.
+> Le wireframe montrait 24 steps → **c'est 32** (correction dev, Figma à mettre à jour de son côté).
+
+### Éléments
+
+| Élément Figma | Rôle | Détails |
+|---|---|---|
+| 6 rangées (910×61) | 6 séquences | clic = **sélection (pagination)** |
+| Steps (26×26, `#d9d9d9`) | ON/OFF du pattern | **32 steps** par séquence |
+| Cercle 1 / rangée | **Longueur** de séquence | 0–32 |
+| Cercle 2 / rangée | **Volume** de séquence | — |
+| `[Copy][Paste]` | copier/coller le pattern | par rangée |
+| Rectangle 25 (247×132) | **Écran d'affichage** | idle : signal audio (RMS) · édition : param touché (ex. « attack VCO1 ») · toujours : séquence sélectionnée |
+| CLOCK (297×284) | tempo | gros knob 175×175 + **bouton Play/Stop à côté** |
+| SynthPanel (786×237) | synthé de la **séquence sélectionnée** | re-branché au clic |
+| VCO1 / VCO2 | 2 VCO par séquence | chacun : knob **Octave** + knob **Wave** (4 positions : sine/saw/square/triangle) |
+| ADSR ×2 | 2 ADSRs | 4 knobs chacun (A/D/S/R), taille 31px |
+| `Mix out DB` | niveaux VCO | 2 knobs = **volume individuel VCO1 / VCO2** |
+| `VCF` | filtre | 2 boutons exclusifs **LPF / HPF** + 1 gros knob (**cutoff**) |
+| `LFO` ×2 + `reverb` | **hors périmètre** | à designer plus tard |
+
+### Correspondance → classes JUCE
+
+```
+MetuliferAudioProcessorEditor (1280×720)
+├── SequencerPanel (haut-gauche)
+│   └── 6 × SequenceRowComponent          Source/UI/
+│       ├── CopyButton, PasteButton         juce::TextButton
+│       ├── 32 × StepButton                 juce::TextButton (toggle)
+│       ├── LengthKnob (0–32)               juce::RotarySlider + attachment
+│       └── VolumeKnob                      juce::RotarySlider + attachment
+├── DisplayScreen (Rectangle 25)          Source/UI/DisplayScreen.* (paint custom)
+├── ClockPanel : TempoKnob + PlayStopButton
+├── SynthPanel (re-branché à la sélection)
+│   ├── VCO1 : Octave, Wave   ├── VCO2 : Octave, Wave
+│   ├── ADSR1 ×4              ├── ADSR2 ×4
+│   └── Mix : VCO1, VCO2
+└── VCFPanel : LPF/HPF (exclusifs) + Cutoff
+```
+
+---
+
+## 9. Checklist rapide agent (à chaque session)
 
 - [ ] Lu `AGENTS.md` au début
 - [ ] `git pull` fait
