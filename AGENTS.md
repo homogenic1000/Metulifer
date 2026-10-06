@@ -23,13 +23,19 @@ Metulifer/
 ├── Source/                   # ← SEUL dossier de code à modifier
 │   ├── PluginProcessor.h/.cpp  # AudioProcessor (DSP, état)
 │   ├── PluginEditor.h/.cpp     # AudioProcessorEditor (UI)
-│   └── Main.cpp                # Placeholder vide, non référencé
-├── JuceLibraryCode/          # GÉNÉRÉ — ne pas toucher à la main
-├── Builds/                   # GÉNÉRÉ — ne pas toucher à la main
+│   ├── DSP/                    # futurs : Voice, VCO, ADSR, Filter
+│   ├── Sequencer/              # futurs : Sequencer, Sequence, Step
+│   └── UI/                     # futurs : Knobs, grille d'étapes
+├── JuceLibraryCode/          # GÉNÉRÉ — gitignoré — jamais à la main
+├── Builds/                   # GÉNÉRÉ — gitignoré — jamais à la main
 ├── AGENTS.md                 # Ce fichier (protocole + journal)
 ├── opencode.json             # Config opencode (permissions)
 └── README.md                 # Doc projet
 ```
+
+> `JuceLibraryCode/` et `Builds/` **ne sont plus suivis par git** (2026-10-06)
+> pour éviter les conflits sur fichiers générés. Après un clone/pull frais,
+> ou si ces dossiers manquent → régénérer (voir §6).
 
 ---
 
@@ -109,18 +115,37 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — restructuration dépôt
+- **Tâche** : Nettoyage + arborescence Source + désengorgement git
+- **Fichiers** : `Source/Main.cpp` (supprimé), `.gitignore`, `Source/DSP|Sequencer|UI/.gitkeep`, `AGENTS.md`
+- **Modifs** : (1) suppression de `Source/Main.cpp` (vide, non référencé dans le .jucer). (2) création des sous-dossiers `Source/DSP/`, `Source/Sequencer/`, `Source/UI/` (à remplir). (3) `JuceLibraryCode/` + `Builds/` retirés du suivi git et gitignorés — repo = fichiers réels seulement ; règle §6 « --resave » ajoutée. (4) Conflit git résolu : le binôme avait poussé `c388340` (doublon README supprimé) pendant notre commit docs → rebase `git pull --rebase`, aucun conflit, historique linéaire.
+- **Build** : ✅ OK
+- **Commit** : — (ce commit)
+- **Next steps** : Implémenter le synthé (DSP/) et le séquenceur (Sequencer/)
+
 ### 2026-10-06 — setup collab
 - **Tâche** : Création du protocole multi-agents
 - **Fichiers** : `AGENTS.md`, `opencode.json`
 - **Modifs** : Protocole de collaboration (lecture avant modif, journal après, git pull, conventional commits, build test avant commit). Config opencode : deny sur JuceLibraryCode/ et Builds/.
 - **Build** : — (pas de code C++)
-- **Commit** : — (ce commit)
+- **Commit** : `bdf04e6` — `docs: add AGENTS.md collaboration protocol and opencode.json config`
 - **Next steps** : Implémenter le synthé (VCO/ADSR/filtre) et le séquenceur
 ```
 
 ---
 
 ## 6. Build obligatoire avant commit
+
+### Régénérer les fichiers Projucer (si `Builds/` ou `JuceLibraryCode/` manquent)
+
+```bash
+~/JUCE/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer
+```
+
+> ⚠️ Après un clone ou un pull qui amène un nouveau `.jucer`, **toujours
+> resave** avant de builder.
+
+### Build
 
 ```bash
 xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
@@ -130,7 +155,7 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 
 - Le build doit être **vert** avant chaque commit.
 - Si `xcodebuild` est introuvable : `xcode-select -s /Applications/Xcode.app`.
-- Si le build casse à cause de `Builds/` ou `JuceLibraryCode/` obsolètes → régénérer via Projucer, ne pas patcher à la main.
+- Ne jamais patcher `Builds/` ni `JuceLibraryCode/` à la main → resave Projucer.
 
 ---
 
@@ -142,6 +167,8 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | Date | Décision | Raison | Par |
 |---|---|---|---|
 | 2026-10-06 | Collaboration via `AGENTS.md` + `opencode.json` | Deux devs + agents opencode, éviter les conflits et les oublis | setup |
+| 2026-10-06 | `Source/` découpé en `DSP/`, `Sequencer/`, `UI/` | Structurer avant d'implémenter les 6 séquences et leurs synthés | restructuration |
+| 2026-10-06 | `JuceLibraryCode/` + `Builds/` gitignorés | Fichiers générés = bruit et conflits git ; régénérables via `Projucer --resave` | restructuration |
 | _à remplir_ | APVTS pour les paramètres | Pattern standard JUCE, UI↔DSP propre | — |
 | _à remplir_ | Structure classes (Voice, Sequencer, …) | À définir ensemble avant coding | — |
 

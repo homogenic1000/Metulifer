@@ -1,3 +1,7 @@
 .DS_Store
-Builds/*/build/
 xcuserdata/
+
+# Générés par Projucer — régénérer avec :
+#   ~/JUCE/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer
+JuceLibraryCode/
+Builds/
