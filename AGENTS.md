@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — setup CLI
+- **Tâche** : Alias shell `Projucer` + doc one-liner pour le binôme
+- **Fichiers** : `~/.zshrc` (alias local, hors repo), `AGENTS.md`
+- **Modifs** : §6 — bloc « Setup une seule fois » (commande `printf >> ~/.zshrc`) pour que chaque dev tape ensuite simplement `Projucer --resave Metulifer.jucer` ; note `DEVELOPER_DIR=` ajoutée au build (erreurs de xcode-select vues en séance).
+- **Build** : ✅ OK (`DEVELOPER_DIR=… xcodebuild` vert — pas de changement code, re-test après resave)
+- **Commit** : — (ce commit)
+- **Next steps** : Implémenter le synthé (DSP/) et le séquenceur (Sequencer/)
+
 ### 2026-10-06 — restructuration dépôt
 - **Tâche** : Nettoyage + arborescence Source + désengorgement git
 - **Fichiers** : `Source/Main.cpp` (supprimé), `.gitignore`, `Source/DSP|Sequencer|UI/.gitkeep`, `AGENTS.md`
@@ -138,9 +146,20 @@ Metulifer/
 
 ### Régénérer les fichiers Projucer (si `Builds/` ou `JuceLibraryCode/` manquent)
 
+**Setup une seule fois** (ajoute l'alias `Projucer` au shell — à faire par chaque dev) :
+
 ```bash
-~/JUCE/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer
+printf '\nalias Projucer="$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer"\n' >> ~/.zshrc && source ~/.zshrc
 ```
+
+Puis à chaque fois :
+
+```bash
+Projucer --resave Metulifer.jucer
+```
+
+> Sans l'alias, la forme complète est
+> `~/JUCE/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer`.
 
 > ⚠️ Après un clone ou un pull qui amène un nouveau `.jucer`, **toujours
 > resave** avant de builder.
@@ -155,6 +174,8 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 
 - Le build doit être **vert** avant chaque commit.
 - Si `xcodebuild` est introuvable : `xcode-select -s /Applications/Xcode.app`.
+- Si `xcodebuild` répond *"requires Xcode, but active developer directory is a command line tools instance"* → préfixer avec :
+  `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild …`
 - Ne jamais patcher `Builds/` ni `JuceLibraryCode/` à la main → resave Projucer.
 
 ---
