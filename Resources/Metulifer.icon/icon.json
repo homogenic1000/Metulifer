@@ -1,0 +1,33 @@
+{
+  "fill" : {
+    "solid" : "srgb:0.98513,0.98403,1.00000,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "Artboard 2.png",
+          "name" : "Artboard 2"
+        },
+        {
+          "image-name" : "Artboard 1.png",
+          "name" : "Artboard 1"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

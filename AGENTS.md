@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-07 — icône d'app (Icon Composer → compilation auto)
+- **Tâche** : intégrer le logo livré (export Icon Composer) pour qu'il soit **généré à chaque build Xcode**
+- **Fichiers** : `Resources/Metulifer.icon/` (neuf : `icon.json` + `Assets/Artboard 1.png`, `Assets/Artboard 2.png`), `Metulifer.jucer`, `AGENTS.md`
+- **Modifs** : (1) bundle `.icon` d'Icon Composer copié depuis `~/Desktop/metufilfer_logo/Untitled.icon` → `Resources/Metulifer.icon` (renommé au nom du plugin). (2) `.jucer` : FILE `Resources/Metulifer.icon/icon.json` ajouté dans le groupe `Resources` existant (`compile="0" resource="0"` — Projucer détecte les icônes via `icon.json` dans un dossier `.icon`, cf. `Project::findAllIconComposerItems()`), + attribut **`iconComposerIcon="icMt1a"`** sur `<XCODE_MAC>`. (3) `Projucer --resave` : le pbxproj référence le dossier `Metulifer.icon` dans les Resources de **tous** les targets et pose `ASSETCATALOG_COMPILER_APPICON_NAME = Metulifer` sur chaque configuration. **Aucun script ajouté** — c'est `actool` qui compile le `.icon` à chaque build. (4) Vérifié dans l'app produite : `Resources/Assets.car` (1.9 Mo) contient `IconGroup "Metulifer"` + 8 `Icon Image`, `Resources/Metulifer.icns` (legacy), `Info.plist` → `CFBundleIconName = Metulifer` et `CFBundleIconFile = Metulifer`. Piège noté : Projucer écrit `lastKnownFileType = file.icon` (et non `folder.iconcomposer.icon`) — Xcode 27 l'compile quand même.
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`)
+- **Commit** : — (ce commit)
+- **Next steps** : vérifier visuellement l'icône dans le Dock/Finder ; decider du sort de `exports/` (doublon des PNG d'export, non tracké)
+
 ### 2026-10-07 — fix : aucun son (steps jamais écrits)
 - **Tâche** : diagnostic « toujours aucun son » alors que Play + steps semblent actifs
 - **Fichiers** : `Source/UI/SequencerPanel.cpp`
