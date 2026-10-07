@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-07 — SynthPanel : rangées = VCO (fidélité Figma)
+- **Tâche** : Restructurer le SynthPanel — chaque rangée = un VCO (VCO1 haut, VCO2 bas), colonnes = paramètres
+- **Fichiers** : `Source/UI/SynthPanel.cpp`
+- **Modifs** : (1) Labels : suppression des titres « VCO1 »/« VCO2 » **côte à côte** au-dessus des knobs et des doublons « Octave »/« Wave » (un par colonne VCO) ; désormais **4 en-têtes de colonne** en haut (`Octave` x28, `Wave` x176, `ADSR` x298, `Mix out DB` x499) + **labels de rangée** `VCO1`/`VCO2` **empilés à gauche** (x0, centrés sur chaque rangée) ; « ADSR 1 »/« ADSR 2 » → un seul titre **« ADSR »** ; sous-titres Mix VCO1/VCO2 supprimés (identification par labels de rangée). (2) Knobs gros **78 → 86 px** (taille Figma). (3) Grille : rangée 1 (VCO1) knobs y40, ADSR1 y67, lettres A/D/S/R y99 ; rangée 2 (VCO2) knobs y131, ADSR2 y158, lettres y190 ; gap inter-rangées 5 px ; ADSR1 centré optiquement sur les knobs (y67 vs y61.6 Figma, offset de 6 px dans le wireframe). (4) Wireframe relu via MCP Figma (`get_design_context` node `121:215`) : structure **colonnes = params / rangées = VCO** confirmée — **anomalie Figma** : Frames 17/18 dupliqués exactement superposés (double « Octave ») → on ne rend qu'une colonne, à nettoyer côté Figma. (5) **LFO ×2 + reverb apparus dans le wireframe** (x874/1013/1144, y471, 105×224, structure identique VCF : titre + 2 boutons 50×49 + 1 knob 86) — **pas encore implémentés** (sémantique boutons/knob à valider ; décision §7 « reportés » toujours active).
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`)
+- **Commit** : — (ce commit)
+- **Next steps** : valider la sémantique LFO×2 + reverb (params) ; Phase 4 — `Sequencer/` (clock, Play/Stop, avance des steps) + `DSP/` (Voice) branchés aux params
+
 ### 2026-10-06 — Phase 3 : APVTS + pagination + écran live
 - **Tâche** : Paramètres host, re-binding au clic, steps sérialisés, écran « param touché / signal »
 - **Fichiers** : `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Source/UI/{DisplayScreen,SequenceRowComponent,SequencerPanel,VCFPanel}.{h,cpp}`
@@ -238,12 +246,13 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | 2026-10-06 | **Spec UI validée depuis Figma** (node `121:16`, « FRAME DE MATHE ») — voir §8 | Wireframe = source de vérité layout, corrigée par le dev (24→32 steps) | spec UI |
 | 2026-10-06 | **LFO ×2 + reverb reportés** | UX/UI à designer plus tard (validation humaine) | spec UI |
 | 2026-10-06 | Hypothèses codées : `Wave` = knob pas-à-pas 4 positions ; LPF/HPF = 2 boutons exclusifs | Interprétation du wireframe, validée en séance | spec UI |
+| 2026-10-07 | **SynthPanel : colonnes = paramètres (Octave/Wave/ADSR/Mix), rangées = VCO1/VCO2** (labels de rangée à gauche), knobs 86 px | Wireframe Figma mis à jour + « chaque rangée est un VCO » (dev) | layout Figma |
 
 ---
 
 ## 8. Spec UI — Figma validé
 
-> Source : Figma « VST » node `121:16` « FRAME DE MATHE » (1280×720), validée le 2026-10-06.
+> Source : Figma « VST » node `121:16` « FRAME DE MATHE » (1280×720), validée le 2026-10-06, **mise à jour 2026-10-07** (SynthPanel + LFO/reverb).
 > Le wireframe montrait 24 steps → **c'est 32** (correction dev, Figma à mettre à jour de son côté).
 
 ### Éléments
@@ -257,12 +266,12 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | `[Copy][Paste]` | copier/coller le pattern | par rangée |
 | Rectangle 25 (247×132) | **Écran d'affichage** | idle : signal audio (RMS) · édition : param touché (ex. « attack VCO1 ») · toujours : séquence sélectionnée |
 | CLOCK (297×284) | tempo | gros knob 175×175 + **bouton Play/Stop à côté** |
-| SynthPanel (786×237) | synthé de la **séquence sélectionnée** | re-branché au clic |
-| VCO1 / VCO2 | 2 VCO par séquence | chacun : knob **Octave** + knob **Wave** (4 positions : sine/saw/square/triangle) |
-| ADSR ×2 | 2 ADSRs | 4 knobs chacun (A/D/S/R), taille 31px |
-| `Mix out DB` | niveaux VCO | 2 knobs = **volume individuel VCO1 / VCO2** |
+| SynthPanel (786×237) | synthé de la **séquence sélectionnée** | re-branché au clic — **colonnes = paramètres, rangées = VCO1/VCO2** |
+| `Octave` / `Wave` (colonnes, knobs 86 px) | 2 VCOs par séquence | **rangée 1 = VCO1**, **rangée 2 = VCO2** (labels à gauche) ; Wave = 4 positions sine/saw/square/triangle |
+| ADSR ×2 | 2 ADSRs | titre unique « ADSR » ; par rangée : 4 knobs A/D/S/R (31 px) |
+| `Mix out DB` | niveaux VCO | 2 knobs (86 px) : mix VCO1 (rangée 1), mix VCO2 (rangée 2) |
 | `VCF` | filtre | 2 boutons exclusifs **LPF / HPF** + 1 gros knob (**cutoff**) |
-| `LFO` ×2 + `reverb` | **hors périmètre** | à designer plus tard |
+| `LFO` ×2 + `reverb` | **hors périmètre** | **apparus dans le wireframe 2026-10-07** (structure VCF) — implémentation reportée (sémantique à valider) |
 
 ### Correspondance → classes JUCE
 
@@ -277,9 +286,9 @@ MetuliferAudioProcessorEditor (1280×720)
 ├── DisplayScreen (Rectangle 25)          Source/UI/DisplayScreen.* (paint custom)
 ├── ClockPanel : TempoKnob + PlayStopButton
 ├── SynthPanel (re-branché à la sélection)
-│   ├── VCO1 : Octave, Wave   ├── VCO2 : Octave, Wave
-│   ├── ADSR1 ×4              ├── ADSR2 ×4
-│   └── Mix : VCO1, VCO2
+│   ├── colonnes : Octave · Wave · ADSR · Mix out DB (titres en haut)
+│   ├── rangée 1 = « VCO1 » (label à gauche) : oct, wave, ADSR×4, mix
+│   └── rangée 2 = « VCO2 » (label à gauche) : oct, wave, ADSR×4, mix
 └── VCFPanel : LPF/HPF (exclusifs) + Cutoff
 ```
 

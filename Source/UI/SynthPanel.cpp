@@ -20,16 +20,13 @@ SynthPanel::SynthPanel()
     setupKnob (mixVco1, "Mix_VCO1", 0.0, 1.0, 0.01, 0.8);
     setupKnob (mixVco2, "Mix_VCO2", 0.0, 1.0, 0.01, 0.8);
 
-    makeLabel (*this, "VCO1", 13.0f)->setName ("l_vco1");
-    makeLabel (*this, "Octave", 11.0f)->setName ("l_vco1oct");
-    makeLabel (*this, "Wave", 11.0f)->setName ("l_vco1wave");
+    makeLabel (*this, "VCO1", 11.0f)->setName ("l_vco1");
+    makeLabel (*this, "VCO2", 11.0f)->setName ("l_vco2");
 
-    makeLabel (*this, "VCO2", 13.0f)->setName ("l_vco2");
-    makeLabel (*this, "Octave", 11.0f)->setName ("l_vco2oct");
-    makeLabel (*this, "Wave", 11.0f)->setName ("l_vco2wave");
+    makeLabel (*this, "Octave", 13.0f)->setName ("l_oct");
+    makeLabel (*this, "Wave", 13.0f)->setName ("l_wave");
+    makeLabel (*this, "ADSR", 13.0f)->setName ("l_adsr");
 
-    makeLabel (*this, "ADSR 1", 13.0f)->setName ("l_adsr1");
-    makeLabel (*this, "ADSR 2", 13.0f)->setName ("l_adsr2");
     makeLabel (*this, "A", 10.0f)->setName ("l_a1");
     makeLabel (*this, "D", 10.0f)->setName ("l_d1");
     makeLabel (*this, "S", 10.0f)->setName ("l_s1");
@@ -40,8 +37,6 @@ SynthPanel::SynthPanel()
     makeLabel (*this, "R", 10.0f)->setName ("l_r2");
 
     makeLabel (*this, "Mix out DB", 13.0f)->setName ("l_mix");
-    makeLabel (*this, "VCO1", 11.0f)->setName ("l_mix1");
-    makeLabel (*this, "VCO2", 11.0f)->setName ("l_mix2");
 }
 
 void SynthPanel::paint (juce::Graphics& g)
@@ -52,7 +47,7 @@ void SynthPanel::paint (juce::Graphics& g)
 
 void SynthPanel::resized()
 {
-    const int big = 78;
+    const int big = 86;
     const int adsr = 31;
 
     auto labelFor = [this] (const juce::String& name) -> juce::Label*
@@ -69,43 +64,37 @@ void SynthPanel::resized()
             c->setBounds (x, y, w, h);
     };
 
-    auto vcoGroup = [&] (int x, const juce::String& idx, juce::Slider& oct, juce::Slider& wave)
-    {
-        place (labelFor ("l_vco" + idx), x, 6, 86, 16);
-        place (labelFor ("l_vco" + idx + "oct"), x, 24, 86, 12);
-        oct.setBounds (x, 37, big, big);
-        place (labelFor ("l_vco" + idx + "wave"), x, 117, 86, 12);
-        wave.setBounds (x, 130, big, big);
-    };
+    place (labelFor ("l_vco1"), 0, 76, 26, 14);
+    place (labelFor ("l_vco2"), 0, 167, 26, 14);
 
-    vcoGroup (28, "1", vco1Octave, vco1Wave);
-    vcoGroup (176, "2", vco2Octave, vco2Wave);
+    place (labelFor ("l_oct"),   28, 14, 86, 16);
+    place (labelFor ("l_wave"), 176, 14, 86, 16);
+    place (labelFor ("l_adsr"), 298, 14, 148, 16);
+    place (labelFor ("l_mix"),  499, 14, 93, 16);
 
-    place (labelFor ("l_adsr1"), 298, 8, 148, 16);
+    vco1Octave.setBounds (28, 40, big, big);
+    vco1Wave   .setBounds (176, 40, big, big);
+    mixVco1    .setBounds (503, 40, big, big);
 
     juce::Slider* adsr1[4] = { &adsr1Attack, &adsr1Decay, &adsr1Sustain, &adsr1Release };
     const char* adsr1Names[4] = { "l_a1", "l_d1", "l_s1", "l_r1" };
     for (int i = 0; i < 4; ++i)
     {
-        adsr1[i]->setBounds (298 + i * 39, 58, adsr, adsr);
-        place (labelFor (adsr1Names[i]), 298 + i * 39, 91, adsr, 12);
+        adsr1[i]->setBounds (298 + i * 39, 67, adsr, adsr);
+        place (labelFor (adsr1Names[i]), 298 + i * 39, 99, adsr, 12);
     }
 
-    place (labelFor ("l_adsr2"), 298, 116, 148, 16);
+    vco2Octave.setBounds (28, 131, big, big);
+    vco2Wave   .setBounds (176, 131, big, big);
+    mixVco2    .setBounds (503, 131, big, big);
 
     juce::Slider* adsr2[4] = { &adsr2Attack, &adsr2Decay, &adsr2Sustain, &adsr2Release };
     const char* adsr2Names[4] = { "l_a2", "l_d2", "l_s2", "l_r2" };
     for (int i = 0; i < 4; ++i)
     {
-        adsr2[i]->setBounds (298 + i * 39, 146, adsr, adsr);
-        place (labelFor (adsr2Names[i]), 298 + i * 39, 179, adsr, 12);
+        adsr2[i]->setBounds (298 + i * 39, 158, adsr, adsr);
+        place (labelFor (adsr2Names[i]), 298 + i * 39, 190, adsr, 12);
     }
-
-    place (labelFor ("l_mix"), 499, 6, 93, 16);
-    place (labelFor ("l_mix1"), 503, 24, 86, 12);
-    mixVco1.setBounds (503, 37, big, big);
-    place (labelFor ("l_mix2"), 503, 117, 86, 12);
-    mixVco2.setBounds (503, 130, big, big);
 }
 
 void SynthPanel::setupKnob (juce::Slider& knob, const juce::String& name,
