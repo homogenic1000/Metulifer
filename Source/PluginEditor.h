@@ -15,6 +15,8 @@
 #include "UI/ClockPanel.h"
 #include "UI/SynthPanel.h"
 #include "UI/VCFPanel.h"
+#include "UI/LFOPanel.h"
+#include "UI/CableLayer.h"
 #include "UI/MetuliferLookAndFeel.h"
 
 //==============================================================================
@@ -41,6 +43,9 @@ private:
     void clearParamDisplay();
     void setFilterTypeParam (bool useLpf);
     void updateFilterButtons();
+    void setLfoWave (int lfoIndex, int waveIndex);
+    void setLfoPower (int lfoIndex, bool on);
+    void refreshCableTargets();
 
     void sliderValueChanged (juce::Slider* slider) override;
     void sliderDragStarted (juce::Slider* slider) override;
@@ -56,9 +61,12 @@ private:
     ClockPanel clockPanel;
     SynthPanel synthPanel;
     VCFPanel vcfPanel;
+    LFOPanel lfoPanel1 { "LFO1" }, lfoPanel2 { "LFO2" };
+    CableLayer cableLayer;
 
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> synthAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> vcfAttachments;
+    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> lfoAttachments;
     std::map<juce::Slider*, juce::String> sliderParamIds;
 
     juce::String filterParamId;

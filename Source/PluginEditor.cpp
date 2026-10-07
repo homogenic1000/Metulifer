@@ -23,6 +23,9 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     addAndMakeVisible (clockPanel);
     addAndMakeVisible (synthPanel);
     addAndMakeVisible (vcfPanel);
+    addAndMakeVisible (lfoPanel1);
+    addAndMakeVisible (lfoPanel2);
+    addAndMakeVisible (cableLayer); // au-dessus de tout (hitTest limité aux jacks/câbles)
 
     sequencerPanel.onSelectionChanged = [this] (int index)
     {
@@ -64,6 +67,39 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
         }
 
     track (clockPanel.tempoKnob, "tempo", "tempo");
+
+    // LFO : bindings globaux (jamais re-bindés).
+    {
+        updatingBindings = true;
+
+        auto bindLfoKnob = [this, &track] (juce::Slider& knob, const juce::String& paramId,
+                                           const juce::String& display)
+        {
+            track (knob, paramId, display);
+            lfoAttachments.push_back (std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
+                audioProcessor.apvts, paramId, knob));
+        };
+
+        struct { LFOPanel& panel; int index; } lfos[] = { { lfoPanel1, 0 }, { lfoPanel2, 1 } };
+
+        for (auto& l : lfos)
+        {
+            const auto n = juce::String (l.index + 1);
+            bindLfoKnob (l.panel.rateKnob,   "lfo" + n + "_rate",   "rate lfo" + n);
+            bindLfoKnob (l.panel.offsetKnob, "lfo" + n + "_offset", "offset lfo" + n);
+            bindLfoKnob (l.panel.depthKnob,  "lfo" + n + "_depth",  "depth lfo" + n);
+
+            const auto idx = l.index;
+            l.panel.onWaveClicked = [this, idx] (int wave)
+            { setLfoWave (idx, wave); };
+            l.panel.onPowerClicked = [this, idx] (bool on)
+            { setLfoPower (idx, on); };
+        }
+
+        updatingBindings = false;
+    }
+
+    cableLayer.setModTree (audioProcessor.getModTree(), &audioProcessor.undoManager);
 
     // Knobs re-bound on every sequence selection (ids/display set in bindSequence).
     for (auto* knob : { &synthPanel.vco1Note, &synthPanel.vco1Wave,
@@ -114,6 +150,44 @@ void MetuliferAudioProcessorEditor::resized()
     clockPanel.setBounds (961, 164, 297, 284);
     synthPanel.setBounds (32, 458, 786, 237);
     vcfPanel.setBounds (684, 471, 105, 224);
+    lfoPanel1.setBounds (874, 471, 105, 224);
+    lfoPanel2.setBounds (1013, 471, 105, 224);
+    cableLayer.setBounds (0, 0, getWidth(), getHeight());
+
+    refreshCableTargets();
+}
+
+void MetuliferAudioProcessorEditor::refreshCableTargets()
+{
+    std::vector<CableLayer::Source> src;
+    for (int i = 0; i < 2; ++i)
+    {
+        auto& panel = i == 0 ? lfoPanel1 : lfoPanel2;
+        src.push_back ({ i, panel.getJackBounds()
+                                + juce::Point<float> ((float) panel.getX(), (float) panel.getY()) });
+    }
+    cableLayer.setSources (std::move (src));
+
+    std::vector<CableLayer::Target> tgt;
+
+    struct Ref { juce::Slider* knob; const char* suffix; };
+
+    const Ref refs[] = {
+        { &synthPanel.adsr1Attack,  "a1"   }, { &synthPanel.adsr1Decay,   "d1"   },
+        { &synthPanel.adsr1Sustain, "s1"   }, { &synthPanel.adsr1Release, "r1"   },
+        { &synthPanel.adsr2Attack,  "a2"   }, { &synthPanel.adsr2Decay,   "d2"   },
+        { &synthPanel.adsr2Sustain, "s2"   }, { &synthPanel.adsr2Release, "r2"   },
+        { &synthPanel.mixVco1,      "mix1" }, { &synthPanel.mixVco2,      "mix2" },
+        { &vcfPanel.cutoffKnob,     "cutoff" },
+    };
+
+    for (const auto& r : refs)
+        tgt.push_back ({ r.suffix,
+                         r.knob->getBounds().toFloat()
+                             + juce::Point<float> ((float) r.knob->getParentComponent()->getX(),
+                                                   (float) r.knob->getParentComponent()->getY()) });
+
+    cableLayer.setTargets (std::move (tgt));
 }
 
 //==============================================================================
@@ -121,6 +195,7 @@ void MetuliferAudioProcessorEditor::sequenceSelected (int index)
 {
     displayScreen.setSequenceNumber (index + 1);
     bindSequence (index);
+    cableLayer.setSelectedSequence (index);
     clearParamDisplay();
 }
 
@@ -260,6 +335,34 @@ void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parame
     auto* param = audioProcessor.apvts.getParameter (parameterID);
     if (param != nullptr)
         showText ("filter " + juce::String (param->getValue() < 0.5f ? "LPF" : "HPF"));
+}
+
+//==============================================================================
+void MetuliferAudioProcessorEditor::setLfoWave (int lfoIndex, int waveIndex)
+{
+    auto* param = audioProcessor.apvts.getParameter ("lfo" + juce::String (lfoIndex + 1) + "_wave");
+    if (param == nullptr)
+        return;
+
+    param->beginChangeGesture();
+    param->setValueNotifyingHost ((float) waveIndex / 3.0f);
+    param->endChangeGesture();
+
+    static const char* names[] = { "sine", "saw", "square", "triangle" };
+    showText ("wave lfo" + juce::String (lfoIndex + 1) + " " + names[juce::jlimit (0, 3, waveIndex)]);
+}
+
+void MetuliferAudioProcessorEditor::setLfoPower (int lfoIndex, bool on)
+{
+    auto* param = audioProcessor.apvts.getParameter ("lfo" + juce::String (lfoIndex + 1) + "_enabled");
+    if (param == nullptr)
+        return;
+
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+    param->endChangeGesture();
+
+    showText ("lfo" + juce::String (lfoIndex + 1) + " " + (on ? "on" : "off"));
 }
 
 //==============================================================================

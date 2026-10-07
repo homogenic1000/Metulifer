@@ -100,6 +100,31 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
     layout.add (std::make_unique<juce::AudioParameterInt> (
         juce::ParameterID { "tempo", 1 }, "Tempo", 20, 300, 120, bpmAttr));
 
+    {
+        juce::NormalisableRange<float> rateRange (0.1f, 20.0f, 0.01f);
+        rateRange.setSkewForCentre (1.0f);
+
+        for (int i = 1; i <= 2; ++i)
+        {
+            const juce::String lid = "lfo" + juce::String (i) + "_";
+            const juce::String lnm = "LFO" + juce::String (i) + " ";
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { lid + "rate", 1 }, lnm + "Rate", rateRange, 1.0f, hzAttr));
+            layout.add (std::make_unique<juce::AudioParameterChoice> (
+                juce::ParameterID { lid + "wave", 1 }, lnm + "Wave",
+                juce::StringArray { "Sine", "Saw", "Square", "Triangle" }, 0));
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { lid + "offset", 1 }, lnm + "Offset",
+                juce::NormalisableRange<float> (-100.0f, 100.0f, 1.0f), 0.0f, pctAttr));
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { lid + "depth", 1 }, lnm + "Depth",
+                juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f, pctAttr));
+            layout.add (std::make_unique<juce::AudioParameterBool> (
+                juce::ParameterID { lid + "enabled", 1 }, lnm + "Enabled", false));
+        }
+    }
+
     return layout;
 }
 
@@ -134,12 +159,25 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
         src.lengths[i] = apvts.getRawParameterValue (seqParamId (i, "length"));
 
     engine.setSources (src);
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto lid = "lfo" + juce::String (i + 1) + "_";
+        lfoRate[i]     = apvts.getRawParameterValue (lid + "rate");
+        lfoWave[i]     = apvts.getRawParameterValue (lid + "wave");
+        lfoOffset[i]   = apvts.getRawParameterValue (lid + "offset");
+        lfoDepth[i]     = apvts.getRawParameterValue (lid + "depth");
+        lfoEnabled[i]  = apvts.getRawParameterValue (lid + "enabled");
+    }
+
     stepsTree.addListener (this);
+    modTree.addListener (this);
 }
 
 MetuliferAudioProcessor::~MetuliferAudioProcessor()
 {
     stepsTree.removeListener (this);
+    modTree.removeListener (this);
 }
 
 //==============================================================================
@@ -204,6 +242,94 @@ void MetuliferAudioProcessor::valueTreePropertyChanged (juce::ValueTree& tree,
         for (int i = 0; i < numSequences; ++i)
             patterns[i].store (getStepPattern (i), std::memory_order_relaxed);
     }
+}
+
+void MetuliferAudioProcessor::valueTreeChildAdded (juce::ValueTree& parent, juce::ValueTree&)
+{
+    if (parent == modTree)
+        rebuildCables();
+}
+
+void MetuliferAudioProcessor::valueTreeChildRemoved (juce::ValueTree& parent, juce::ValueTree&, int)
+{
+    if (parent == modTree)
+        rebuildCables();
+}
+
+MetuliferAudioProcessor::DestField MetuliferAudioProcessor::fieldForDest (const juce::String& paramId)
+{
+    const auto dot = paramId.indexOfChar ('_');
+    const auto suffix = dot >= 0 ? paramId.substring (dot + 1) : juce::String();
+
+    if (suffix == "a1")      return fA1;
+    if (suffix == "d1")      return fD1;
+    if (suffix == "s1")      return fS1;
+    if (suffix == "r1")      return fR1;
+    if (suffix == "a2")      return fA2;
+    if (suffix == "d2")      return fD2;
+    if (suffix == "s2")      return fS2;
+    if (suffix == "r2")      return fR2;
+    if (suffix == "mix1")    return fMix1;
+    if (suffix == "mix2")    return fMix2;
+    if (suffix == "cutoff")  return fCutoff;
+
+    return fInvalid;
+}
+
+void MetuliferAudioProcessor::setField (Voice::Params& p, DestField field, float value)
+{
+    switch (field)
+    {
+        case fA1:      p.attack1   = value; break;
+        case fD1:      p.decay1    = value; break;
+        case fS1:      p.sustain1  = value; break;
+        case fR1:      p.release1  = value; break;
+        case fA2:      p.attack2   = value; break;
+        case fD2:      p.decay2    = value; break;
+        case fS2:      p.sustain2  = value; break;
+        case fR2:      p.release2  = value; break;
+        case fMix1:    p.mixDb1    = value; break;
+        case fMix2:    p.mixDb2    = value; break;
+        case fCutoff:  p.cutoff    = value; break;
+        case fInvalid: break;
+    }
+}
+
+void MetuliferAudioProcessor::rebuildCables()
+{
+    const int target = 1 - activeBuffer.load (std::memory_order_relaxed);
+    auto& buffer = cableBuffers[target];
+    int count = 0;
+
+    for (int i = 0; i < modTree.getNumChildren() && count < maxCables; ++i)
+    {
+        const auto child = modTree.getChild (i);
+
+        if (! child.hasType ("cable"))
+            continue;
+
+        RuntimeCable cable;
+        cable.lfo = juce::jlimit (0, 1, (int) child.getProperty ("src", 0));
+        cable.field = fieldForDest (child.getProperty ("dest").toString());
+
+        if (cable.field == fInvalid)
+            continue;
+
+        cable.param = apvts.getParameter (child.getProperty ("dest").toString());
+        cable.raw = apvts.getRawParameterValue (child.getProperty ("dest").toString());
+
+        const auto seqPrefix = child.getProperty ("dest").toString().upToFirstOccurrenceOf ("_", false, true);
+        cable.seqIndex = seqPrefix.getIntValue() - 1;
+
+        if (cable.param == nullptr || cable.raw == nullptr
+             || ! juce::isPositiveAndBelow (cable.seqIndex, numSequences))
+            continue;
+
+        buffer[count++] = cable;
+    }
+
+    cableCounts[target].store (count, std::memory_order_release);
+    activeBuffer.store (target, std::memory_order_release);
 }
 
 //==============================================================================
@@ -285,8 +411,10 @@ void MetuliferAudioProcessor::setStepPattern (int seqIndex, int pattern)
 }
 
 //==============================================================================
-void MetuliferAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void MetuliferAudioProcessor::prepareToPlay (double sampleRateIn, int samplesPerBlock)
 {
+    sampleRate = sampleRateIn;
+
     engine.prepare (sampleRate);
 
     for (auto& voice : voices)
@@ -335,8 +463,31 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     for (int ch = 0; ch < numChannels; ++ch)
         buffer.clear (ch, 0, numSamples);
 
+    updateLfos (numSamples);
+
+    Voice::Params params[numSequences];
     for (int s = 0; s < numSequences; ++s)
-        voices[s].setParams (voiceSources[s].read());
+        params[s] = voiceSources[s].read();
+
+    {
+        const int active = activeBuffer.load (std::memory_order_acquire);
+        const int cableCount = cableCounts[active].load (std::memory_order_acquire);
+
+        for (int c = 0; c < cableCount; ++c)
+        {
+            const auto& cable = cableBuffers[active][c];
+
+            if (lfoValue[cable.lfo] == 0.0f)
+                continue;
+
+            float norm = cable.param->convertTo0to1 (cable.raw->load (std::memory_order_relaxed));
+            norm = juce::jlimit (0.0f, 1.0f, norm + lfoValue[cable.lfo] * 0.5f);
+            setField (params[cable.seqIndex], cable.field, cable.param->convertFrom0to1 (norm));
+        }
+    }
+
+    for (int s = 0; s < numSequences; ++s)
+        voices[s].setParams (params[s]);
 
     if (engine.takePendingNoteOff())
         for (auto& voice : voices)
@@ -389,6 +540,55 @@ void MetuliferAudioProcessor::renderVoices (juce::AudioBuffer<float>& buffer,
         voice.render (buffer, startSample, numSamples);
 }
 
+void MetuliferAudioProcessor::updateLfos (int numSamples)
+{
+    const int active = activeBuffer.load (std::memory_order_acquire);
+    const int cableCount = cableCounts[active].load (std::memory_order_acquire);
+
+    const double dt = (double) numSamples / juce::jmax (1.0, sampleRate);
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const bool enabled = lfoEnabled[i] != nullptr
+                             && lfoEnabled[i]->load (std::memory_order_relaxed) > 0.5f;
+
+        bool hasCables = false;
+        for (int c = 0; c < cableCount; ++c)
+            if (cableBuffers[active][c].lfo == i)
+            {
+                hasCables = true;
+                break;
+            }
+
+        if (! enabled || ! hasCables)
+        {
+            lfoValue[i] = 0.0f;
+            continue;
+        }
+
+        const float rate = juce::jlimit (0.1f, 20.0f, lfoRate[i]->load (std::memory_order_relaxed));
+        lfoPhase[i] += rate * dt;
+        lfoPhase[i] -= std::floor (lfoPhase[i]);
+
+        const float p = (float) lfoPhase[i];
+        float w = 0.0f;
+
+        switch ((int) lfoWave[i]->load (std::memory_order_relaxed))
+        {
+            case 0:  w = std::sin (p * juce::MathConstants<float>::twoPi); break;
+            case 1:  w = 2.0f * p - 1.0f; break;
+            case 2:  w = p < 0.5f ? 1.0f : -1.0f; break;
+            case 3:  w = 1.0f - 4.0f * std::abs (p - 0.5f); break;
+            default: break;
+        }
+
+        const float depth = juce::jlimit (0.0f, 1.0f, lfoDepth[i]->load (std::memory_order_relaxed) / 100.0f);
+        const float offset = juce::jlimit (-1.0f, 1.0f, lfoOffset[i]->load (std::memory_order_relaxed) / 100.0f);
+
+        lfoValue[i] = juce::jlimit (-1.0f, 1.0f, w * depth + offset);
+    }
+}
+
 //==============================================================================
 bool MetuliferAudioProcessor::hasEditor() const
 {
@@ -406,6 +606,7 @@ void MetuliferAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     auto root = juce::ValueTree ("MetuliferState");
     root.appendChild (apvts.copyState(), nullptr);
     root.appendChild (stepsTree.createCopy(), nullptr);
+    root.appendChild (modTree.createCopy(), nullptr);
 
     if (auto xml = root.createXml())
         copyXmlToBinary (*xml, destData);
@@ -432,6 +633,13 @@ void MetuliferAudioProcessor::setStateInformation (const void* data, int sizeInB
 
         for (int i = 0; i < numSequences; ++i)
             patterns[i].store (getStepPattern (i), std::memory_order_relaxed);
+    }
+
+    auto modState = root.getChildWithName (modTree.getType());
+    if (modState.isValid())
+    {
+        modTree.copyPropertiesAndChildrenFrom (modState, nullptr);
+        rebuildCables();
     }
 }
 

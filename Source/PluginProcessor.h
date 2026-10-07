@@ -70,6 +70,9 @@ public:
     int  getStepPattern (int seqIndex) const;
     void setStepPattern (int seqIndex, int pattern);
 
+    /** Modulation tree: children cable { src (0|1), dest (param id) }. */
+    juce::ValueTree getModTree() const { return modTree; }
+
     float getCurrentRms() const noexcept { return rms.load (std::memory_order_relaxed); }
 
     void setPlaying (bool shouldPlay);
@@ -100,14 +103,52 @@ private:
     void renderVoices (juce::AudioBuffer<float>& buffer, int startSample, int numSamples);
     void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
                                    const juce::Identifier& property) override;
+    void valueTreeChildAdded (juce::ValueTree& parent, juce::ValueTree&) override;
+    void valueTreeChildRemoved (juce::ValueTree& parent, juce::ValueTree&, int) override;
+
+    enum DestField
+    {
+        fA1, fD1, fS1, fR1, fA2, fD2, fS2, fR2, fMix1, fMix2, fCutoff, fInvalid
+    };
+
+    static DestField fieldForDest (const juce::String& paramId);
+    static void setField (Voice::Params& p, DestField field, float value);
+    void rebuildCables();
+    void updateLfos (int numSamples);
+
+    static constexpr int maxCables = 32;
+
+    struct RuntimeCable
+    {
+        int lfo = 0;
+        int seqIndex = -1;
+        DestField field = fInvalid;
+        const juce::RangedAudioParameter* param = nullptr;
+        const std::atomic<float>* raw = nullptr;
+    };
+
+    RuntimeCable cableBuffers[2][maxCables] {};
+    std::atomic<int> cableCounts[2] { 0, 0 };
+    std::atomic<int> activeBuffer { 0 };
 
     juce::ValueTree stepsTree { "steps" };
+    juce::ValueTree modTree { "mod" };
     std::atomic<float> rms { 0.0f };
 
     SequencerEngine engine;
     Voice voices[numSequences];
     VoiceSources voiceSources[numSequences];
     std::atomic<int> patterns[numSequences] {};
+
+    // LFO state (message/audio safe: atomics read per block).
+    std::atomic<float>* lfoRate[2] {};
+    std::atomic<float>* lfoWave[2] {};
+    std::atomic<float>* lfoOffset[2] {};
+    std::atomic<float>* lfoDepth[2] {};
+    std::atomic<float>* lfoEnabled[2] {};
+    double lfoPhase[2] {};
+    float  lfoValue[2] { 0.0f, 0.0f };
+    double sampleRate = 44100.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MetuliferAudioProcessor)
 };
