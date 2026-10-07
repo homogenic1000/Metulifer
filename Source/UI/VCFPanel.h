@@ -10,6 +10,9 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
+    void setFilterType (bool useLpf);
+    std::function<void (bool useLpf)> onFilterToggled;
+
     juce::Slider cutoffKnob;
 
 private:

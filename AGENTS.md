@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-06 — Phase 3 : APVTS + pagination + écran live
+- **Tâche** : Paramètres host, re-binding au clic, steps sérialisés, écran « param touché / signal »
+- **Fichiers** : `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Source/UI/{DisplayScreen,SequenceRowComponent,SequencerPanel,VCFPanel}.{h,cpp}`
+- **Modifs** : (1) **APVTS** 109 params : par séquence `seqN_{a1,d1,s1,r1,a2,d2,s2,r2,octave1,wave1,octave2,wave2,mix1,mix2,filter,cutoff,length,volume}` + `tempo` global — A/D/R 0–5000 ms (skew centre 500), S/Volume 0–100 %, Mix −60→+6 dB, Cutoff 20–20000 Hz (skew 1k), Wave = 4 choices, Filter = LPF/HPF choice, Length 1–32 ; unités via `withLabel` + affichage `param->getText()` (normalisé !) + `getLabel()`. (2) **Steps** : `ValueTree stepsTree` (bitfield `p0..p5`), lignes en lecture/écriture + listener côté `SequencerPanel`, sérialisés dans `getStateInformation` avec l'APVTS (pas de params hôte). (3) **RMS** : `std::atomic<float>` calculé en fin de `processBlock` (safe temps réel), lu par un `juce::Timer` 30 Hz dans l'éditeur. (4) **Pagination** : SynthPanel/VCFPanel = attachments **recréés** à chaque clic de rangée (`bindSequence`, flag `updatingBindings` anti-faux-affichage) ; length/volume par rangée + tempo = attachments permanents ; boutons LPF/HPF = choice param (gestion d'interaction dans l'éditeur + listener `parameterChanged` pour l'automation hôte). (5) **Écran** : mode param (nom + valeur + unité en vert gras, ex. `attack 120 ms`) affiché au drag/molette/clic bouton filtre, retour au **signal RMS** après **2 s** d'inactivité ; mode signal par défaut. (6) **Copy/Paste** : clipboard partagé (`juce::var`) dans `SequencerPanel`. (7) `UndoManager` membre du Processor (prêt pour l'undo des steps). **Pièges JUCE 9** : ctor APVTS = `(processor, UndoManager*, Identifier, ParameterLayout)` ; `Parameter::getText()` attend une valeur **normalisée** (`convertTo0to1` d'abord), le label vient de `getLabel()` et non de `getText()` ; 2 VCOs = params `octave1/wave1` + `octave2/wave2` (un seul `octave`/`wave` attrapé avant build).
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`) + smoke test standalone : lancé 4 s, vivant, aucun assert
+- **Commit** : — (ce commit)
+- **Next steps** : Phase 4 — `Sequencer/` (clock, Play/Stop, avance des 32 steps au tempo) + `DSP/` (Voice : 2 VCOs, 2 ADSRs, filtre LPF/HPF) branchés aux params
+
 ### 2026-10-06 — Phase 2 : squelette UI
 - **Tâche** : UI skeleton statique conforme à la spec Figma (§8) + assemblage de l'éditeur
 - **Fichiers** : `Source/UI/{SequenceRowComponent,SequencerPanel,DisplayScreen,SynthPanel,VCFPanel,ClockPanel}.{h,cpp}` (12 neufs), `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`

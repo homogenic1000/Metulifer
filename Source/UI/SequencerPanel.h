@@ -3,19 +3,29 @@
 #include <JuceHeader.h>
 #include "SequenceRowComponent.h"
 
-class SequencerPanel : public juce::Component
+class SequencerPanel : public juce::Component,
+                       private juce::ValueTree::Listener
 {
 public:
-    SequencerPanel();
+    explicit SequencerPanel (juce::AudioProcessorValueTreeState& apvts);
+    ~SequencerPanel() override;
 
     void resized() override;
 
     void setSelectedSequence (int index);
+    void setStepsTree (juce::ValueTree tree);
+    SequenceRowComponent* getRow (int index);
+
     std::function<void (int)> onSelectionChanged;
 
 private:
+    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
+                                   const juce::Identifier& property) override;
+
     static constexpr int numRows = 6;
 
+    juce::ValueTree stepsTree;
+    juce::var clipboard { 0 };
     std::vector<std::unique_ptr<SequenceRowComponent>> rows;
     int selected = 0;
 

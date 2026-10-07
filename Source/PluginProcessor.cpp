@@ -10,6 +10,93 @@
 #include "PluginEditor.h"
 
 //==============================================================================
+static juce::NormalisableRange<float> msRange()
+{
+    juce::NormalisableRange<float> range (0.0f, 5000.0f, 0.1f);
+    range.setSkewForCentre (500.0f);
+    return range;
+}
+
+static juce::NormalisableRange<float> cutoffRange()
+{
+    juce::NormalisableRange<float> range (20.0f, 20000.0f, 1.0f);
+    range.setSkewForCentre (1000.0f);
+    return range;
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::createLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+    const auto msAttr = juce::AudioParameterFloatAttributes()
+        .withLabel ("ms")
+        .withStringFromValueFunction ([] (float v, int)
+        {
+            return v < 1.0f ? juce::String (v, 1) : juce::String (juce::roundToInt (v));
+        });
+    const auto pctAttr  = juce::AudioParameterFloatAttributes().withLabel ("%");
+    const auto dbAttr   = juce::AudioParameterFloatAttributes().withLabel ("dB");
+    const auto hzAttr   = juce::AudioParameterFloatAttributes().withLabel ("Hz");
+    const auto stepAttr = juce::AudioParameterIntAttributes().withLabel ("steps");
+    const auto bpmAttr  = juce::AudioParameterIntAttributes().withLabel ("BPM");
+
+    const auto ms = msRange();
+    const auto hz = cutoffRange();
+
+    for (int s = 1; s <= numSequences; ++s)
+    {
+        const juce::String id = "seq" + juce::String (s) + "_";
+        const juce::String nm = "Seq" + juce::String (s) + " ";
+
+        for (int v = 1; v <= 2; ++v)
+        {
+            const auto sv = juce::String (v);
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { id + "a" + sv, 1 }, nm + "Attack " + sv, ms, 5.0f, msAttr));
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { id + "d" + sv, 1 }, nm + "Decay " + sv, ms, 200.0f, msAttr));
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { id + "s" + sv, 1 }, nm + "Sustain " + sv,
+                juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 70.0f, pctAttr));
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                juce::ParameterID { id + "r" + sv, 1 }, nm + "Release " + sv, ms, 300.0f, msAttr));
+        }
+
+        layout.add (std::make_unique<juce::AudioParameterInt> (
+            juce::ParameterID { id + "octave1", 1 }, nm + "Octave 1", -2, 2, 0));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "wave1", 1 }, nm + "Wave 1",
+            juce::StringArray { "Sine", "Saw", "Square", "Triangle" }, 1));
+        layout.add (std::make_unique<juce::AudioParameterInt> (
+            juce::ParameterID { id + "octave2", 1 }, nm + "Octave 2", -2, 2, 0));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "wave2", 1 }, nm + "Wave 2",
+            juce::StringArray { "Sine", "Saw", "Square", "Triangle" }, 1));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "mix1", 1 }, nm + "Mix VCO1",
+            juce::NormalisableRange<float> (-60.0f, 6.0f, 0.1f), 0.0f, dbAttr));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "mix2", 1 }, nm + "Mix VCO2",
+            juce::NormalisableRange<float> (-60.0f, 6.0f, 0.1f), 0.0f, dbAttr));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "filter", 1 }, nm + "Filter",
+            juce::StringArray { "LPF", "HPF" }, 0));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "cutoff", 1 }, nm + "Cutoff", hz, 1000.0f, hzAttr));
+        layout.add (std::make_unique<juce::AudioParameterInt> (
+            juce::ParameterID { id + "length", 1 }, nm + "Length", 1, 32, 32, stepAttr));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "volume", 1 }, nm + "Volume",
+            juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 80.0f, pctAttr));
+    }
+
+    layout.add (std::make_unique<juce::AudioParameterInt> (
+        juce::ParameterID { "tempo", 1 }, "Tempo", 20, 300, 120, bpmAttr));
+
+    return layout;
+}
+
 MetuliferAudioProcessor::MetuliferAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
@@ -19,9 +106,14 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+#else
+     :
 #endif
+       apvts (*this, &undoManager, "APVTS", createLayout())
 {
+    for (int i = 0; i < numSequences; ++i)
+        stepsTree.setProperty ("p" + juce::String (i), 0, nullptr);
 }
 
 MetuliferAudioProcessor::~MetuliferAudioProcessor()
@@ -91,6 +183,22 @@ void MetuliferAudioProcessor::changeProgramName (int index, const juce::String& 
 }
 
 //==============================================================================
+juce::String MetuliferAudioProcessor::seqParamId (int seqIndex, const juce::String& name)
+{
+    return "seq" + juce::String (seqIndex + 1) + "_" + name;
+}
+
+int MetuliferAudioProcessor::getStepPattern (int seqIndex) const
+{
+    return (int) stepsTree.getProperty ("p" + juce::String (seqIndex), 0);
+}
+
+void MetuliferAudioProcessor::setStepPattern (int seqIndex, int pattern)
+{
+    stepsTree.setProperty ("p" + juce::String (seqIndex), pattern, nullptr);
+}
+
+//==============================================================================
 void MetuliferAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
@@ -156,6 +264,24 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
         // ..do something to the data...
     }
+
+    // Output RMS for the display screen (lock-free, realtime safe).
+    {
+        const int numSamples = buffer.getNumSamples();
+        float sumSquares = 0.0f;
+        int count = 0;
+
+        for (int channel = 0; channel < totalNumOutputChannels; ++channel)
+        {
+            const auto* data = buffer.getReadPointer (channel);
+            for (int i = 0; i < numSamples; ++i)
+                sumSquares += data[i] * data[i];
+            count += numSamples;
+        }
+
+        rms.store (count > 0 ? std::sqrt (sumSquares / (float) count) : 0.0f,
+                   std::memory_order_relaxed);
+    }
 }
 
 //==============================================================================
@@ -172,15 +298,31 @@ juce::AudioProcessorEditor* MetuliferAudioProcessor::createEditor()
 //==============================================================================
 void MetuliferAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    auto root = juce::ValueTree ("MetuliferState");
+    root.appendChild (apvts.copyState(), nullptr);
+    root.appendChild (stepsTree.createCopy(), nullptr);
+
+    if (auto xml = root.createXml())
+        copyXmlToBinary (*xml, destData);
 }
 
 void MetuliferAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    auto xml = getXmlFromBinary (data, sizeInBytes);
+    if (xml == nullptr)
+        return;
+
+    auto root = juce::ValueTree::fromXml (*xml);
+    if (! root.isValid())
+        return;
+
+    auto paramsState = root.getChildWithName (apvts.copyState().getType());
+    if (paramsState.isValid())
+        apvts.replaceState (paramsState);
+
+    auto stepsState = root.getChildWithName (stepsTree.getType());
+    if (stepsState.isValid())
+        stepsTree.copyPropertiesAndChildrenFrom (stepsState, nullptr);
 }
 
 //==============================================================================

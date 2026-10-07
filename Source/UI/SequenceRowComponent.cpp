@@ -1,16 +1,20 @@
 #include "SequenceRowComponent.h"
+#include "../PluginProcessor.h"
 
-SequenceRowComponent::SequenceRowComponent (int sequenceIndex)
+SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProcessorValueTreeState& apvts)
     : seqIndex (sequenceIndex)
 {
     addAndMakeVisible (copyButton);
     addAndMakeVisible (pasteButton);
 
+    copyButton.onClick = [this] { if (onCopy) onCopy(); };
+    pasteButton.onClick = [this] { if (onPaste) onPaste(); };
+
     for (int i = 0; i < numSteps; ++i)
     {
         auto step = std::make_unique<juce::TextButton> ("step " + juce::String (i + 1));
         step->setClickingTogglesState (true);
-        step->onClick = [this] { rowClicked(); };
+        step->onClick = [this] { savePattern(); };
         addAndMakeVisible (*step);
         stepButtons.push_back (std::move (step));
     }
@@ -23,12 +27,13 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex)
         addAndMakeVisible (knob);
     };
 
-    setupKnob (lengthKnob, "Length");
-    setupKnob (volumeKnob, "Volume");
-    lengthKnob.setRange (0.0, 32.0, 1.0);
-    lengthKnob.setValue (32.0, juce::dontSendNotification);
-    volumeKnob.setRange (0.0, 1.0, 0.01);
-    volumeKnob.setValue (0.8, juce::dontSendNotification);
+    setupKnob (lengthKnob, "length");
+    setupKnob (volumeKnob, "volume");
+
+    lengthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
+        apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "length"), lengthKnob);
+    volumeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
+        apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "volume"), volumeKnob);
 
     addMouseListener (&mouseListener, true);
 }
@@ -98,4 +103,48 @@ void SequenceRowComponent::rowClicked()
 {
     if (onSelected)
         onSelected();
+}
+
+void SequenceRowComponent::setStepsTree (juce::ValueTree tree)
+{
+    stepsTree = tree;
+    loadPatternFromTree();
+}
+
+int SequenceRowComponent::getPattern() const
+{
+    int pattern = 0;
+
+    for (int i = 0; i < numSteps; ++i)
+        if (stepButtons[(size_t) i]->getToggleState())
+            pattern |= (1 << i);
+
+    return pattern;
+}
+
+void SequenceRowComponent::setPattern (int pattern)
+{
+    for (int i = 0; i < numSteps; ++i)
+        stepButtons[(size_t) i]->setToggleState ((pattern & (1 << i)) != 0,
+                                                  juce::dontSendNotification);
+
+    savePattern();
+}
+
+void SequenceRowComponent::loadPatternFromTree()
+{
+    if (! stepsTree.isValid())
+        return;
+
+    const int pattern = (int) stepsTree.getProperty ("p" + juce::String (seqIndex), 0);
+
+    for (int i = 0; i < numSteps; ++i)
+        stepButtons[(size_t) i]->setToggleState ((pattern & (1 << i)) != 0,
+                                                  juce::dontSendNotification);
+}
+
+void SequenceRowComponent::savePattern()
+{
+    if (stepsTree.isValid())
+        stepsTree.setProperty ("p" + juce::String (seqIndex), getPattern(), nullptr);
 }

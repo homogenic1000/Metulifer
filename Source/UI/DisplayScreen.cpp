@@ -20,9 +20,13 @@ void DisplayScreen::paint (juce::Graphics& g)
     g.setFont (juce::FontOptions (20.0f, juce::Font::bold));
     g.drawText ("SEQ " + juce::String (sequenceNumber), area.removeFromTop (26), juce::Justification::centredLeft);
 
-    g.setColour (juce::Colour (0xffd0d0d0));
-    g.setFont (juce::FontOptions (13.0f));
-    g.drawText (paramText, area.removeFromTop (20), juce::Justification::centredLeft);
+    auto paramArea = area.removeFromTop (24);
+    if (paramText.isNotEmpty())
+    {
+        g.setColour (juce::Colour (0xff6fe07a));
+        g.setFont (juce::FontOptions (15.0f, juce::Font::bold));
+        g.drawText (paramText, paramArea, juce::Justification::centredLeft);
+    }
 
     auto signalArea = getLocalBounds().removeFromBottom (34).reduced (14, 8);
     g.setColour (juce::Colour (0xff2a2a2a));

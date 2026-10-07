@@ -15,11 +15,15 @@ VCFPanel::VCFPanel()
     {
         hpfButton.setToggleState (false, juce::dontSendNotification);
         updateFilterType();
+        if (onFilterToggled)
+            onFilterToggled (lpfButton.getToggleState());
     };
     hpfButton.onClick = [this]
     {
         lpfButton.setToggleState (false, juce::dontSendNotification);
         updateFilterType();
+        if (onFilterToggled)
+            onFilterToggled (lpfButton.getToggleState());
     };
 
     addAndMakeVisible (lpfButton);
@@ -65,4 +69,10 @@ void VCFPanel::updateFilterType()
 {
     if (! lpfButton.getToggleState() && ! hpfButton.getToggleState())
         lpfButton.setToggleState (true, juce::dontSendNotification);
+}
+
+void VCFPanel::setFilterType (bool useLpf)
+{
+    lpfButton.setToggleState (useLpf, juce::dontSendNotification);
+    hpfButton.setToggleState (! useLpf, juce::dontSendNotification);
 }
