@@ -1,4 +1,5 @@
 #include "SynthPanel.h"
+#include "Skin.h"
 
 SynthPanel::SynthPanel()
 {
@@ -41,8 +42,8 @@ SynthPanel::SynthPanel()
 
 void SynthPanel::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colour (0xffdedede));
-    g.fillRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), 6.0f);
+    Skin::drawPanel (g, "panel_synth", getLocalBounds().toFloat().reduced (0.5f),
+                     juce::Colour (0xffdedede), 6.0f);
 }
 
 void SynthPanel::resized()

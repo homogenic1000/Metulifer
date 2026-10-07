@@ -1,4 +1,5 @@
 #include "VCFPanel.h"
+#include "Skin.h"
 
 VCFPanel::VCFPanel()
 {
@@ -45,8 +46,8 @@ VCFPanel::VCFPanel()
 
 void VCFPanel::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colour (0xffdedede));
-    g.fillRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), 6.0f);
+    Skin::drawPanel (g, "panel_vcf", getLocalBounds().toFloat().reduced (0.5f),
+                     juce::Colour (0xffdedede), 6.0f);
 }
 
 void VCFPanel::resized()

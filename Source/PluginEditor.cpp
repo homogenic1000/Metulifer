@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "UI/Skin.h"
 
 //==============================================================================
 MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProcessor& p)
@@ -15,6 +16,8 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
       audioProcessor (p),
       sequencerPanel (p.apvts)
 {
+    setLookAndFeel (&lookAndFeel);
+
     addAndMakeVisible (sequencerPanel);
     addAndMakeVisible (displayScreen);
     addAndMakeVisible (clockPanel);
@@ -70,6 +73,8 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
 
 MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 {
+    setLookAndFeel (nullptr);
+
     if (filterParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (filterParamId, this);
 }
@@ -77,7 +82,11 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 //==============================================================================
 void MetuliferAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colour (0xffe9e9e9));
+    if (auto img = Skin::find ("bg_editor"); img.isValid())
+        g.drawImage (img, getLocalBounds().toFloat(),
+                     juce::RectanglePlacement::stretchToFit, false);
+    else
+        g.fillAll (juce::Colour (0xffe9e9e9));
 
     g.setColour (juce::Colours::black);
     g.setFont (juce::FontOptions (14.0f, juce::Font::bold));

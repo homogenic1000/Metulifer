@@ -115,12 +115,20 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-07 — Phase 0 : infra skinnable (assets image)
+- **Tâche** : Registry d'assets + LookAndFeel à sprites + hooks de fond, avant l'arrivée des rendus 3D du dev (décision §7 « UI skinnable »)
+- **Fichiers** : `Source/UI/Skin.{h,cpp}`, `Source/UI/MetuliferLookAndFeel.{h,cpp}`, `Source/UI/{SynthPanel,VCFPanel,ClockPanel,SequenceRowComponent}.cpp`, `Source/UI/DisplayScreen.h`, `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`
+- **Modifs** : (1) **`Skin`** : `find/has/drawPanel` — lookup d'images par nom normalisé (`"VCO1 Octave"` → `vco1_octave`), scan paresseux de BinaryData protégé par `__has_include("BinaryData.h")` (aucun asset = aucune dépendance, build inchangé), cache statique, `drawPanel` = image étirée sinon rounded-rect de fallback. (2) **`MetuliferLookAndFeel`** (hérite `LookAndFeel_V4` = L&F par défaut JUCE 9 → zéro delta visuel sans asset) : `drawRotarySlider` = strip horizontal de frames (frame = `round(pos·(n-1))`), `drawButtonBackground`/`drawButtonText` = assets `btn_<texte>[_on|_off]` (texte masqué si asset), fallback V4 sinon. **Piège JUCE 9** : `LookAndFeel::drawButton(TextButton…)` n'existe plus → overrides `drawButtonBackground(Button…)` + `drawButtonText(TextButton…)`. (3) Hooks `Skin::drawPanel` : `panel_synth`/`panel_vcf`/`panel_clock`/`panel_row` + `bg_editor` (image) dans l'éditeur. (4) LNF posé sur l'éditeur (`setLookAndFeel(nullptr)` dans le dtor). (5) `.jucer` : groupe **`Resources`** vide (PNG à venir côté dev, `resource="1"` au ajout + resave), 4 FILE Skin/LNF, resave OK. (6) **Fix assert préexistant** : `DisplayScreen.h` littéral `"—"` UTF-8 passé au ctor ASCII de `juce::String` → `jassert juce_String.cpp:327` au lancement du standalone (visible au smoke test) → `CharPointer_UTF8 ("\xE2\x80\x94")`. (7) **§7** : 7 décisions gravées avant implémentation (ordre phases, playhead indépendant, pitch levier+note, 1 ADSR/VCO, LFO 4 contrôles, FX annulés, UI skinnable).
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`) + smoke test standalone 4 s : vivant, zéro assertion
+- **Commit** : — (ce commit)
+- **Next steps** : Phase 4 — params `note1/note2` (choice 12), `Sequencer/SequencerEngine` (6 compteurs indépendants), `DSP/Voice` (2 VCO polyBLEP + 2 ADSR + filtre TPT), `UI/Lever` (5 crans), playhead highlight, Play/Stop câblé
+
 ### 2026-10-07 — SynthPanel : rangées = VCO (fidélité Figma)
 - **Tâche** : Restructurer le SynthPanel — chaque rangée = un VCO (VCO1 haut, VCO2 bas), colonnes = paramètres
 - **Fichiers** : `Source/UI/SynthPanel.cpp`
 - **Modifs** : (1) Labels : suppression des titres « VCO1 »/« VCO2 » **côte à côte** au-dessus des knobs et des doublons « Octave »/« Wave » (un par colonne VCO) ; désormais **4 en-têtes de colonne** en haut (`Octave` x28, `Wave` x176, `ADSR` x298, `Mix out DB` x499) + **labels de rangée** `VCO1`/`VCO2` **empilés à gauche** (x0, centrés sur chaque rangée) ; « ADSR 1 »/« ADSR 2 » → un seul titre **« ADSR »** ; sous-titres Mix VCO1/VCO2 supprimés (identification par labels de rangée). (2) Knobs gros **78 → 86 px** (taille Figma). (3) Grille : rangée 1 (VCO1) knobs y40, ADSR1 y67, lettres A/D/S/R y99 ; rangée 2 (VCO2) knobs y131, ADSR2 y158, lettres y190 ; gap inter-rangées 5 px ; ADSR1 centré optiquement sur les knobs (y67 vs y61.6 Figma, offset de 6 px dans le wireframe). (4) Wireframe relu via MCP Figma (`get_design_context` node `121:215`) : structure **colonnes = params / rangées = VCO** confirmée — **anomalie Figma** : Frames 17/18 dupliqués exactement superposés (double « Octave ») → on ne rend qu'une colonne, à nettoyer côté Figma. (5) **LFO ×2 + reverb apparus dans le wireframe** (x874/1013/1144, y471, 105×224, structure identique VCF : titre + 2 boutons 50×49 + 1 knob 86) — **pas encore implémentés** (sémantique boutons/knob à valider ; décision §7 « reportés » toujours active).
 - **Build** : ✅ OK (`** BUILD SUCCEEDED **`)
-- **Commit** : — (ce commit)
+- **Commit** : `92433ff` — `feat: restructure synth panel rows as VCOs per Figma wireframe`
 - **Next steps** : valider la sémantique LFO×2 + reverb (params) ; Phase 4 — `Sequencer/` (clock, Play/Stop, avance des steps) + `DSP/` (Voice) branchés aux params
 
 ### 2026-10-06 — Phase 3 : APVTS + pagination + écran live
@@ -247,6 +255,12 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | 2026-10-06 | **LFO ×2 + reverb reportés** | UX/UI à designer plus tard (validation humaine) | spec UI |
 | 2026-10-06 | Hypothèses codées : `Wave` = knob pas-à-pas 4 positions ; LPF/HPF = 2 boutons exclusifs | Interprétation du wireframe, validée en séance | spec UI |
 | 2026-10-07 | **SynthPanel : colonnes = paramètres (Octave/Wave/ADSR/Mix), rangées = VCO1/VCO2** (labels de rangée à gauche), knobs 86 px | Wireframe Figma mis à jour + « chaque rangée est un VCO » (dev) | layout Figma |
+| 2026-10-07 | **Ordre des phases : Phase 4 (son) → Phase 5 (LFO + câbles) ; FX annulés** | Validation dev : « Phase 4 son d'abord » ; « oublie les fx je referai un design dans figma » | dev |
+| 2026-10-07 | **Playhead indépendant par séquence** (6 compteurs d'étapes, polyrythmie : chaque séquence avance à sa longueur propre) | Validation dev (« oui ») | dev |
+| 2026-10-07 | **Pitch par VCO : levier octave 5 crans (-2..+2) + knob Note 12 steps (0..11 demi-tons)** — remplace le knob Octave dans le SynthPanel ; freq = C3 × 2^octave × 2^(note/12) ; pas de MIDI in (pour l'instant) | Validation dev : « un bouton levier contrôle l'octave et un knob contrôle la note avec 12 steps », « par VCO », « 5 positions » | dev |
+| 2026-10-07 | **1 ADSR par VCO** (VCO1 → ADSR1, VCO2 → ADSR2) — les 2 ADSRs du wireframe | Validation dev (« oui ») | dev |
+| 2026-10-07 | **LFO ×2 : Rate + Wave + Offset + Depth + on/off auto** (auto-off si aucun câble) ; panneau = 3 knobs (rate/offset/depth) + bouton wave — écart au wireframe (1 knob) à rattraper côté Figma | Validation dev : « Rate + Cycle wave + on off… il faut un knob offset et depth » | dev |
+| 2026-10-07 | **UI skinnable** : chaque composant vectoriel remplaçable par un asset image transparent (états : normal/hover/down/on/off), fallback vectoriel conservé si asset absent ; assets en `Resources/` (groupe `.jucer`, BinaryData) — formats JUCE natifs PNG/JPEG/GIF | Dev fournira des rendus 3D à substituer au vectoriel ; pas de `juce_svg` dans le `.jucer` | dev |
 
 ---
 

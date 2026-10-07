@@ -1,4 +1,5 @@
 #include "ClockPanel.h"
+#include "Skin.h"
 
 ClockPanel::ClockPanel()
 {
@@ -24,8 +25,8 @@ ClockPanel::ClockPanel()
 
 void ClockPanel::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colour (0xffdedede));
-    g.fillRoundedRectangle (getLocalBounds().toFloat().reduced (0.5f), 6.0f);
+    Skin::drawPanel (g, "panel_clock", getLocalBounds().toFloat().reduced (0.5f),
+                     juce::Colour (0xffdedede), 6.0f);
 }
 
 void ClockPanel::resized()

@@ -15,6 +15,7 @@
 #include "UI/ClockPanel.h"
 #include "UI/SynthPanel.h"
 #include "UI/VCFPanel.h"
+#include "UI/MetuliferLookAndFeel.h"
 
 //==============================================================================
 /**
@@ -47,6 +48,8 @@ private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
 
     MetuliferAudioProcessor& audioProcessor;
+
+    MetuliferLookAndFeel lookAndFeel;
 
     SequencerPanel sequencerPanel;
     DisplayScreen displayScreen;

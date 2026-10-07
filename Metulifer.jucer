@@ -26,8 +26,13 @@
         <FILE id="uiVc5b" name="VCFPanel.h" compile="0" resource="0" file="Source/UI/VCFPanel.h"/>
         <FILE id="uiCl6a" name="ClockPanel.cpp" compile="1" resource="0" file="Source/UI/ClockPanel.cpp"/>
         <FILE id="uiCl6b" name="ClockPanel.h" compile="0" resource="0" file="Source/UI/ClockPanel.h"/>
+        <FILE id="uiSn7a" name="Skin.cpp" compile="1" resource="0" file="Source/UI/Skin.cpp"/>
+        <FILE id="uiSn7b" name="Skin.h" compile="0" resource="0" file="Source/UI/Skin.h"/>
+        <FILE id="uiLf8a" name="MetuliferLookAndFeel.cpp" compile="1" resource="0" file="Source/UI/MetuliferLookAndFeel.cpp"/>
+        <FILE id="uiLf8b" name="MetuliferLookAndFeel.h" compile="0" resource="0" file="Source/UI/MetuliferLookAndFeel.h"/>
       </GROUP>
     </GROUP>
+    <GROUP id="{7A3B9C1D-4E5F-4A6B-8C7D-9E0F1A2B3C4D}" name="Resources"/>
   </MAINGROUP>
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="0" useLocalCopy="0"/>

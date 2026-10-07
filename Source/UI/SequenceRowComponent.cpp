@@ -1,5 +1,6 @@
 #include "SequenceRowComponent.h"
 #include "../PluginProcessor.h"
+#include "Skin.h"
 
 SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProcessorValueTreeState& apvts)
     : seqIndex (sequenceIndex)
@@ -47,8 +48,7 @@ void SequenceRowComponent::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced (0.5f);
 
-    g.setColour (juce::Colours::white);
-    g.fillRoundedRectangle (bounds, 5.0f);
+    Skin::drawPanel (g, "panel_row", bounds, juce::Colours::white, 5.0f);
 
     if (selected)
     {
