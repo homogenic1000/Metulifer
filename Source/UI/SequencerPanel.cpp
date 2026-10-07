@@ -67,7 +67,7 @@ void SequencerPanel::setStepsTree (juce::ValueTree tree)
         stepsTree.addListener (this);
 
         for (auto& row : rows)
-            row->loadPatternFromTree();
+            row->setStepsTree (tree);
     }
 }
 

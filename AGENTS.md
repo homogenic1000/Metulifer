@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-07 — fix : aucun son (steps jamais écrits)
+- **Tâche** : diagnostic « toujours aucun son » alors que Play + steps semblent actifs
+- **Fichiers** : `Source/UI/SequencerPanel.cpp`
+- **Modifs** : **Cause racine** : `SequenceRowComponent::setStepsTree()` n'était appelé **nulle part** — chaque rangée gardait un `stepsTree` invalide, donc `savePattern()` sortait silencieusement via `if (stepsTree.isValid())` : **cliquer un step (ou Copy/Paste) n'écrivait jamais le pattern** → `patterns[]` du processor restait à 0 → `gateOf()` toujours faux → aucune `noteOn` → silence (le playhead bougeait, l'oscillateur était muet). Fix : `SequencerPanel::setStepsTree()` appelle désormais `row->setStepsTree(tree)` au lieu de `loadPatternFromTree()` sur un arbre que la rangée ne possédait pas. (Le DSP lui-même était déjà prouvé OK par le harnais hors-ligne Phase 4 : RMS 0.86.)
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`) + smoke test standalone 4 s : `RUNNING_OK`, zéro assertion
+- **Commit** : — (ce commit)
+- **Next steps** : vérifier en séance que le son sort bien (steps ON + Play) ; Phase 6 (FX) en attente du design Figma
+
 ### 2026-10-07 — Phase 5 : LFO ×2 + câbles de modulation LFO→knob
 - **Tâche** : 2 LFO (rate/wave/offset/depth/enabled) modulant les knobs du synthé via des câbles cliquables-draggables
 - **Fichiers** : `Source/UI/LFOPanel.{h,cpp}` (neufs), `Source/UI/CableLayer.{h,cpp}` (neufs), `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`
