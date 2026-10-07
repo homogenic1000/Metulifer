@@ -17,6 +17,9 @@ public:
     int  getPattern() const;
     void setPattern (int pattern);
 
+    /** Highlights the playing step (-1 hides the marker). */
+    void setPlayheadStep (int step);
+
     juce::Slider& getLengthKnob()  { return lengthKnob; }
     juce::Slider& getVolumeKnob()  { return volumeKnob; }
 
@@ -36,11 +39,25 @@ private:
 
     void rowClicked();
     void savePattern();
+    void placePlayhead();
 
     int seqIndex = 0;
     bool selected = false;
+    int playheadStep = -1;
     RowMouseListener mouseListener { *this };
     juce::ValueTree stepsTree;
+
+    class PlayheadMarker : public juce::Component
+    {
+    public:
+        void paint (juce::Graphics& g) override
+        {
+            g.setColour (juce::Colour (0xffff7a1a));
+            g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (1.0f), 4.0f, 2.0f);
+        }
+    };
+
+    PlayheadMarker playhead;
 
     juce::TextButton copyButton { "Copy" }, pasteButton { "Paste" };
     std::vector<std::unique_ptr<juce::TextButton>> stepButtons;

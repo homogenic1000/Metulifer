@@ -12,6 +12,8 @@ public:
 
     juce::Slider tempoKnob;
 
+    std::function<void (bool shouldPlay)> onPlayToggled;
+
 private:
     juce::Label titleLabel { "", "CLOCK" };
     juce::TextButton playStopButton { "Play" };

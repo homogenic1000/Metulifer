@@ -31,6 +31,10 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
     setupKnob (lengthKnob, "length");
     setupKnob (volumeKnob, "volume");
 
+    addAndMakeVisible (playhead);
+    playhead.setInterceptsMouseClicks (false, false);
+    playhead.setVisible (false);
+
     lengthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "length"), lengthKnob);
     volumeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
@@ -88,6 +92,30 @@ void SequenceRowComponent::resized()
                                             juce::roundToInt (y),
                                             juce::roundToInt (stepW),
                                             juce::roundToInt (stepW));
+
+    placePlayhead();
+}
+
+void SequenceRowComponent::setPlayheadStep (int step)
+{
+    if (step == playheadStep)
+        return;
+
+    playheadStep = step;
+    placePlayhead();
+}
+
+void SequenceRowComponent::placePlayhead()
+{
+    if (! juce::isPositiveAndBelow (playheadStep, (int) stepButtons.size()))
+    {
+        playhead.setVisible (false);
+        return;
+    }
+
+    playhead.setBounds (stepButtons[(size_t) playheadStep]->getBounds());
+    playhead.setVisible (true);
+    playhead.toFront (false);
 }
 
 void SequenceRowComponent::setSelected (bool nowSelected)

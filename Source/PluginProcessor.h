@@ -9,11 +9,14 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Sequencer/SequencerEngine.h"
+#include "DSP/Voice.h"
 
 //==============================================================================
 /**
 */
-class MetuliferAudioProcessor  : public juce::AudioProcessor
+class MetuliferAudioProcessor  : public juce::AudioProcessor,
+                                 private juce::ValueTree::Listener
 {
 public:
     //==============================================================================
@@ -69,12 +72,42 @@ public:
 
     float getCurrentRms() const noexcept { return rms.load (std::memory_order_relaxed); }
 
+    void setPlaying (bool shouldPlay);
+    bool isPlaying() const;
+    int  getPlayheadStep (int sequenceIndex) const;
+
 private:
     //==============================================================================
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
+    struct VoiceSources
+    {
+        std::atomic<float>* a1 = nullptr;      std::atomic<float>* d1 = nullptr;
+        std::atomic<float>* s1 = nullptr;      std::atomic<float>* r1 = nullptr;
+        std::atomic<float>* a2 = nullptr;      std::atomic<float>* d2 = nullptr;
+        std::atomic<float>* s2 = nullptr;      std::atomic<float>* r2 = nullptr;
+        std::atomic<float>* octave1 = nullptr; std::atomic<float>* note1 = nullptr;
+        std::atomic<float>* wave1 = nullptr;   std::atomic<float>* octave2 = nullptr;
+        std::atomic<float>* note2 = nullptr;   std::atomic<float>* wave2 = nullptr;
+        std::atomic<float>* mix1 = nullptr;    std::atomic<float>* mix2 = nullptr;
+        std::atomic<float>* filter = nullptr;  std::atomic<float>* cutoff = nullptr;
+        std::atomic<float>* volume = nullptr;
+
+        void bind (juce::AudioProcessorValueTreeState& apvts, int sequenceIndex);
+        Voice::Params read() const;
+    };
+
+    void renderVoices (juce::AudioBuffer<float>& buffer, int startSample, int numSamples);
+    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
+                                   const juce::Identifier& property) override;
+
     juce::ValueTree stepsTree { "steps" };
     std::atomic<float> rms { 0.0f };
+
+    SequencerEngine engine;
+    Voice voices[numSequences];
+    VoiceSources voiceSources[numSequences];
+    std::atomic<int> patterns[numSequences] {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MetuliferAudioProcessor)
 };

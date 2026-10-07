@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-10-07 — Phase 4 : son (moteur séquenceur + voices + pitch + Play)
+- **Tâche** : Premier son réel — 6 séquences polyrythmiques, synthé par séquence (2 VCO + 2 ADSR + filtre), pitch par VCO (levier octave + knob Note), Play/Stop + playhead
+- **Fichiers** : `Source/Sequencer/SequencerEngine.{h,cpp}` (neufs), `Source/DSP/Voice.{h,cpp}` (neufs), `Source/UI/Lever.{h,cpp}` (neuf), `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Source/UI/{SynthPanel,SequenceRowComponent,SequencerPanel,ClockPanel}.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`
+- **Modifs** : (1) **SequencerEngine** : 6 compteurs indépendants (polyrythmie validée §7), pas = 1/16 @ tempo BPM, `process()` rend des `StepEvent { offset, seq, gateOn }` **triés par offset** (`std::sort`), `pendingStart` émet le gate du step 0 à offset 0 (début de lecture à zéro), `pendingNoteOff` atomique → noteOff de toutes les voices sur le thread audio, `currentSteps[6]` atomiques = playhead UI. (2) **Voice** : oscillateur custom (accumulateur de phase, sine / saw **polyBLEP** / square **polyBLEP** / triangle), 2× `juce::ADSR`, 2 buffers scratch mono, branche osc→ADSR→gain(mix dB), somme→filtre `juce::dsp::StateVariableTPTFilter` (TPT LPF/HPF, cutoff clamp < 0.49·sr)→volume→add dans out ch0/ch1 ; `render()` chunké au maxBlock, 0 alloc en temps réel ; freq = 130.81 × 2^octave × 2^(note/12) (C3). (3) **Params** : + `seqN_note1/note2` = `AudioParameterChoice` 12 noms (C…B, défaut C). (4) **Processor** : `VoiceSources[6]` (19 pointeurs atomiques/séquence) bindés au ctor, miroir `stepsTree`→`patterns[6]` atomiques via `ValueTree::Listener` (+ resync après `setStateInformation`), processBlock = clear canaux + `setParams` + split du buffer aux offsets d'events + `renderVoices` + RMS, `setPlaying/isPlaying/getPlayheadStep`, `getTailLengthSeconds` = 6 s. (5) **Lever** (nouveau composant) : 5 crans verticals (haut = +2 … bas = −2), `ParameterAttachment` (`sendInitialUpdate`, gesture complet pour l'undo), fallback vectoriel (bande bleue sur rail gris), `onValueChanged` → écran. (6) **SynthPanel** : knobs **Octave remplacés par des Leviers** (24×74, x28, y46/y137) + knobs **Note** (86 px, x58) ; en-têtes `Octave` (x16, 11 px) + `Note` (x58). (7) **Playhead** : `SequenceRowComponent::PlayheadMarker` (rect orange arrondi, `setInterceptsMouseClicks(false)`, `toFront`), `SequencerPanel::setPlayhead`, cache `lastPlayhead[6]` dans le timer éditeur 30 Hz. (8) **Play/Stop** : `ClockPanel::onPlayToggled` → `setPlaying` + clear écran (retour signal immédiat). (9) `.jucer` : GROUPs `DSP` (Voice) + `Sequencer` (SequencerEngine) + `Lever` dans UI + resave. **Pièges revus/corrigés** : `JUCE_DECLARE_NON_COPYABLE` (copie déclarée) **supprime le ctor par défaut implicite** → `Voice() = default;` + `SequencerEngine();` à déclarer (piège déjà noté Phase 2, retombé dedans — retrouvé via `static_assert(is_default_constructible)` isolé) ; `ADSR::applyEnvelopeToBuffer` JUCE 9 = **3 args** (buffer, startSample, numSamples) ; `ProcessContextReplacing` exige une **lvalue** (`auto sub = block.getSubBlock(...)` puis contexte) ; l'APVTS n'a pas de `getUndoManager()` → membre public `apvts.undoManager` ; les events arrivent **par séquence** (offsets croissants par séq. mais pas globalement) → tri avant rendu segmenté.
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`) + smoke test standalone 4 s : `RUNNING_OK`, zéro assertion
+- **Commit** : — (ce commit)
+- **Next steps** : Phase 5 — LFO ×2 (`lfoN_{rate,wave,offset,depth,enabled}`) + `modTree` câblable + `LFOPanel`/`CableLayer` ; valider la sémantique LFO/reverb avec le dev (§8)
+
 ### 2026-10-07 — Phase 0 : infra skinnable (assets image)
 - **Tâche** : Registry d'assets + LookAndFeel à sprites + hooks de fond, avant l'arrivée des rendus 3D du dev (décision §7 « UI skinnable »)
 - **Fichiers** : `Source/UI/Skin.{h,cpp}`, `Source/UI/MetuliferLookAndFeel.{h,cpp}`, `Source/UI/{SynthPanel,VCFPanel,ClockPanel,SequenceRowComponent}.cpp`, `Source/UI/DisplayScreen.h`, `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`
@@ -281,7 +289,7 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | Rectangle 25 (247×132) | **Écran d'affichage** | idle : signal audio (RMS) · édition : param touché (ex. « attack VCO1 ») · toujours : séquence sélectionnée |
 | CLOCK (297×284) | tempo | gros knob 175×175 + **bouton Play/Stop à côté** |
 | SynthPanel (786×237) | synthé de la **séquence sélectionnée** | re-branché au clic — **colonnes = paramètres, rangées = VCO1/VCO2** |
-| `Octave` / `Wave` (colonnes, knobs 86 px) | 2 VCOs par séquence | **rangée 1 = VCO1**, **rangée 2 = VCO2** (labels à gauche) ; Wave = 4 positions sine/saw/square/triangle |
+| `Octave` / `Wave` (colonnes) | 2 VCOs par séquence | **rangée 1 = VCO1**, **rangée 2 = VCO2** (labels à gauche) ; Octave = **levier 5 crans (−2..+2) + knob Note 12 demi-tons** ; Wave = 4 positions sine/saw/square/triangle |
 | ADSR ×2 | 2 ADSRs | titre unique « ADSR » ; par rangée : 4 knobs A/D/S/R (31 px) |
 | `Mix out DB` | niveaux VCO | 2 knobs (86 px) : mix VCO1 (rangée 1), mix VCO2 (rangée 2) |
 | `VCF` | filtre | 2 boutons exclusifs **LPF / HPF** + 1 gros knob (**cutoff**) |
@@ -300,9 +308,9 @@ MetuliferAudioProcessorEditor (1280×720)
 ├── DisplayScreen (Rectangle 25)          Source/UI/DisplayScreen.* (paint custom)
 ├── ClockPanel : TempoKnob + PlayStopButton
 ├── SynthPanel (re-branché à la sélection)
-│   ├── colonnes : Octave · Wave · ADSR · Mix out DB (titres en haut)
-│   ├── rangée 1 = « VCO1 » (label à gauche) : oct, wave, ADSR×4, mix
-│   └── rangée 2 = « VCO2 » (label à gauche) : oct, wave, ADSR×4, mix
+│   ├── colonnes : Octave (levier + Note) · Wave · ADSR · Mix out DB (titres en haut)
+│   ├── rangée 1 = « VCO1 » (label à gauche) : levier oct, note, wave, ADSR×4, mix
+│   └── rangée 2 = « VCO2 » (label à gauche) : levier oct, note, wave, ADSR×4, mix
 └── VCFPanel : LPF/HPF (exclusifs) + Cutoff
 ```
 

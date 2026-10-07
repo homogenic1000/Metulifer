@@ -34,6 +34,20 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
         setFilterTypeParam (useLpf);
     };
 
+    clockPanel.onPlayToggled = [this] (bool shouldPlay)
+    {
+        audioProcessor.setPlaying (shouldPlay);
+        clearParamDisplay();
+    };
+
+    for (auto* lever : { &synthPanel.vco1Lever, &synthPanel.vco2Lever })
+    {
+        lever->onValueChanged = [this, lever] (int value)
+        {
+            showText (lever->getName() + " " + juce::String (value));
+        };
+    }
+
     // Knobs bound once and for all (one row = one sequence).
     auto track = [this] (juce::Slider& knob, const juce::String& paramName, const juce::String& display)
     {
@@ -52,8 +66,8 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     track (clockPanel.tempoKnob, "tempo", "tempo");
 
     // Knobs re-bound on every sequence selection (ids/display set in bindSequence).
-    for (auto* knob : { &synthPanel.vco1Octave, &synthPanel.vco1Wave,
-                        &synthPanel.vco2Octave, &synthPanel.vco2Wave,
+    for (auto* knob : { &synthPanel.vco1Note, &synthPanel.vco1Wave,
+                        &synthPanel.vco2Note, &synthPanel.vco2Wave,
                         &synthPanel.adsr1Attack, &synthPanel.adsr1Decay,
                         &synthPanel.adsr1Sustain, &synthPanel.adsr1Release,
                         &synthPanel.adsr2Attack, &synthPanel.adsr2Decay,
@@ -135,10 +149,15 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
         return MetuliferAudioProcessor::seqParamId (index, n);
     };
 
-    addKnob (synthAttachments, synthPanel.vco1Octave,   id ("octave1"), "octave VCO1");
-    addKnob (synthAttachments, synthPanel.vco1Wave,     id ("wave1"),   "wave VCO1");
-    addKnob (synthAttachments, synthPanel.vco2Octave,   id ("octave2"), "octave VCO2");
-    addKnob (synthAttachments, synthPanel.vco2Wave,     id ("wave2"),   "wave VCO2");
+    synthPanel.vco1Lever.setParam (audioProcessor.apvts, id ("octave1"));
+    synthPanel.vco1Lever.setName ("octave VCO1");
+    synthPanel.vco2Lever.setParam (audioProcessor.apvts, id ("octave2"));
+    synthPanel.vco2Lever.setName ("octave VCO2");
+
+    addKnob (synthAttachments, synthPanel.vco1Note,     id ("note1"),  "note VCO1");
+    addKnob (synthAttachments, synthPanel.vco1Wave,     id ("wave1"),  "wave VCO1");
+    addKnob (synthAttachments, synthPanel.vco2Note,     id ("note2"),  "note VCO2");
+    addKnob (synthAttachments, synthPanel.vco2Wave,     id ("wave2"),  "wave VCO2");
 
     addKnob (synthAttachments, synthPanel.adsr1Attack,  id ("a1"), "attack VCO1");
     addKnob (synthAttachments, synthPanel.adsr1Decay,   id ("d1"), "decay VCO1");
@@ -247,6 +266,19 @@ void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parame
 void MetuliferAudioProcessorEditor::timerCallback()
 {
     displayScreen.setRmsLevel (audioProcessor.getCurrentRms());
+
+    const bool playing = audioProcessor.isPlaying();
+
+    for (int i = 0; i < MetuliferAudioProcessor::numSequences; ++i)
+    {
+        const int step = playing ? audioProcessor.getPlayheadStep (i) : -1;
+
+        if (step != lastPlayhead[i])
+        {
+            lastPlayhead[i] = step;
+            sequencerPanel.setPlayhead (i, step);
+        }
+    }
 
     if (paramShown && juce::Time::getMillisecondCounter() >= paramShownUntilMs)
         clearParamDisplay();

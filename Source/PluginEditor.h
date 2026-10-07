@@ -64,6 +64,7 @@ private:
     juce::String filterParamId;
     int currentSeq = 0;
     bool updatingBindings = false;
+    int lastPlayhead[MetuliferAudioProcessor::numSequences] { -1, -1, -1, -1, -1, -1 };
 
     bool paramShown = false;
     juce::uint32 paramShownUntilMs = 0;

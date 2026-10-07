@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Lever.h"
 
 class SynthPanel : public juce::Component
 {
@@ -10,7 +11,8 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
-    juce::Slider vco1Octave, vco1Wave, vco2Octave, vco2Wave;
+    Lever vco1Lever, vco2Lever;
+    juce::Slider vco1Note, vco1Wave, vco2Note, vco2Wave;
     juce::Slider adsr1Attack, adsr1Decay, adsr1Sustain, adsr1Release;
     juce::Slider adsr2Attack, adsr2Decay, adsr2Sustain, adsr2Release;
     juce::Slider mixVco1, mixVco2;

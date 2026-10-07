@@ -71,6 +71,12 @@ void SequencerPanel::setStepsTree (juce::ValueTree tree)
     }
 }
 
+void SequencerPanel::setPlayhead (int sequenceIndex, int step)
+{
+    if (auto* row = getRow (sequenceIndex))
+        row->setPlayheadStep (step);
+}
+
 SequenceRowComponent* SequencerPanel::getRow (int index)
 {
     return juce::isPositiveAndBelow (index, (int) rows.size()) ? rows[(size_t) index].get()

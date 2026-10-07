@@ -66,10 +66,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
         layout.add (std::make_unique<juce::AudioParameterInt> (
             juce::ParameterID { id + "octave1", 1 }, nm + "Octave 1", -2, 2, 0));
         layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "note1", 1 }, nm + "Note 1",
+            juce::StringArray { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" }, 0));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
             juce::ParameterID { id + "wave1", 1 }, nm + "Wave 1",
             juce::StringArray { "Sine", "Saw", "Square", "Triangle" }, 1));
         layout.add (std::make_unique<juce::AudioParameterInt> (
             juce::ParameterID { id + "octave2", 1 }, nm + "Octave 2", -2, 2, 0));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "note2", 1 }, nm + "Note 2",
+            juce::StringArray { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" }, 0));
         layout.add (std::make_unique<juce::AudioParameterChoice> (
             juce::ParameterID { id + "wave2", 1 }, nm + "Wave 2",
             juce::StringArray { "Sine", "Saw", "Square", "Triangle" }, 1));
@@ -113,11 +119,91 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
        apvts (*this, &undoManager, "APVTS", createLayout())
 {
     for (int i = 0; i < numSequences; ++i)
+    {
         stepsTree.setProperty ("p" + juce::String (i), 0, nullptr);
+
+        voiceSources[i].bind (apvts, i);
+        patterns[i].store (getStepPattern (i), std::memory_order_relaxed);
+    }
+
+    SequencerEngine::Sources src;
+    src.patterns = patterns;
+    src.tempo = apvts.getRawParameterValue ("tempo");
+
+    for (int i = 0; i < numSequences; ++i)
+        src.lengths[i] = apvts.getRawParameterValue (seqParamId (i, "length"));
+
+    engine.setSources (src);
+    stepsTree.addListener (this);
 }
 
 MetuliferAudioProcessor::~MetuliferAudioProcessor()
 {
+    stepsTree.removeListener (this);
+}
+
+//==============================================================================
+void MetuliferAudioProcessor::VoiceSources::bind (juce::AudioProcessorValueTreeState& apvts, int sequenceIndex)
+{
+    const auto raw = [&apvts, sequenceIndex] (const char* name)
+    {
+        return apvts.getRawParameterValue (MetuliferAudioProcessor::seqParamId (sequenceIndex, name));
+    };
+
+    a1     = raw ("a1");     d1     = raw ("d1");
+    s1     = raw ("s1");     r1     = raw ("r1");
+    a2     = raw ("a2");     d2     = raw ("d2");
+    s2     = raw ("s2");     r2     = raw ("r2");
+    octave1 = raw ("octave1"); note1 = raw ("note1"); wave1 = raw ("wave1");
+    octave2 = raw ("octave2"); note2 = raw ("note2"); wave2 = raw ("wave2");
+    mix1   = raw ("mix1");    mix2   = raw ("mix2");
+    filter = raw ("filter");  cutoff = raw ("cutoff");
+    volume = raw ("volume");
+}
+
+Voice::Params MetuliferAudioProcessor::VoiceSources::read() const
+{
+    const auto v = [] (const std::atomic<float>* p) { return p != nullptr ? p->load (std::memory_order_relaxed) : 0.0f; };
+
+    Voice::Params p;
+    p.attack1   = v (a1);      p.decay1   = v (d1);
+    p.sustain1  = v (s1);      p.release1 = v (r1);
+    p.attack2   = v (a2);      p.decay2   = v (d2);
+    p.sustain2  = v (s2);      p.release2 = v (r2);
+    p.octave1   = (int) v (octave1);  p.note1 = (int) v (note1);  p.wave1 = (int) v (wave1);
+    p.octave2   = (int) v (octave2);  p.note2 = (int) v (note2);  p.wave2 = (int) v (wave2);
+    p.mixDb1    = v (mix1);    p.mixDb2   = v (mix2);
+    p.useLpf    = v (filter) < 0.5f;
+    p.cutoff    = v (cutoff);
+    p.volumePct = v (volume);
+    return p;
+}
+
+void MetuliferAudioProcessor::setPlaying (bool shouldPlay)
+{
+    engine.setPlaying (shouldPlay);
+}
+
+bool MetuliferAudioProcessor::isPlaying() const
+{
+    return engine.isPlaying();
+}
+
+int MetuliferAudioProcessor::getPlayheadStep (int sequenceIndex) const
+{
+    return engine.getCurrentStep (sequenceIndex);
+}
+
+void MetuliferAudioProcessor::valueTreePropertyChanged (juce::ValueTree& tree,
+                                                        const juce::Identifier& property)
+{
+    juce::ignoreUnused (property);
+
+    if (tree == stepsTree)
+    {
+        for (int i = 0; i < numSequences; ++i)
+            patterns[i].store (getStepPattern (i), std::memory_order_relaxed);
+    }
 }
 
 //==============================================================================
@@ -155,7 +241,7 @@ bool MetuliferAudioProcessor::isMidiEffect() const
 
 double MetuliferAudioProcessor::getTailLengthSeconds() const
 {
-    return 0.0;
+    return 6.0;
 }
 
 int MetuliferAudioProcessor::getNumPrograms()
@@ -201,8 +287,10 @@ void MetuliferAudioProcessor::setStepPattern (int seqIndex, int pattern)
 //==============================================================================
 void MetuliferAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    engine.prepare (sampleRate);
+
+    for (auto& voice : voices)
+        voice.prepare (sampleRate, samplesPerBlock);
 }
 
 void MetuliferAudioProcessor::releaseResources()
@@ -237,41 +325,51 @@ bool MetuliferAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 }
 #endif
 
-void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = buffer.getNumChannels();
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    for (int ch = 0; ch < numChannels; ++ch)
+        buffer.clear (ch, 0, numSamples);
+
+    for (int s = 0; s < numSequences; ++s)
+        voices[s].setParams (voiceSources[s].read());
+
+    if (engine.takePendingNoteOff())
+        for (auto& voice : voices)
+            voice.noteOff();
+
+    const auto& events = engine.process (numSamples);
+
+    int pos = 0;
+
+    for (const auto& ev : events)
     {
-        auto* channelData = buffer.getWritePointer (channel);
+        if (ev.sampleOffset > pos)
+            renderVoices (buffer, pos, ev.sampleOffset - pos);
 
-        // ..do something to the data...
+        auto& voice = voices[ev.sequence];
+
+        if (ev.gateOn)
+            voice.noteOn();
+        else
+            voice.noteOff();
+
+        pos = ev.sampleOffset;
     }
+
+    if (pos < numSamples)
+        renderVoices (buffer, pos, numSamples - pos);
 
     // Output RMS for the display screen (lock-free, realtime safe).
     {
-        const int numSamples = buffer.getNumSamples();
         float sumSquares = 0.0f;
         int count = 0;
 
-        for (int channel = 0; channel < totalNumOutputChannels; ++channel)
+        for (int channel = 0; channel < numChannels; ++channel)
         {
             const auto* data = buffer.getReadPointer (channel);
             for (int i = 0; i < numSamples; ++i)
@@ -282,6 +380,13 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         rms.store (count > 0 ? std::sqrt (sumSquares / (float) count) : 0.0f,
                    std::memory_order_relaxed);
     }
+}
+
+void MetuliferAudioProcessor::renderVoices (juce::AudioBuffer<float>& buffer,
+                                            int startSample, int numSamples)
+{
+    for (auto& voice : voices)
+        voice.render (buffer, startSample, numSamples);
 }
 
 //==============================================================================
@@ -322,7 +427,12 @@ void MetuliferAudioProcessor::setStateInformation (const void* data, int sizeInB
 
     auto stepsState = root.getChildWithName (stepsTree.getType());
     if (stepsState.isValid())
+    {
         stepsTree.copyPropertiesAndChildrenFrom (stepsState, nullptr);
+
+        for (int i = 0; i < numSequences; ++i)
+            patterns[i].store (getStepPattern (i), std::memory_order_relaxed);
+    }
 }
 
 //==============================================================================

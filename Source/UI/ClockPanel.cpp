@@ -18,7 +18,11 @@ ClockPanel::ClockPanel()
     playStopButton.setClickingTogglesState (true);
     playStopButton.onClick = [this]
     {
-        playStopButton.setButtonText (playStopButton.getToggleState() ? "Stop" : "Play");
+        const bool playing = playStopButton.getToggleState();
+        playStopButton.setButtonText (playing ? "Stop" : "Play");
+
+        if (onPlayToggled)
+            onPlayToggled (playing);
     };
     addAndMakeVisible (playStopButton);
 }

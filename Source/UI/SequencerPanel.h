@@ -14,6 +14,7 @@ public:
 
     void setSelectedSequence (int index);
     void setStepsTree (juce::ValueTree tree);
+    void setPlayhead (int sequenceIndex, int step);
     SequenceRowComponent* getRow (int index);
 
     std::function<void (int)> onSelectionChanged;
