@@ -148,7 +148,16 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
         stepsTree.setProperty ("p" + juce::String (i), 0, nullptr);
 
         voiceSources[i].bind (apvts, i);
-        patterns[i].store (getStepPattern (i), std::memory_order_relaxed);
+    }
+
+    if (const char* env = std::getenv ("METULIFER_RUN_TESTS"))
+    {
+        if (env[0] != '0')
+        {
+            juce::UnitTestRunner runner;
+            runner.runAllTests (true);
+            std::exit (0);
+        }
     }
 
     SequencerEngine::Sources src;
@@ -647,5 +656,14 @@ void MetuliferAudioProcessor::setStateInformation (const void* data, int sizeInB
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
+    if (const char* env = std::getenv ("METULIFER_RUN_TESTS"))
+    {
+        if (env[0] != '0')
+        {
+            juce::UnitTestRunner runner;
+            runner.runAllTests (true);
+            std::exit (0);
+        }
+    }
     return new MetuliferAudioProcessor();
 }

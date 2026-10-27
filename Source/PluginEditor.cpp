@@ -99,6 +99,9 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
         updatingBindings = false;
     }
 
+    tempoAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
+        audioProcessor.apvts, "tempo", clockPanel.tempoKnob);
+
     cableLayer.setModTree (audioProcessor.getModTree(), &audioProcessor.undoManager);
 
     // Knobs re-bound on every sequence selection (ids/display set in bindSequence).
