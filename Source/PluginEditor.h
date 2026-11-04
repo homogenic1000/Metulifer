@@ -19,6 +19,7 @@
 #include "UI/ReverbPanel.h"
 #include "UI/CableLayer.h"
 #include "UI/MetuliferLookAndFeel.h"
+#include <melatonin_inspector/melatonin_inspector.h>
 
 //==============================================================================
 /**
@@ -68,6 +69,8 @@ private:
     LFOPanel lfoPanel1 { "LFO1" }, lfoPanel2 { "LFO2" };
     ReverbPanel reverbPanel;
     CableLayer cableLayer;
+    juce::TextButton inspectButton { "Inspect" };
+    melatonin::Inspector inspector { *this, false };
 
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> synthAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> vcfAttachments;

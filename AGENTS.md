@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-11-04 — Intégration du module Melatonin Inspector
+- **Tâche** : Intégrer l'inspecteur de composants visuel `melatonin_inspector` de Sudara (https://github.com/sudara/melatonin_inspector) au projet JUCE
+- **Fichiers** : `modules/melatonin_inspector` (submodule git), `.gitmodules`, `Metulifer.jucer`, `Source/PluginEditor.h`, `Source/PluginEditor.cpp`, `AGENTS.md`
+- **Modifs** : (1) Ajout du submodule git `modules/melatonin_inspector` (branche main). (2) Déclaration du module `melatonin_inspector` dans `Metulifer.jucer` (MODULEPATHS vers modules) et régénération Projucer. (3) Intégration de `melatonin::Inspector inspector { *this, false };` dans `MetuliferAudioProcessorEditor` avec connexion de l'UndoManager (`inspector.setUndoManager (&audioProcessor.undoManager)`). (4) Raccourci natif `Cmd+I` fonctionnel et ajout d'un bouton discret « Inspect » (120, 8, 60, 18) dans l'en-tête à côté du titre METULIFER.
+- **Build** : ✅ OK (Metulifer - All : VST3, AU, Standalone construits et signés avec succès)
+- **Commit** : `ddefac5` — `feat: integrate melatonin_inspector UI component inspector`
+- **Next steps** : —
+
 ### 2026-11-04 — Fix inversion des arguments applyGain dans Voice (volume et mix inopérants)
 - **Tâche** : Corriger l'ordre des arguments de `juce::AudioBuffer::applyGain` dans `Voice::renderChunk`
 - **Fichiers** : `Source/DSP/Voice.cpp`, `AGENTS.md`
@@ -325,6 +333,7 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | 2026-10-07 | **Phase 5 — câbles LFO→knob** : source = jack des panneaux LFO1/2 ; dest = knobs synthé de la **séquence sélectionnée au drop** (`a1,d1,s1,r1,a2,d2,s2,r2,mix1,mix2,cutoff` — exclus octave/note/wave/length/volume/tempo pour v1) ; modulation appliquée **en normalisé** (±50 % de la plage du param, par bloc audio) sur une copie des valeurs lues — **jamais** l'APVTS n'est écrit par l'audio ; un câble n'est **dessiné/selectable que pour sa séquence de dest** (pagination) ; un LFO **sans aucun câble est inactif** (auto-off) ; modTree (`"mod"`, enfants `cable{src,dest}`) sérialisé comme `stepsTree` | Réglages validables sans re-demande dev : pas de feedback sur params hôte, dests musicales, auto-off §7 ; undo via `undoManager` du processor | agent |
 | 2026-11-04 | **Phase 6 — Reverb par séquence avec pagination** : APVTS `seqN_reverb_{enabled,mode,mix}` ; UI `ReverbPanel` (105×224 à x=1144, y=471) conforme Figma node 176:2 / 176:247 avec bouton On/Off, bouton Mode (Room/Hall) et knob 86 px Mix (0..100 %) ; DSP Voice avec `juce::dsp::Reverb` stéréo (0 alloc en temps réel) ; cible de câble LFO `reverb_mix` ajoutée | Choix utilisateur : reverb par séquence, contrôles On/Off + Mode + Mix knob | dev / agent |
 | 2026-11-04 | **Gain Staging & Headroom audio** : (1) Somme des 2 VCOs pondérée par 0.5f pour unity gain à 0 dB. (2) `mixDb1`/`mixDb2` `<= -59 dB` coupe complètement l'oscillateur (gain 0.0f). (3) Reverb Freeverb wet pondéré à `0.35f` pour éviter le boost de gain excessif. (4) Volume séquence `<= 0.0001f` réinitialise et coupe la voix. (5) Master buffer atténué de 0.5f et saturateur doux `std::tanh` temps-réel sans allocation pour garantir le headroom et empêcher tout écrêtage DAC / CoreAudio. (6) Tooltips et affichage dynamique `seq N volume` et `seq N length` dans l'écran de contrôle. | Résolution des saturations/clippings et réactivité des potentiomètres Mix et Volume | dev / agent |
+| 2026-11-04 | **Melatonin Inspector** : Module tiers `melatonin_inspector` de Sudara intégré via sous-module git `modules/melatonin_inspector` dans `.jucer` ; instance dans `PluginEditor` liée à `undoManager` ; déclenchable via raccourci `Cmd+I` ou bouton UI « Inspect ». | Inspection visuelle en direct et debugging des composants JUCE | dev |
 
 ---
 

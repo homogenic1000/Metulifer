@@ -27,6 +27,10 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     addAndMakeVisible (lfoPanel2);
     addAndMakeVisible (reverbPanel);
     addAndMakeVisible (cableLayer); // au-dessus de tout (hitTest limité aux jacks/câbles)
+    addAndMakeVisible (inspectButton);
+    inspectButton.setTooltip ("Toggle UI Inspector (Cmd+I)");
+    inspectButton.onClick = [this] { inspector.toggle(); };
+    inspector.setUndoManager (&audioProcessor.undoManager);
 
     sequencerPanel.onSelectionChanged = [this] (int index)
     {
@@ -168,6 +172,7 @@ void MetuliferAudioProcessorEditor::paint (juce::Graphics& g)
 
 void MetuliferAudioProcessorEditor::resized()
 {
+    inspectButton.setBounds (120, 8, 60, 18);
     sequencerPanel.setBounds (32, 32, 910, 417);
     displayScreen.setBounds (986, 32, 247, 132);
     clockPanel.setBounds (961, 164, 297, 284);
