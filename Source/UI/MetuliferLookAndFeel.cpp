@@ -9,18 +9,10 @@ void MetuliferLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y,
                                              float rotaryStartAngle, float rotaryEndAngle,
                                              juce::Slider& slider)
 {
-    auto img = Skin::find ("knob_" + slider.getName());
+    const auto bounds = juce::Rectangle<float> ((float) x, (float) y, (float) width, (float) height);
 
-    if (img.isValid() && img.getHeight() > 0)
-    {
-        const int frameH = img.getHeight();
-        const int frames = juce::jmax (1, img.getWidth() / frameH);
-        const int frame = juce::jlimit (0, frames - 1,
-                                        juce::roundToInt (sliderPos * (float) (frames - 1)));
-
-        g.drawImage (img, x, y, width, height, frame * frameH, 0, frameH, frameH, true);
+    if (Skin::drawFilmstrip (g, slider.getName(), sliderPos, bounds))
         return;
-    }
 
     drawHardwareKnob (g, (float) x, (float) y, (float) width, (float) height,
                       sliderPos, rotaryStartAngle, rotaryEndAngle, slider);
@@ -156,10 +148,14 @@ void MetuliferLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button
 void MetuliferLookAndFeel::drawStepButtonBackground (juce::Graphics& g, juce::Button& button,
                                                      bool isHighlighted, bool isDown)
 {
+    auto bounds = button.getLocalBounds().toFloat().reduced (0.5f);
+
+    if (Skin::drawStepButton (g, button, bounds, isHighlighted, isDown))
+        return;
+
     const int stepNum = button.getButtonText().substring (5).getIntValue();
     const bool isDownbeat = ((stepNum - 1) % 4 == 0);
     const bool isOn = button.getToggleState();
-    auto bounds = button.getLocalBounds().toFloat().reduced (0.5f);
     const float cr = 3.0f;
 
     if (isOn)
@@ -232,6 +228,10 @@ void MetuliferLookAndFeel::drawStandardButtonBackground (juce::Graphics& g, juce
                                                          bool isHighlighted, bool isDown)
 {
     auto bounds = button.getLocalBounds().toFloat().reduced (0.5f);
+
+    if (Skin::drawButtonSprite (g, button.getButtonText(), button, bounds, isHighlighted, isDown))
+        return;
+
     const auto text = button.getButtonText();
     float cr = 5.0f;
 

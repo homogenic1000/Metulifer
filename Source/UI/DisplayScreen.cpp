@@ -1,4 +1,5 @@
 #include "DisplayScreen.h"
+#include "Skin.h"
 
 DisplayScreen::DisplayScreen()
 {
@@ -212,6 +213,8 @@ void DisplayScreen::paint (juce::Graphics& g)
         g.setColour (juce::Colour (0xff38bdf8));
         g.strokePath (wavePath, juce::PathStrokeType (1.5f, juce::PathStrokeType::mitered, juce::PathStrokeType::square));
     }
+
+    Skin::drawScreenOverlay (g, getLocalBounds().toFloat());
 }
 
 void DisplayScreen::setSequenceNumber (int index)

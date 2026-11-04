@@ -114,6 +114,23 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-04 — Système de transition sans casse pour rendus 3D & Sprite Sheets
+- **Tâche** : Développer l'infrastructure logicielle permettant de substituer dynamiquement n'importe quel élément vectoriel par des rendus 3D (filmstrips de potentiomètres, sprites d'états de boutons, leviers d'octave, verre d'écran, châssis) avec fallback vectoriel transparent sans casse.
+- **Fichiers** : `Source/UI/Skin.h`, `Source/UI/Skin.cpp`, `Source/UI/MetuliferLookAndFeel.cpp`, `Source/UI/Lever.cpp`, `Source/UI/DisplayScreen.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/UI/Skin.{h,cpp}` :
+     - Système de découverte multi-sources : scrute `BinaryData` en mémoire ainsi que les dossiers locaux (`Resources/`, bundle macOS `Contents/Resources`, dossier projet) pour charger à chaud les PNG 32-bit (y compris Retina `@2x`).
+     - `drawFilmstrip` : Rendu de potentiomètres rotatifs à partir d'une bande verticale ou horizontale ($1 \times N$ ou $N \times 1$) avec calcul automatique du nombre de trames, sélection de la frame selon `normalizedValue` et rééchantillonnage haute qualité. Fallback par nom spécifique (`knob_<name>_filmstrip`) ou générique (`knob_big_filmstrip`, `knob_med_filmstrip`, `knob_small_filmstrip`).
+     - `drawButtonSprite` : Rendu des boutons à états multiples (bande 4 ou 6 trames : normal, hover, pressed/down, on, on_hover, on_down ou fichiers séparés `btn_<name>_on/off/down`).
+     - `drawStepButton` : Rendu des 32 touches du séquenceur (support des états downbeat 4/4 et on/off/hover).
+     - `drawLever` : Rendu du levier d'octave 5 positions (filmstrip 5 crans ou sprites individuels).
+     - `drawScreenOverlay` : Calque de verre 3D transparent avec reflets spéculaires placé au-dessus du tracé de l'oscilloscope et du dB-mètre.
+  2. `Source/UI/MetuliferLookAndFeel.cpp` : Raccordement de `drawRotarySlider`, `drawStepButtonBackground` et `drawStandardButtonBackground` vers les fonctions `Skin::draw*` avec bascule automatique sur les fonctions vectorielles existantes si aucun asset n'est présent.
+  3. `Source/UI/Lever.cpp` & `Source/UI/DisplayScreen.cpp` : Intégration du fallback du levier et du calque de verre d'écran.
+- **Validation** : ✅ Build Xcode réussi (`** BUILD SUCCEEDED **` sur VST3, AU et Standalone) + validation automatisée complète `pluginval` au niveau de rigueur 5 (`SUCCESS`, 0 erreur, aucune régression visuelle ou fonctionnelle).
+- **Commit** : `f85873e` — `feat: implement zero-breakage 3d sprite sheet and filmstrip skinning system`
+- **Next steps** : Déposer les rendus 3D dans `Resources/` au fur et à mesure de leur réalisation dans Blender.
+
 ### 2026-11-04 — Synchronisation temps réel 60 Hz & zéro-latence du dB-mètre et de l'oscilloscope
 - **Tâche** : Résoudre la latence perçue et le décalage rythmique entre les notes jouées par le séquenceur et la réaction du dB-mètre / oscilloscope.
 - **Causes racines identifiées** :

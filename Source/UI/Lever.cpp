@@ -1,4 +1,5 @@
 #include "Lever.h"
+#include "Skin.h"
 
 Lever::Lever()
 {
@@ -72,6 +73,9 @@ void Lever::mouseDrag (const juce::MouseEvent& e)
 void Lever::paint (juce::Graphics& g)
 {
     auto area = getLocalBounds().toFloat().reduced (0.5f);
+
+    if (Skin::drawLever (g, "octave", value + 2, numPositions, area))
+        return;
 
     // Frame with drop shadow
     g.setColour (juce::Colour (0x15000000));
