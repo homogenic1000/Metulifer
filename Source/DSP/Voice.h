@@ -15,7 +15,7 @@ public:
         int   octave2  = 0, note2  = 0, wave2  = 1;
         float mixDb1   = 0.0f, mixDb2 = 0.0f;
         bool  useLpf   = true;
-        float cutoff   = 1000.0f;
+        float cutoff   = 20000.0f;
         float volumePct = 80.0f;
 
         // Reverb

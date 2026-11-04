@@ -80,7 +80,7 @@ public:
     float getRmsDbL()  const noexcept { return rmsDbL.load  (std::memory_order_relaxed); }
     float getRmsDbR()  const noexcept { return rmsDbR.load  (std::memory_order_relaxed); }
 
-    static constexpr int scopeBufferSize = 512;
+    static constexpr int scopeBufferSize = 1024;
     void getScopeBuffer (float* dest, int numSamplesToRead) const;
 
     void setPlaying (bool shouldPlay);

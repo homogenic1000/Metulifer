@@ -206,11 +206,11 @@ void DisplayScreen::paint (juce::Graphics& g)
 
         // Waveform outer glow
         g.setColour (juce::Colour (0x3538bdf8));
-        g.strokePath (wavePath, juce::PathStrokeType (3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.strokePath (wavePath, juce::PathStrokeType (3.0f, juce::PathStrokeType::mitered, juce::PathStrokeType::square));
 
         // Waveform crisp core
         g.setColour (juce::Colour (0xff38bdf8));
-        g.strokePath (wavePath, juce::PathStrokeType (1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.strokePath (wavePath, juce::PathStrokeType (1.5f, juce::PathStrokeType::mitered, juce::PathStrokeType::square));
     }
 }
 
@@ -281,11 +281,79 @@ void DisplayScreen::pushScopeSamples (const float* samples, int numSamples)
     if (samples == nullptr || numSamples <= 0)
         return;
 
-    const float step = (float) numSamples / (float) numScopePoints;
+    // Detect signal peak to check for silence or active sound
+    float maxAmp = 0.0f;
+    for (int i = 0; i < numSamples; ++i)
+    {
+        const float a = std::abs (samples[i]);
+        if (a > maxAmp)
+            maxAmp = a;
+    }
+
+    if (maxAmp < 0.005f)
+    {
+        // Smoothly decay to flat line at zero when silent
+        for (int i = 0; i < numScopePoints; ++i)
+            scopePoints[i] *= 0.75f;
+
+        repaint();
+        return;
+    }
+
+    // Trigger detection: find the first rising zero-crossing
+    const int searchRange = juce::jmin (numSamples / 2, 256);
+    int triggerIdx = -1;
+    for (int i = 1; i < searchRange; ++i)
+    {
+        if (samples[i - 1] <= 0.0f && samples[i] > 0.0f)
+        {
+            triggerIdx = i;
+            break;
+        }
+    }
+
+    if (triggerIdx < 0)
+        triggerIdx = 0;
+
+    // Estimate fundamental period by finding the second rising zero-crossing
+    int period = 0;
+    const int minPeriod = 6;
+    for (int i = triggerIdx + minPeriod; i < numSamples - 1; ++i)
+    {
+        if (samples[i - 1] <= 0.0f && samples[i] > 0.0f)
+        {
+            period = i - triggerIdx;
+            break;
+        }
+    }
+
+    // Choose window to show 2 cycles if period detected, or a reasonable window
+    int samplesToShow;
+    if (period > 0)
+    {
+        const int targetCycles = (period < 90) ? 3 : 2;
+        samplesToShow = juce::jlimit (32, numSamples - triggerIdx, targetCycles * period);
+    }
+    else
+    {
+        samplesToShow = juce::jlimit (32, numSamples - triggerIdx, 256);
+    }
+
+    // Auto-gain so the waveform comfortably fills ~82% of vertical range
+    const float autoGain = juce::jlimit (1.0f, 4.0f, 0.82f / maxAmp);
+
+    // Resample to numScopePoints (128) using linear interpolation
+    const float step = (float) (samplesToShow - 1) / (float) (numScopePoints - 1);
     for (int i = 0; i < numScopePoints; ++i)
     {
-        const int idx = juce::jlimit (0, numSamples - 1, juce::roundToInt ((float) i * step));
-        scopePoints[i] = samples[idx];
+        const float srcPos = (float) triggerIdx + (float) i * step;
+        const int i0 = juce::jlimit (0, numSamples - 1, (int) srcPos);
+        const int i1 = juce::jlimit (0, numSamples - 1, i0 + 1);
+        const float frac = srcPos - (float) i0;
+        const float rawSample = (samples[i0] + frac * (samples[i1] - samples[i0])) * autoGain;
+
+        // Smooth frame blending for silky, jitter-free visual stability
+        scopePoints[i] = scopePoints[i] * 0.2f + rawSample * 0.8f;
     }
 
     repaint();

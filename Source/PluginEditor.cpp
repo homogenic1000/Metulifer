@@ -715,9 +715,9 @@ void MetuliferAudioProcessorEditor::timerCallback()
                                      audioProcessor.getRmsDbR());
 
     // Push real-time oscilloscope samples to the OLED display
-    float scopeData[128];
-    audioProcessor.getScopeBuffer (scopeData, 128);
-    displayScreen.pushScopeSamples (scopeData, 128);
+    float scopeData[512];
+    audioProcessor.getScopeBuffer (scopeData, 512);
+    displayScreen.pushScopeSamples (scopeData, 512);
 
     const bool playing = audioProcessor.isPlaying();
 

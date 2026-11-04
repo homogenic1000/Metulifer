@@ -114,6 +114,27 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-04 — Fix affichage onde carrée sur l'oscilloscope & Cutoff par défaut
+- **Tâche** : Résoudre le problème où une onde carrée isolée apparaît comme une sinusoïde sur l'oscilloscope.
+- **Causes racines identifiées** :
+  1. **Cutoff LPF par défaut à 1 000 Hz** : Le filtre passe-bas était initialisé à 1 000 Hz par défaut. À 1 000 Hz, tous les harmoniques supérieurs d'une onde carrée (harmoniques 3, 5, 7, etc.) sont violemment atténués, transformant mathématiquement l'onde carrée en sa seule composante fondamentale (une sinusoïde pure).
+  2. **Absence de Trigger (synchronisation de phase) sur l'oscilloscope** : Les échantillons étaient lus sans détection de front montant (zero-crossing), provoquant un défilement continu de la forme d'onde à 30 Hz et un flou visuel arrondi par persistance rétinienne.
+  3. **Fenêtrage temporel fixe (128 échantillons bruts)** : À 44,1 kHz, 128 échantillons ne représentaient que 38 % d'un seul cycle de C3 (130 Hz), tronquant l'onde en une simple arche incurvée.
+  4. **Coins de tracé adoucis** : `PathStrokeType::curved` arrondissait les arêtes franches des ondes carrées.
+- **Fichiers** : `Source/DSP/Voice.h`, `Source/DSP/Voice.cpp`, `Source/PluginProcessor.h`, `Source/PluginProcessor.cpp`, `Source/UI/VCFPanel.cpp`, `Source/PluginEditor.cpp`, `Source/UI/DisplayScreen.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/DSP/Voice.h`, `Source/DSP/Voice.cpp`, `Source/PluginProcessor.cpp`, `Source/UI/VCFPanel.cpp` : Cutoff par défaut initialisé à **20 000 Hz** (filtre grand ouvert) pour laisser passer l'intégralité du spectre harmonique des formes d'onde brutes (carrée, dent de scie).
+  2. `Source/PluginProcessor.h` : `scopeBufferSize` augmenté à 1024 échantillons.
+  3. `Source/PluginEditor.cpp` : Buffer de 512 échantillons transmis à l'écran OLED.
+  4. `Source/UI/DisplayScreen.cpp` :
+     - Algorithme de Trigger avec détection de front montant (rising zero-crossing) : la forme d'onde est parfaitement figée et verrouillée en phase.
+     - Mesure de période entre deux passages par zéro pour adapter automatiquement la base de temps et afficher exactement 2 cycles complets stables.
+     - Auto-gain adaptatif remplissant ~82 % de la hauteur de l'écran avec fondu enchaîné silencieux.
+     - Rendu vectoriel net avec `PathStrokeType::mitered` et embouts carrés pour des angles droits impeccables.
+- **Validation** : ✅ Build Xcode réussi (`** BUILD SUCCEEDED **` sur VST3, AU et Standalone) + validation automatisée complète `pluginval` au niveau de rigueur 5 (`SUCCESS`, 0 erreur).
+- **Commit** : `97fafec` — `fix: stabilize oscilloscope with zero-crossing trigger and set default filter cutoff to 20kHz`
+- **Next steps** : —
+
 ### 2026-11-04 — Mode Pinceau glissé (Click-and-Drag Step Paintbrush) sur le séquenceur
 - **Tâche** : Permettre d'activer ou désactiver une série continue de pas en maintenant le clic de la souris enfoncé et en balayant la rangée de 32 pas (click-and-drag paintbrush).
 - **Fichiers** : `Source/UI/SequenceRowComponent.{h,cpp}`, `AGENTS.md`

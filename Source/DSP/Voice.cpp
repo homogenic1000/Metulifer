@@ -71,7 +71,7 @@ void Voice::prepare (double sr, int maxBlock)
 
     filter.prepare ({ sampleRate, (juce::uint32) maxBlockSize, 1u });
     filter.setType (juce::dsp::StateVariableTPTFilterType::lowpass);
-    filter.setCutoffFrequency (1000.0f);
+    filter.setCutoffFrequency (20000.0f);
     filter.reset();
 
     reverb.prepare ({ sampleRate, (juce::uint32) maxBlockSize, 2u });

@@ -89,7 +89,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
             juce::ParameterID { id + "filter", 1 }, nm + "Filter",
             juce::StringArray { "LPF", "HPF" }, 0));
         layout.add (std::make_unique<juce::AudioParameterFloat> (
-            juce::ParameterID { id + "cutoff", 1 }, nm + "Cutoff", hz, 1000.0f, hzAttr));
+            juce::ParameterID { id + "cutoff", 1 }, nm + "Cutoff", hz, 20000.0f, hzAttr));
         layout.add (std::make_unique<juce::AudioParameterInt> (
             juce::ParameterID { id + "length", 1 }, nm + "Length", 1, 32, 32, stepAttr));
         layout.add (std::make_unique<juce::AudioParameterFloat> (

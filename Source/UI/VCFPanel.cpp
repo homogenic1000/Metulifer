@@ -40,7 +40,7 @@ VCFPanel::VCFPanel()
     cutoffKnob.setName ("VCF_Cutoff");
     cutoffKnob.setRange (20.0, 20000.0, 1.0);
     cutoffKnob.setSkewFactorFromMidPoint (1000.0);
-    cutoffKnob.setValue (1000.0, juce::dontSendNotification);
+    cutoffKnob.setValue (20000.0, juce::dontSendNotification);
     addAndMakeVisible (cutoffKnob);
 }
 
