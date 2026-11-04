@@ -115,6 +115,18 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-11-04 — Fix clipping audio & réactivité des potentiomètres Mix et Volume
+- **Tâche** : Résoudre l'écrêtage/clipping excessif de la reverb et corriger le comportement des potentiomètres « Mix out DB » et des volumes de séquence
+- **Fichiers** : `Source/DSP/Voice.cpp`, `Source/PluginProcessor.cpp`, `Source/PluginEditor.cpp`, `Source/UI/SequenceRowComponent.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/DSP/Voice.cpp` : Normalisation de la sommation VCO1 + VCO2 (gain 0.5f) pour que deux oscillateurs à 0 dB somment à 0 dBFS max (au lieu de +6 dBFS). Réajustement des gains wet/dry de la reverb (wet * 0.35f, 1.0f - wet * 0.5f) pour corriger l'amplification interne excessive de Freeverb. Mute franc à 0.0f quand mixDb <= -59.0 dB. Si le volume de séquence est à 0 %, court-circuit immédiat avec reset de la reverb pour un silence parfait.
+  2. `Source/PluginProcessor.cpp` : Ajout d'une marge de headroom pour les 6 séquences polyphoniques (gain 0.5f) suivie d'une saturation douce (std::tanh(x)) garantissant un plafond analogique sans écrêtage dur numérique DAC/CoreAudio.
+  3. `Source/PluginEditor.cpp` : Affichage textuel dynamique dans le DisplayScreen (« seq N volume XX % » et « seq N length XX steps ») lors de la manipulation des potentiomètres de chaque rangée de séquence.
+  4. `Source/UI/SequenceRowComponent.cpp` : Ajout de tooltips explicites sur les boutons Copy/Paste, Length et Volume de chaque séquence.
+- **Build** : ✅ OK (Metulifer - All : VST3, AU, Standalone construits et signés avec succès)
+- **Commit** : `bbc19c8` — `fix: resolve audio clipping and gain staging for VCO mix, sequence volume and reverb`
+- **Next steps** : —
+
 ### 2026-11-04 — Phase 6 : Reverb par séquence + ReverbPanel UI
 - **Tâche** : Implémenter le module Reverb selon le design Figma (node 176:2 / 176:247) avec Reverb par séquence (paginée)
 - **Fichiers** : `Source/UI/ReverbPanel.{h,cpp}` (neufs), `Source/DSP/Voice.{h,cpp}`, `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`
@@ -304,6 +316,7 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | 2026-10-07 | **UI skinnable** : chaque composant vectoriel remplaçable par un asset image transparent (états : normal/hover/down/on/off), fallback vectoriel conservé si asset absent ; assets en `Resources/` (groupe `.jucer`, BinaryData) — formats JUCE natifs PNG/JPEG/GIF | Dev fournira des rendus 3D à substituer au vectoriel ; pas de `juce_svg` dans le `.jucer` | dev |
 | 2026-10-07 | **Phase 5 — câbles LFO→knob** : source = jack des panneaux LFO1/2 ; dest = knobs synthé de la **séquence sélectionnée au drop** (`a1,d1,s1,r1,a2,d2,s2,r2,mix1,mix2,cutoff` — exclus octave/note/wave/length/volume/tempo pour v1) ; modulation appliquée **en normalisé** (±50 % de la plage du param, par bloc audio) sur une copie des valeurs lues — **jamais** l'APVTS n'est écrit par l'audio ; un câble n'est **dessiné/selectable que pour sa séquence de dest** (pagination) ; un LFO **sans aucun câble est inactif** (auto-off) ; modTree (`"mod"`, enfants `cable{src,dest}`) sérialisé comme `stepsTree` | Réglages validables sans re-demande dev : pas de feedback sur params hôte, dests musicales, auto-off §7 ; undo via `undoManager` du processor | agent |
 | 2026-11-04 | **Phase 6 — Reverb par séquence avec pagination** : APVTS `seqN_reverb_{enabled,mode,mix}` ; UI `ReverbPanel` (105×224 à x=1144, y=471) conforme Figma node 176:2 / 176:247 avec bouton On/Off, bouton Mode (Room/Hall) et knob 86 px Mix (0..100 %) ; DSP Voice avec `juce::dsp::Reverb` stéréo (0 alloc en temps réel) ; cible de câble LFO `reverb_mix` ajoutée | Choix utilisateur : reverb par séquence, contrôles On/Off + Mode + Mix knob | dev / agent |
+| 2026-11-04 | **Gain Staging & Headroom audio** : (1) Somme des 2 VCOs pondérée par 0.5f pour unity gain à 0 dB. (2) `mixDb1`/`mixDb2` `<= -59 dB` coupe complètement l'oscillateur (gain 0.0f). (3) Reverb Freeverb wet pondéré à `0.35f` pour éviter le boost de gain excessif. (4) Volume séquence `<= 0.0001f` réinitialise et coupe la voix. (5) Master buffer atténué de 0.5f et saturateur doux `std::tanh` temps-réel sans allocation pour garantir le headroom et empêcher tout écrêtage DAC / CoreAudio. (6) Tooltips et affichage dynamique `seq N volume` et `seq N length` dans l'écran de contrôle. | Résolution des saturations/clippings et réactivité des potentiomètres Mix et Volume | dev / agent |
 
 ---
 

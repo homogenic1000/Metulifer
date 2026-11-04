@@ -73,8 +73,10 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     for (int i = 0; i < MetuliferAudioProcessor::numSequences; ++i)
         if (auto* row = sequencerPanel.getRow (i))
         {
-            track (row->getLengthKnob(), MetuliferAudioProcessor::seqParamId (i, "length"), "length");
-            track (row->getVolumeKnob(), MetuliferAudioProcessor::seqParamId (i, "volume"), "volume");
+            track (row->getLengthKnob(), MetuliferAudioProcessor::seqParamId (i, "length"),
+                   "seq " + juce::String (i + 1) + " length");
+            track (row->getVolumeKnob(), MetuliferAudioProcessor::seqParamId (i, "volume"),
+                   "seq " + juce::String (i + 1) + " volume");
         }
 
     track (clockPanel.tempoKnob, "tempo", "tempo");

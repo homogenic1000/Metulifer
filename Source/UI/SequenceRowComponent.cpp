@@ -8,6 +8,9 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
     addAndMakeVisible (copyButton);
     addAndMakeVisible (pasteButton);
 
+    copyButton.setTooltip ("Copy pattern (Seq " + juce::String (seqIndex + 1) + ")");
+    pasteButton.setTooltip ("Paste pattern (Seq " + juce::String (seqIndex + 1) + ")");
+
     copyButton.onClick = [this] { if (onCopy) onCopy(); };
     pasteButton.onClick = [this] { if (onPaste) onPaste(); };
 
@@ -20,16 +23,17 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
         stepButtons.push_back (std::move (step));
     }
 
-    auto setupKnob = [this] (juce::Slider& knob, const juce::String& name)
+    auto setupKnob = [this] (juce::Slider& knob, const juce::String& name, const juce::String& tip)
     {
         knob.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
         knob.setTextBoxStyle (juce::Slider::NoTextBox, true, 0, 0);
         knob.setName (name);
+        knob.setTooltip (tip);
         addAndMakeVisible (knob);
     };
 
-    setupKnob (lengthKnob, "length");
-    setupKnob (volumeKnob, "volume");
+    setupKnob (lengthKnob, "length", "Length (Seq " + juce::String (seqIndex + 1) + ")");
+    setupKnob (volumeKnob, "volume", "Volume (Seq " + juce::String (seqIndex + 1) + ")");
 
     addAndMakeVisible (playhead);
     playhead.setInterceptsMouseClicks (false, false);

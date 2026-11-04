@@ -59,8 +59,8 @@ void Voice::setParams (const Params& p)
                            juce::jlimit (0.0f, 1.0f, p.sustain2 / 100.0f),
                            p.release2 / 1000.0f });
 
-    mixGain1  = juce::Decibels::decibelsToGain (p.mixDb1);
-    mixGain2  = juce::Decibels::decibelsToGain (p.mixDb2);
+    mixGain1   = (p.mixDb1 <= -59.0f) ? 0.0f : juce::Decibels::decibelsToGain (p.mixDb1);
+    mixGain2   = (p.mixDb2 <= -59.0f) ? 0.0f : juce::Decibels::decibelsToGain (p.mixDb2);
     volumeGain = juce::jlimit (0.0f, 1.0f, p.volumePct / 100.0f);
 
     filter.setType (p.useLpf ? juce::dsp::StateVariableTPTFilterType::lowpass
@@ -84,7 +84,7 @@ void Voice::setParams (const Params& p)
             rp.damping  = 0.25f;
             rp.width    = 1.0f;
         }
-        rp.wetLevel = wet;
+        rp.wetLevel = wet * 0.35f;
         rp.dryLevel = 1.0f - (wet * 0.5f);
         rp.freezeMode = 0.0f;
         reverb.setParameters (rp);
@@ -132,6 +132,7 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
     scratch2.applyGain (mixGain2, 0, numSamples);
 
     scratch1.addFrom (0, 0, scratch2, 0, 0, numSamples);
+    scratch1.applyGain (0.5f, 0, numSamples);
 
     juce::dsp::AudioBlock<float> block (scratch1);
     auto subBlock = block.getSubBlock (0, (size_t) numSamples);
@@ -139,6 +140,13 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
     filter.process (context);
 
     scratch1.applyGain (volumeGain, 0, numSamples);
+
+    if (volumeGain <= 0.0001f)
+    {
+        if (reverbActive)
+            reverb.reset();
+        return;
+    }
 
     const int channels = juce::jmin (2, out.getNumChannels());
 

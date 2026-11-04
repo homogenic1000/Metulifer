@@ -540,6 +540,17 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     if (pos < numSamples)
         renderVoices (buffer, pos, numSamples - pos);
 
+    // Headroom scaling for summing 6 voices + smooth soft saturation
+    // to prevent DAC / audio interface digital hard clipping.
+    buffer.applyGain (0.5f);
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        auto* data = buffer.getWritePointer (ch);
+        for (int i = 0; i < numSamples; ++i)
+            data[i] = std::tanh (data[i]);
+    }
+
     // Output RMS for the display screen (lock-free, realtime safe).
     {
         float sumSquares = 0.0f;
