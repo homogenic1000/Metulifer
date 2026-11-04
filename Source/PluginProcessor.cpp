@@ -225,6 +225,7 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
         lfoOffset[i]   = apvts.getRawParameterValue (lid + "offset");
         lfoDepth[i]     = apvts.getRawParameterValue (lid + "depth");
         lfoEnabled[i]  = apvts.getRawParameterValue (lid + "enabled");
+        lfoValue[i].store (0.0f, std::memory_order_relaxed);
     }
 
     stepsTree.addListener (this);
@@ -421,11 +422,16 @@ void MetuliferAudioProcessor::rebuildCables()
         if (cable.field == fInvalid)
             continue;
 
-        cable.param = apvts.getParameter (child.getProperty ("dest").toString());
-        cable.raw = apvts.getRawParameterValue (child.getProperty ("dest").toString());
+        const auto destStr = child.getProperty ("dest").toString();
+        cable.param = apvts.getParameter (destStr);
+        cable.raw = apvts.getRawParameterValue (destStr);
 
-        const auto seqPrefix = child.getProperty ("dest").toString().upToFirstOccurrenceOf ("_", false, true);
-        cable.seqIndex = seqPrefix.getIntValue() - 1;
+        cable.seqIndex = -1;
+        if (destStr.startsWith ("seq"))
+        {
+            const auto rest = destStr.substring (3);
+            cable.seqIndex = rest.upToFirstOccurrenceOf ("_", false, false).getIntValue() - 1;
+        }
 
         if (cable.param == nullptr || cable.raw == nullptr
              || ! juce::isPositiveAndBelow (cable.seqIndex, numSequences))
@@ -583,11 +589,14 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         {
             const auto& cable = cableBuffers[active][c];
 
-            if (lfoValue[cable.lfo] == 0.0f)
+            const bool enabled = lfoEnabled[cable.lfo] != nullptr
+                                 && lfoEnabled[cable.lfo]->load (std::memory_order_relaxed) > 0.5f;
+            if (! enabled)
                 continue;
 
+            const float lfoVal = lfoValue[cable.lfo].load (std::memory_order_relaxed);
             float norm = cable.param->convertTo0to1 (cable.raw->load (std::memory_order_relaxed));
-            norm = juce::jlimit (0.0f, 1.0f, norm + lfoValue[cable.lfo] * 0.5f);
+            norm = juce::jlimit (0.0f, 1.0f, norm + lfoVal * 0.5f);
             setField (params[cable.seqIndex], cable.field, cable.param->convertFrom0to1 (norm));
         }
     }
@@ -734,9 +743,6 @@ void MetuliferAudioProcessor::renderVoices (juce::AudioBuffer<float>& buffer,
 
 void MetuliferAudioProcessor::updateLfos (int numSamples)
 {
-    const int active = activeBuffer.load (std::memory_order_acquire);
-    const int cableCount = cableCounts[active].load (std::memory_order_acquire);
-
     const double dt = (double) numSamples / juce::jmax (1.0, sampleRate);
 
     for (int i = 0; i < 2; ++i)
@@ -744,17 +750,9 @@ void MetuliferAudioProcessor::updateLfos (int numSamples)
         const bool enabled = lfoEnabled[i] != nullptr
                              && lfoEnabled[i]->load (std::memory_order_relaxed) > 0.5f;
 
-        bool hasCables = false;
-        for (int c = 0; c < cableCount; ++c)
-            if (cableBuffers[active][c].lfo == i)
-            {
-                hasCables = true;
-                break;
-            }
-
-        if (! enabled || ! hasCables)
+        if (! enabled)
         {
-            lfoValue[i] = 0.0f;
+            lfoValue[i].store (0.0f, std::memory_order_relaxed);
             continue;
         }
 
@@ -777,7 +775,7 @@ void MetuliferAudioProcessor::updateLfos (int numSamples)
         const float depth = juce::jlimit (0.0f, 1.0f, lfoDepth[i]->load (std::memory_order_relaxed) / 100.0f);
         const float offset = juce::jlimit (-1.0f, 1.0f, lfoOffset[i]->load (std::memory_order_relaxed) / 100.0f);
 
-        lfoValue[i] = juce::jlimit (-1.0f, 1.0f, w * depth + offset);
+        lfoValue[i].store (juce::jlimit (-1.0f, 1.0f, w * depth + offset), std::memory_order_relaxed);
     }
 }
 

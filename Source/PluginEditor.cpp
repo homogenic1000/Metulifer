@@ -166,6 +166,28 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
         audioProcessor.apvts, "tempo", clockPanel.tempoKnob);
 
     cableLayer.setModTree (audioProcessor.getModTree(), &audioProcessor.undoManager);
+    cableLayer.onCablesChanged = [this]
+    {
+        updateLfoDestinations();
+    };
+    cableLayer.onCableConnected = [this] (int lfo, const juce::String& suffix)
+    {
+        showText ("LFO " + juce::String (lfo + 1) + " -> " + suffix.toUpperCase());
+        updateLfoDestinations();
+    };
+    cableLayer.onCableDisconnected = [this] (int lfo, const juce::String& suffix)
+    {
+        showText ("LFO " + juce::String (lfo + 1) + " UNPLUGGED");
+        updateLfoDestinations();
+    };
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto prefix = "lfo" + juce::String (i + 1) + "_";
+        audioProcessor.apvts.addParameterListener (prefix + "wave", this);
+        audioProcessor.apvts.addParameterListener (prefix + "enabled", this);
+    }
+    updateLfoButtons();
 
     // Knobs re-bound on every sequence selection (ids/display set in bindSequence).
     for (auto* knob : { &synthPanel.vco1Note, &synthPanel.vco1Wave,
@@ -217,6 +239,13 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
         audioProcessor.apvts.removeParameterListener (arpModeParamId, this);
     if (arpChordParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (arpChordParamId, this);
+
+    for (int i = 0; i < 2; ++i)
+    {
+        const auto prefix = "lfo" + juce::String (i + 1) + "_";
+        audioProcessor.apvts.removeParameterListener (prefix + "wave", this);
+        audioProcessor.apvts.removeParameterListener (prefix + "enabled", this);
+    }
 }
 
 //==============================================================================
@@ -308,13 +337,18 @@ void MetuliferAudioProcessorEditor::refreshCableTargets()
         { &reverbPanel.rdxMixKnob,  "redux_mix" },
     };
 
+    targetKnobs.clear();
     for (const auto& r : refs)
+    {
+        targetKnobs.push_back ({ r.knob, r.suffix });
         tgt.push_back ({ r.suffix,
                          r.knob->getBounds().toFloat()
                              + juce::Point<float> ((float) r.knob->getParentComponent()->getX(),
                                                    (float) r.knob->getParentComponent()->getY()) });
+    }
 
     cableLayer.setTargets (std::move (tgt));
+    updateLfoDestinations();
 }
 
 //==============================================================================
@@ -323,6 +357,7 @@ void MetuliferAudioProcessorEditor::sequenceSelected (int index)
     displayScreen.setSequenceNumber (index + 1);
     bindSequence (index);
     cableLayer.setSelectedSequence (index);
+    updateLfoDestinations();
     clearParamDisplay();
 }
 
@@ -330,6 +365,17 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
 {
     currentSeq = index;
     updatingBindings = true;
+
+    for (const auto& tk : targetKnobs)
+    {
+        if (tk.knob != nullptr && tk.knob->getProperties().contains ("mod_pos"))
+        {
+            tk.knob->getProperties().remove ("mod_pos");
+            tk.knob->getProperties().remove ("mod_lfo");
+            tk.knob->getProperties().remove ("base_pos");
+            tk.knob->repaint();
+        }
+    }
 
     if (filterParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (filterParamId, this);
@@ -673,6 +719,48 @@ void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parame
     {
         updateArpButtons();
     }
+    else if (parameterID.startsWith ("lfo"))
+    {
+        juce::MessageManager::callAsync ([this] { updateLfoButtons(); });
+    }
+}
+
+//==============================================================================
+void MetuliferAudioProcessorEditor::updateLfoButtons()
+{
+    for (int i = 0; i < 2; ++i)
+    {
+        auto& panel = (i == 0 ? lfoPanel1 : lfoPanel2);
+        const auto prefix = "lfo" + juce::String (i + 1) + "_";
+        if (auto* w = audioProcessor.apvts.getRawParameterValue (prefix + "wave"))
+            panel.setWaveIndex ((int) std::round (w->load()));
+        if (auto* e = audioProcessor.apvts.getRawParameterValue (prefix + "enabled"))
+            panel.setEnabled (e->load() > 0.5f);
+    }
+}
+
+void MetuliferAudioProcessorEditor::updateLfoDestinations()
+{
+    for (int i = 0; i < 2; ++i)
+    {
+        auto& panel = (i == 0 ? lfoPanel1 : lfoPanel2);
+        const auto dests = cableLayer.getDestinationsForLfo (i);
+
+        if (dests.isEmpty())
+        {
+            panel.setDestinationSummary ("NO TARGET");
+        }
+        else
+        {
+            juce::String summary;
+            for (int d = 0; d < dests.size(); ++d)
+            {
+                if (d > 0) summary += ", ";
+                summary += dests[d].replaceCharacter ('_', ' ').toUpperCase();
+            }
+            panel.setDestinationSummary (summary);
+        }
+    }
 }
 
 //==============================================================================
@@ -718,6 +806,56 @@ void MetuliferAudioProcessorEditor::timerCallback()
     float scopeData[512];
     audioProcessor.getScopeBuffer (scopeData, 512);
     displayScreen.pushScopeSamples (scopeData, 512);
+
+    // Update LFO real-time activity and rate readouts
+    const float lfo0 = audioProcessor.getLfoValue (0);
+    const float lfo1 = audioProcessor.getLfoValue (1);
+    lfoPanel1.setLfoActivity (lfo0);
+    lfoPanel2.setLfoActivity (lfo1);
+    lfoPanel1.setRateHz ((float) lfoPanel1.rateKnob.getValue());
+    lfoPanel2.setRateHz ((float) lfoPanel2.rateKnob.getValue());
+
+    // Visually animate assigned knobs in time with the LFO
+    const auto& activeCables = cableLayer.getVisibleCables();
+    const bool lfo1On = lfoPanel1.isEnabled();
+    const bool lfo2On = lfoPanel2.isEnabled();
+
+    for (const auto& tk : targetKnobs)
+    {
+        if (tk.knob == nullptr)
+            continue;
+
+        int modulatingLfo = -1;
+        for (const auto& c : activeCables)
+        {
+            if (c.suffix == tk.suffix)
+            {
+                modulatingLfo = c.lfo;
+                break;
+            }
+        }
+
+        const bool isModulated = (modulatingLfo == 0 && lfo1On) || (modulatingLfo == 1 && lfo2On);
+
+        if (isModulated)
+        {
+            const float lfoVal = (modulatingLfo == 0 ? lfo0 : lfo1);
+            const float baseNorm = (float) tk.knob->valueToProportionOfLength (tk.knob->getValue());
+            const float modNorm = juce::jlimit (0.0f, 1.0f, baseNorm + lfoVal * 0.5f);
+
+            tk.knob->getProperties().set ("mod_pos", modNorm);
+            tk.knob->getProperties().set ("mod_lfo", modulatingLfo);
+            tk.knob->getProperties().set ("base_pos", baseNorm);
+            tk.knob->repaint();
+        }
+        else if (tk.knob->getProperties().contains ("mod_pos"))
+        {
+            tk.knob->getProperties().remove ("mod_pos");
+            tk.knob->getProperties().remove ("mod_lfo");
+            tk.knob->getProperties().remove ("base_pos");
+            tk.knob->repaint();
+        }
+    }
 
     const bool playing = audioProcessor.isPlaying();
 

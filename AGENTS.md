@@ -280,6 +280,23 @@ Metulifer/
 - **Commit** : — (ce commit)
 - **Next steps** : vérifier en séance que le son sort bien (steps ON + Play) ; Phase 6 (FX) en attente du design Figma
 
+### 2026-11-04 — Fix LFO DSP, câbles virtuels, écran OLED de liaison et animation temps-réel des knobs
+- **Tâche** : Réparer les LFO et câbles non fonctionnels, ajouter un écran OLED dédié sur chaque module LFO indiquant la liaison/destination active, et animer visuellement le knob assigné en rythme avec le LFO.
+- **Fichiers** : `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Source/UI/CableLayer.{h,cpp}`, `Source/UI/LFOPanel.{h,cpp}`, `Source/UI/MetuliferLookAndFeel.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. **Bug parsing séquence corrigé** (`PluginProcessor.cpp` & `CableLayer.cpp`) : `dest.upToFirstOccurrenceOf("_")` sur `"seq1_cutoff"` renvoyait `"seq1"`, dont `.getIntValue()` valait 0 (donc `0 - 1 = -1`), ce qui rejetait tous les câbles et empêchait toute modulation DSP et tout affichage de câble. Corrigé avec `dest.substring(3).upToFirstOccurrenceOf("_").getIntValue() - 1`.
+  2. **Synchronisation ValueTree** : `CableLayer` implémente désormais `juce::ValueTree::Listener` pour écouter `modTree` en temps réel lors de l'ajout, suppression, annulation (Undo/Redo) ou chargement de preset.
+  3. **Écran OLED sur chaque panneau LFO (`LFOPanel`)** :
+     - Écran rétroéclairé OLED 32 px affichant en temps réel `TARGET: <DESTINATION>` (ou `[ UNLINKED ]`) en couleur thème (ambre pour LFO1, cyan pour LFO2).
+     - Fréquence et forme d'onde (`~ SIN 1.5Hz`) + indicateur d'activité oscillante dans l'écran OLED.
+     - Jack sortie métallique avec anneau coloré + LED d'activité pulsante au rythme et selon la forme d'onde du LFO.
+  4. **Animation temps-réel des knobs assignés (`MetuliferLookAndFeel` & `PluginEditor`)** :
+     - À chaque bloc audio, la valeur normalisée instantanée du LFO est stockée dans un `std::atomic<float> lfoValue[2]`.
+     - Dans le timer 60 Hz, les knobs assignés reçoivent dynamiquement leur position modulée (`mod_pos = base_pos + lfo * 0.5`) sans modifier la valeur APVTS (préservant ainsi l'automation DAW et l'UndoManager).
+     - L'aiguille et le track du potentiomètre tournent physiquement en direct au rythme du LFO, accompagnés d'un arc de balayage lumineux et d'un point de référence indiquant la valeur de base.
+     - Badge discret `L1` / `L2` affiché sur le knob pour identifier instantanément sa source de modulation.
+- **Build & Tests** : ✅ `** BUILD SUCCEEDED **` (Xcode Release), ✅ `pluginval` strictness level 5 sur VST3 (SUCCESS) et AU (SUCCESS).
+
 ### 2026-10-07 — Phase 5 : LFO ×2 + câbles de modulation LFO→knob
 - **Tâche** : 2 LFO (rate/wave/offset/depth/enabled) modulant les knobs du synthé via des câbles cliquables-draggables
 - **Fichiers** : `Source/UI/LFOPanel.{h,cpp}` (neufs), `Source/UI/CableLayer.{h,cpp}` (neufs), `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`

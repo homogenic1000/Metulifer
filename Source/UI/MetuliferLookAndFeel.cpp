@@ -11,11 +11,14 @@ void MetuliferLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y,
 {
     const auto bounds = juce::Rectangle<float> ((float) x, (float) y, (float) width, (float) height);
 
-    if (Skin::drawFilmstrip (g, slider.getName(), sliderPos, bounds))
+    const bool isModulated = slider.getProperties().contains ("mod_pos");
+    const float effectivePos = isModulated ? (float) slider.getProperties()["mod_pos"] : sliderPos;
+
+    if (Skin::drawFilmstrip (g, slider.getName(), effectivePos, bounds))
         return;
 
     drawHardwareKnob (g, (float) x, (float) y, (float) width, (float) height,
-                      sliderPos, rotaryStartAngle, rotaryEndAngle, slider);
+                      effectivePos, rotaryStartAngle, rotaryEndAngle, slider);
 }
 
 void MetuliferLookAndFeel::drawHardwareKnob (juce::Graphics& g, float x, float y,
@@ -26,6 +29,11 @@ void MetuliferLookAndFeel::drawHardwareKnob (juce::Graphics& g, float x, float y
     const float size = juce::jmin (width, height);
     if (size < 10.0f)
         return;
+
+    const bool isModulated = slider.getProperties().contains ("mod_pos");
+    const float basePos = isModulated ? (float) slider.getProperties().getWithDefault ("base_pos", sliderPos) : sliderPos;
+    const int modLfo = isModulated ? (int) slider.getProperties().getWithDefault ("mod_lfo", 0) : 0;
+    const juce::Colour lfoColor = (modLfo == 0) ? juce::Colour (0xffff8c24) : juce::Colour (0xff00d4ff);
 
     const float cx = x + width * 0.5f;
     const float cy = y + height * 0.5f;
@@ -69,6 +77,22 @@ void MetuliferLookAndFeel::drawHardwareKnob (juce::Graphics& g, float x, float y
         g.strokePath (activeTrack, juce::PathStrokeType (trackThickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
+    // Dynamic modulation arc between basePos and current modulated sliderPos
+    if (isModulated)
+    {
+        const float baseAngle = rotaryStartAngle + basePos * (rotaryEndAngle - rotaryStartAngle);
+        const float startA = juce::jmin (baseAngle, currentAngle);
+        const float endA   = juce::jmax (baseAngle, currentAngle);
+
+        if (endA - startA > 0.015f)
+        {
+            juce::Path modArc;
+            modArc.addCentredArc (cx, cy, trackR, trackR, 0.0f, startA, endA, true);
+            g.setColour (lfoColor.withAlpha (0.85f));
+            g.strokePath (modArc, juce::PathStrokeType (trackThickness + 1.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        }
+    }
+
     // Knob Cap Body
     const float capR = r * 0.76f;
     if (capR > 3.0f)
@@ -86,8 +110,10 @@ void MetuliferLookAndFeel::drawHardwareKnob (juce::Graphics& g, float x, float y
         // Bevel rim
         const bool isHovered = slider.isMouseOverOrDragging();
         juce::Colour rimCol = isHovered ? juce::Colour (0xff60a5fa) : juce::Colour (0xff4b5563);
+        if (isModulated)
+            rimCol = lfoColor.withAlpha (0.9f);
         g.setColour (rimCol);
-        g.drawEllipse (cx - capR, cy - capR, capR * 2.0f, capR * 2.0f, 1.2f);
+        g.drawEllipse (cx - capR, cy - capR, capR * 2.0f, capR * 2.0f, isModulated ? 1.6f : 1.2f);
 
         // Center hub inset
         const float hubR = capR * 0.32f;
@@ -96,8 +122,19 @@ void MetuliferLookAndFeel::drawHardwareKnob (juce::Graphics& g, float x, float y
         g.setColour (juce::Colour (0x25ffffff));
         g.drawEllipse (cx - hubR, cy - hubR, hubR * 2.0f, hubR * 2.0f, 0.8f);
 
-        // Indicator Needle
+        // Base position reference dot (shows original knob setting)
         const float angleOffset = -juce::MathConstants<float>::halfPi;
+        if (isModulated)
+        {
+            const float baseAngle = rotaryStartAngle + basePos * (rotaryEndAngle - rotaryStartAngle);
+            const float baseCos = std::cos (baseAngle + angleOffset);
+            const float baseSin = std::sin (baseAngle + angleOffset);
+            const float refR = capR - 3.0f;
+            g.setColour (juce::Colour (0xbbffffff));
+            g.fillEllipse (cx + baseCos * refR - 1.5f, cy + baseSin * refR - 1.5f, 3.0f, 3.0f);
+        }
+
+        // Indicator Needle (actively rotates with LFO)
         const float cosA = std::cos (currentAngle + angleOffset);
         const float sinA = std::sin (currentAngle + angleOffset);
 
@@ -105,7 +142,11 @@ void MetuliferLookAndFeel::drawHardwareKnob (juce::Graphics& g, float x, float y
         const float pEnd = capR - 2.0f;
         const float needleW = juce::jlimit (2.0f, 4.0f, size * 0.05f);
 
-        g.setColour (isHovered ? juce::Colours::white : juce::Colour (0xffe2e8f0));
+        juce::Colour needleColor = isHovered ? juce::Colours::white : juce::Colour (0xffe2e8f0);
+        if (isModulated)
+            needleColor = isHovered ? juce::Colours::white : lfoColor.brighter (0.35f);
+
+        g.setColour (needleColor);
         g.drawLine (cx + cosA * pStart, cy + sinA * pStart,
                     cx + cosA * pEnd, cy + sinA * pEnd,
                     needleW);

@@ -57,6 +57,8 @@ private:
     void updateArpButtons();
     void setLfoWave (int lfoIndex, int waveIndex);
     void setLfoPower (int lfoIndex, bool on);
+    void updateLfoButtons();
+    void updateLfoDestinations();
     void refreshCableTargets();
 
     void sliderValueChanged (juce::Slider* slider) override;
@@ -86,6 +88,9 @@ private:
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> arpAttachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tempoAttachment;
     std::map<juce::Slider*, juce::String> sliderParamIds;
+
+    struct TargetKnob { juce::Slider* knob = nullptr; juce::String suffix; };
+    std::vector<TargetKnob> targetKnobs;
 
     juce::String filterParamId;
     juce::String reverbEnabledParamId, reverbModeParamId;

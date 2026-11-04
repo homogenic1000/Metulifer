@@ -75,6 +75,11 @@ public:
 
     float getCurrentRms() const noexcept { return rms.load (std::memory_order_relaxed); }
 
+    float getLfoValue (int index) const noexcept
+    {
+        return juce::isPositiveAndBelow (index, 2) ? lfoValue[index].load (std::memory_order_relaxed) : 0.0f;
+    }
+
     float getPeakDbL() const noexcept { return peakDbL.load (std::memory_order_relaxed); }
     float getPeakDbR() const noexcept { return peakDbR.load (std::memory_order_relaxed); }
     float getRmsDbL()  const noexcept { return rmsDbL.load  (std::memory_order_relaxed); }
@@ -179,7 +184,7 @@ private:
     std::atomic<float>* lfoDepth[2] {};
     std::atomic<float>* lfoEnabled[2] {};
     double lfoPhase[2] {};
-    float  lfoValue[2] { 0.0f, 0.0f };
+    std::atomic<float> lfoValue[2];
     double sampleRate = 44100.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MetuliferAudioProcessor)
