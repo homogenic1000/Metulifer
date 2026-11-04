@@ -156,6 +156,9 @@ private:
 
     float mixGain1 = 1.0f, mixGain2 = 1.0f, volumeGain = 0.8f;
     bool reverbActive = false;
+    bool isVoiceActive = false;
+    int tailCounter = 0;
+    int silentDelaySamples = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Voice)
 };

@@ -848,10 +848,17 @@ void MetuliferAudioProcessorEditor::timerCallback()
             const float baseNorm = (float) tk.knob->valueToProportionOfLength (tk.knob->getValue());
             const float modNorm = juce::jlimit (0.0f, 1.0f, baseNorm + lfoVal * 0.5f);
 
-            tk.knob->getProperties().set ("mod_pos", modNorm);
-            tk.knob->getProperties().set ("mod_lfo", modulatingLfo);
-            tk.knob->getProperties().set ("base_pos", baseNorm);
-            tk.knob->repaint();
+            const float prevMod = tk.knob->getProperties().contains ("mod_pos")
+                                    ? (float) tk.knob->getProperties()["mod_pos"]
+                                    : -999.0f;
+
+            if (std::abs (modNorm - prevMod) >= 0.005f)
+            {
+                tk.knob->getProperties().set ("mod_pos", modNorm);
+                tk.knob->getProperties().set ("mod_lfo", modulatingLfo);
+                tk.knob->getProperties().set ("base_pos", baseNorm);
+                tk.knob->repaint();
+            }
         }
         else if (tk.knob->getProperties().contains ("mod_pos"))
         {

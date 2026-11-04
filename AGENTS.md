@@ -114,6 +114,33 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-04 — Optimisation drastique CPU & Energy Impact (Mise en veille voix DSP & Coalescence UI)
+- **Tâche** : Résoudre la surconsommation CPU (61.6% - 90.2% et Energy Impact 700-1000 mesuré sur Standalone avec 2 séquences).
+- **Causes racines identifiées** :
+  1. **I/O disque intensif dans le LookAndFeel** : `Skin::find` scannait le disque à 60 Hz pour chaque bouton et potentiomètre sans cache négatif, générant des milliers de syscalls `stat()` par seconde sur les assets inexistants.
+  2. **Voix de synthèse non court-circuitées** : Les 6 voix DSP calculaient en continu 12 oscillateurs polyBLEP, 12 ADSRs, 6 filtres TPT et les effets reverb/delay, même pour les voix muettes ou en fin d'extinction.
+  3. **Repeints graphiques redondants à 60 Hz** : `DisplayScreen` et `LFOPanel` déclenchaient de multiples repeints totaux à 60 Hz même en l'absence de signal ou de modulation (3 repeints par tick sur l'écran OLED + repeints inconditionnels des potentiomètres modulés).
+- **Fichiers** : `Source/UI/Skin.cpp`, `Source/DSP/Voice.h`, `Source/DSP/Voice.cpp`, `Source/UI/LFOPanel.cpp`, `Source/UI/DisplayScreen.h`, `Source/UI/DisplayScreen.cpp`, `Source/PluginEditor.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/UI/Skin.cpp` : Indexation unique des dossiers de ressources au démarrage et mise en place d'un cache négatif (`imageCache[key] = juce::Image()`) pour réponse immédiate en O(1) et zéro accès disque.
+  2. `Source/DSP/Voice.{h,cpp}` :
+     - Bypass immédiat dans `renderChunk()` et `render()` quand `!isVoiceActive && !adsr1.isActive() && !adsr2.isActive()`.
+     - Gestion du tail d'effets (delay et reverb) jusqu'à 4.0s après l'extinction des ADSRs, en sautant l'évaluation des oscillateurs, filtres et redux sur le silence.
+     - Détection de fin de résonance (seuil < 1e-4f et vidage du buffer de delay) avec mise en sommeil automatique de la voix (`isVoiceActive = false`).
+     - Réveil instantané dans `noteOn()` (`isVoiceActive = true`).
+  3. `Source/UI/LFOPanel.cpp` : `setLfoActivity()` ne repeint que les sous-rectangles OLED et LED uniquement si le LFO est activé et que la valeur a varié de plus de 0.015f.
+  4. `Source/UI/DisplayScreen.{h,cpp}` :
+     - Suppression du `repaint()` inutile dans `setRmsLevel()`.
+     - Détection de repos acoustique : aucun repeint si les crêtes sont à <= -80 dB et que l'oscilloscope est déjà plat.
+     - Coalescence des repeints crête-mètre et oscilloscope en un seul appel `repaint()`.
+  5. `Source/PluginEditor.cpp` : Dans `timerCallback()`, conditionnement du `knob->repaint()` sur les potentiomètres modulés à un delta de modulation normalisée >= 0.005f.
+- **Validation** :
+  - ✅ Build Release Xcode réussi (`** BUILD SUCCEEDED **` sur VST3, AU, Standalone).
+  - ✅ Mesure Standalone : CPU tombé de >70% à 0.0% au repos, et Energy Impact de 700-1000 à 13.
+  - ✅ Validation automatisée `pluginval` au niveau de rigueur 5 : 100% SUCCESS sur VST3 et AU.
+- **Commit** : `e0a7b58` — `fix: optimize dsp voice sleep and ui repainting to slash cpu and energy impact`
+- **Next steps** : —
+
 ### 2026-11-04 — Système de transition sans casse pour rendus 3D & Sprite Sheets
 - **Tâche** : Développer l'infrastructure logicielle permettant de substituer dynamiquement n'importe quel élément vectoriel par des rendus 3D (filmstrips de potentiomètres, sprites d'états de boutons, leviers d'octave, verre d'écran, châssis) avec fallback vectoriel transparent sans casse.
 - **Fichiers** : `Source/UI/Skin.h`, `Source/UI/Skin.cpp`, `Source/UI/MetuliferLookAndFeel.cpp`, `Source/UI/Lever.cpp`, `Source/UI/DisplayScreen.cpp`, `AGENTS.md`

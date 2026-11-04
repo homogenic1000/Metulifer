@@ -77,12 +77,17 @@ void Voice::prepare (double sr, int maxBlock)
 
     osc1 = WaveOsc();
     osc2 = WaveOsc();
+
+    isVoiceActive = false;
+    tailCounter = 0;
+    silentDelaySamples = 0;
 }
 
 void Voice::reset()
 {
     adsr1.reset();
     adsr2.reset();
+    filter.reset();
     reverb.reset();
     delayBuffer.clear();
     delayWritePos = 0;
@@ -92,6 +97,9 @@ void Voice::reset()
     currentArpOffset = 0;
     osc1.phase = 0.0;
     osc2.phase = 0.0;
+    isVoiceActive = false;
+    tailCounter = 0;
+    silentDelaySamples = 0;
 }
 
 void Voice::resetArp()
@@ -284,6 +292,10 @@ void Voice::advanceArp()
 
 void Voice::noteOn()
 {
+    isVoiceActive = true;
+    tailCounter = 0;
+    silentDelaySamples = 0;
+
     if (currentParams.arpEnabled)
     {
         advanceArp();
@@ -306,6 +318,9 @@ void Voice::noteOff()
 
 void Voice::render (juce::AudioBuffer<float>& out, int startSample, int numSamples)
 {
+    if (! isVoiceActive && ! adsr1.isActive() && ! adsr2.isActive())
+        return;
+
     while (numSamples > 0)
     {
         const int chunk = juce::jmin (numSamples, maxBlockSize);
@@ -317,59 +332,87 @@ void Voice::render (juce::AudioBuffer<float>& out, int startSample, int numSampl
 
 void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int numSamples)
 {
-    auto* s1 = scratch1.getWritePointer (0);
-    auto* s2 = scratch2.getWritePointer (0);
+    const bool delayActive = currentParams.delayEnabled && currentParams.delayMix > 0.001f;
 
-    for (int i = 0; i < numSamples; ++i)
-        s1[i] = osc1.next();
-
-    adsr1.applyEnvelopeToBuffer (scratch1, 0, numSamples);
-    scratch1.applyGain (0, numSamples, mixGain1);
-
-    for (int i = 0; i < numSamples; ++i)
-        s2[i] = osc2.next();
-
-    adsr2.applyEnvelopeToBuffer (scratch2, 0, numSamples);
-    scratch2.applyGain (0, numSamples, mixGain2);
-
-    scratch1.addFrom (0, 0, scratch2, 0, 0, numSamples);
-    scratch1.applyGain (0, numSamples, 0.5f);
-
-    juce::dsp::AudioBlock<float> block (scratch1);
-    auto subBlock = block.getSubBlock (0, (size_t) numSamples);
-    juce::dsp::ProcessContextReplacing<float> context (subBlock);
-    filter.process (context);
-
-    if (volumeGain <= 0.0001f)
-    {
-        if (reverbActive)
-            reverb.reset();
+    // Fast bypass if voice is inactive and envelopes are silent
+    if (! isVoiceActive && ! adsr1.isActive() && ! adsr2.isActive())
         return;
-    }
 
-    scratch1.applyGain (0, numSamples, volumeGain);
+    const bool envActive = adsr1.isActive() || adsr2.isActive();
 
-    // 1. Redux (Bitcrusher + Downsampler)
-    if (currentParams.reduxEnabled && currentParams.reduxMix > 0.001f)
+    if (! envActive)
     {
-        auto* data = scratch1.getWritePointer (0);
-        const float wet = juce::jlimit (0.0f, 1.0f, currentParams.reduxMix / 100.0f);
-        const int rate = juce::jlimit (1, 32, currentParams.reduxRate);
-        const int bits = juce::jlimit (2, 16, currentParams.reduxBits);
-        const float steps = (float) (1 << (bits - 1));
+        // Envelopes are inactive. If effects are also inactive, sleep immediately.
+        if (! delayActive && ! reverbActive)
+        {
+            isVoiceActive = false;
+            tailCounter = 0;
+            silentDelaySamples = 0;
+            return;
+        }
+
+        // We are processing decaying tail only: skip oscillator generation and filter
+        scratch1.clear (0, numSamples);
+    }
+    else
+    {
+        auto* s1 = scratch1.getWritePointer (0);
+        auto* s2 = scratch2.getWritePointer (0);
 
         for (int i = 0; i < numSamples; ++i)
+            s1[i] = osc1.next();
+
+        adsr1.applyEnvelopeToBuffer (scratch1, 0, numSamples);
+        scratch1.applyGain (0, numSamples, mixGain1);
+
+        for (int i = 0; i < numSamples; ++i)
+            s2[i] = osc2.next();
+
+        adsr2.applyEnvelopeToBuffer (scratch2, 0, numSamples);
+        scratch2.applyGain (0, numSamples, mixGain2);
+
+        scratch1.addFrom (0, 0, scratch2, 0, 0, numSamples);
+        scratch1.applyGain (0, numSamples, 0.5f);
+
+        juce::dsp::AudioBlock<float> block (scratch1);
+        auto subBlock = block.getSubBlock (0, (size_t) numSamples);
+        juce::dsp::ProcessContextReplacing<float> context (subBlock);
+        filter.process (context);
+
+        if (volumeGain <= 0.0001f)
         {
-            const float in = data[i];
-            if (++reduxCounter >= rate)
+            if (reverbActive)
+                reverb.reset();
+            isVoiceActive = false;
+            tailCounter = 0;
+            silentDelaySamples = 0;
+            return;
+        }
+
+        scratch1.applyGain (0, numSamples, volumeGain);
+
+        // 1. Redux (Bitcrusher + Downsampler)
+        if (currentParams.reduxEnabled && currentParams.reduxMix > 0.001f)
+        {
+            auto* data = scratch1.getWritePointer (0);
+            const float wet = juce::jlimit (0.0f, 1.0f, currentParams.reduxMix / 100.0f);
+            const int rate = juce::jlimit (1, 32, currentParams.reduxRate);
+            const int bits = juce::jlimit (2, 16, currentParams.reduxBits);
+            const float steps = (float) (1 << (bits - 1));
+
+            for (int i = 0; i < numSamples; ++i)
             {
-                reduxCounter = 0;
-                float q = in;
-                if (bits < 16)
-                    q = std::round (in * steps) / steps;
-                reduxHeldSample = q;
+                const float in = data[i];
+                if (++reduxCounter >= rate)
+                {
+                    reduxCounter = 0;
+                    float q = in;
+                    if (bits < 16)
+                        q = std::round (in * steps) / steps;
+                    reduxHeldSample = q;
+                }
+                data[i] = (1.0f - wet) * in + wet * reduxHeldSample;
             }
-            data[i] = (1.0f - wet) * in + wet * reduxHeldSample;
         }
     }
 
@@ -378,7 +421,8 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
     auto* st1 = scratchStereo.getWritePointer (1);
     auto* mono = scratch1.getReadPointer (0);
 
-    const bool delayActive = currentParams.delayEnabled && currentParams.delayMix > 0.001f;
+    float maxDelayOut = 0.0f;
+    int delaySamples = 0;
 
     // 2. Stereo Delay
     if (delayActive)
@@ -386,7 +430,7 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         const float wet = juce::jlimit (0.0f, 1.0f, currentParams.delayMix / 100.0f);
         const float fb  = juce::jlimit (0.0f, 0.90f, currentParams.delayFeedback / 100.0f);
         const int delayLen = delayBuffer.getNumSamples();
-        const int delaySamples = juce::jlimit (1, delayLen - 1,
+        delaySamples = juce::jlimit (1, delayLen - 1,
             juce::roundToInt (currentParams.delayTime * 0.001f * (float) sampleRate));
 
         auto* delayL = delayBuffer.getWritePointer (0);
@@ -401,6 +445,9 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
 
             const float outL = delayL[rpos];
             const float outR = delayR[rpos];
+
+            if (! envActive)
+                maxDelayOut = juce::jmax (maxDelayOut, std::abs (outL), std::abs (outR));
 
             if (currentParams.delayPingpong)
             {
@@ -452,5 +499,39 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         // Downmix stereo reverb and delay smoothly to mono
         out.addFrom (0, startSample, scratchStereo, 0, 0, numSamples, 0.5f);
         out.addFrom (0, startSample, scratchStereo, 1, 0, numSamples, 0.5f);
+    }
+
+    // Tail management: only active when note envelopes have finished
+    if (! envActive)
+    {
+        tailCounter += numSamples;
+
+        float maxEnergy = 0.0f;
+        for (int i = 0; i < numSamples; ++i)
+            maxEnergy = juce::jmax (maxEnergy, std::abs (st0[i]), std::abs (st1[i]));
+
+        if (delayActive)
+        {
+            if (maxDelayOut > 1e-4f)
+                silentDelaySamples = 0;
+            else
+                silentDelaySamples += numSamples;
+        }
+
+        const bool delaySilent = (! delayActive) || (silentDelaySamples >= delaySamples);
+        const bool tailExpired = tailCounter >= (int) (sampleRate * 4.0);
+        const bool energySilent = maxEnergy < 1e-4f && delaySilent;
+
+        if (tailExpired || energySilent)
+        {
+            if (reverbActive)
+                reverb.reset();
+            if (delayActive)
+                delayBuffer.clear();
+
+            isVoiceActive = false;
+            tailCounter = 0;
+            silentDelaySamples = 0;
+        }
     }
 }

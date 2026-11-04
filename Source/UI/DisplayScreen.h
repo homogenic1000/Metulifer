@@ -31,6 +31,8 @@ private:
 
     static constexpr int numScopePoints = 128;
     float scopePoints[numScopePoints] {};
+    bool meterDirty = false;
+    bool scopeIsFlat = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DisplayScreen)
 };

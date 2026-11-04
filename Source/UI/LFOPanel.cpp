@@ -239,6 +239,18 @@ void LFOPanel::setRateHz (float hz)
 
 void LFOPanel::setLfoActivity (float lfoVal)
 {
-    currentLfoValue = lfoVal;
-    repaint();
+    if (! on)
+        return;
+
+    if (std::abs (currentLfoValue - lfoVal) > 0.015f)
+    {
+        currentLfoValue = lfoVal;
+        repaint (getOledBounds().toNearestIntEdges());
+
+        const auto jack = getJackBounds();
+        const float ledX = jack.getRight() + 6.0f;
+        const float ledY = jack.getCentreY() - 3.5f;
+        const juce::Rectangle<float> ledRect (ledX, ledY, 7.0f, 7.0f);
+        repaint (ledRect.expanded (4.0f).toNearestIntEdges());
+    }
 }

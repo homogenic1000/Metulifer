@@ -219,24 +219,35 @@ void DisplayScreen::paint (juce::Graphics& g)
 
 void DisplayScreen::setSequenceNumber (int index)
 {
-    sequenceNumber = juce::jmax (1, index);
-    repaint();
+    const int newSeq = juce::jmax (1, index);
+    if (sequenceNumber != newSeq)
+    {
+        sequenceNumber = newSeq;
+        repaint();
+    }
 }
 
 void DisplayScreen::setParamText (const juce::String& text)
 {
-    paramText = text;
-    repaint();
+    if (paramText != text)
+    {
+        paramText = text;
+        repaint();
+    }
 }
 
 void DisplayScreen::setRmsLevel (float newRms)
 {
     rms = newRms;
-    repaint();
 }
 
 void DisplayScreen::updateMeterLevels (float inPeakL, float inPeakR, float /*inRmsL*/, float /*inRmsR*/)
 {
+    const float oldPeakL = meterPeakL;
+    const float oldPeakR = meterPeakR;
+    const float oldHoldL = peakHoldL;
+    const float oldHoldR = peakHoldR;
+
     // Fast attack (instantaneous)
     if (inPeakL > meterPeakL)
         meterPeakL = inPeakL;
@@ -276,88 +287,127 @@ void DisplayScreen::updateMeterLevels (float inPeakL, float inPeakR, float /*inR
     }
 
     lastDbReadout = juce::jmax (meterPeakL, meterPeakR);
-    repaint();
+
+    // Meters are only considered dirty if not resting at silence (-80 dB)
+    // or if the visible value shifted
+    const bool atSilence = (meterPeakL <= -80.0f && meterPeakR <= -80.0f
+                            && peakHoldL <= -80.0f && peakHoldR <= -80.0f);
+    const bool wasAtSilence = (oldPeakL <= -80.0f && oldPeakR <= -80.0f
+                               && oldHoldL <= -80.0f && oldHoldR <= -80.0f);
+
+    if (! (atSilence && wasAtSilence))
+    {
+        if (std::abs (oldPeakL - meterPeakL) > 0.05f || std::abs (oldPeakR - meterPeakR) > 0.05f
+            || std::abs (oldHoldL - peakHoldL) > 0.05f || std::abs (oldHoldR - peakHoldR) > 0.05f)
+        {
+            meterDirty = true;
+        }
+    }
 }
 
 void DisplayScreen::pushScopeSamples (const float* samples, int numSamples)
 {
-    if (samples == nullptr || numSamples <= 0)
-        return;
+    bool scopeChanged = false;
 
-    // Detect signal peak to check for silence or active sound
-    float maxAmp = 0.0f;
-    for (int i = 0; i < numSamples; ++i)
+    if (samples != nullptr && numSamples > 0)
     {
-        const float a = std::abs (samples[i]);
-        if (a > maxAmp)
-            maxAmp = a;
+        // Detect signal peak to check for silence or active sound
+        float maxAmp = 0.0f;
+        for (int i = 0; i < numSamples; ++i)
+        {
+            const float a = std::abs (samples[i]);
+            if (a > maxAmp)
+                maxAmp = a;
+        }
+
+        if (maxAmp < 0.005f)
+        {
+            if (! scopeIsFlat)
+            {
+                // Smoothly decay to flat line at zero when silent
+                float maxRemaining = 0.0f;
+                for (int i = 0; i < numScopePoints; ++i)
+                {
+                    scopePoints[i] *= 0.75f;
+                    maxRemaining = juce::jmax (maxRemaining, std::abs (scopePoints[i]));
+                }
+
+                if (maxRemaining < 0.001f)
+                {
+                    for (int i = 0; i < numScopePoints; ++i)
+                        scopePoints[i] = 0.0f;
+                    scopeIsFlat = true;
+                }
+                scopeChanged = true;
+            }
+        }
+        else
+        {
+            scopeIsFlat = false;
+            scopeChanged = true;
+
+            // Trigger detection: find the first rising zero-crossing
+            const int searchRange = juce::jmin (numSamples / 2, 256);
+            int triggerIdx = -1;
+            for (int i = 1; i < searchRange; ++i)
+            {
+                if (samples[i - 1] <= 0.0f && samples[i] > 0.0f)
+                {
+                    triggerIdx = i;
+                    break;
+                }
+            }
+
+            if (triggerIdx < 0)
+                triggerIdx = 0;
+
+            // Estimate fundamental period by finding the second rising zero-crossing
+            int period = 0;
+            const int minPeriod = 6;
+            for (int i = triggerIdx + minPeriod; i < numSamples - 1; ++i)
+            {
+                if (samples[i - 1] <= 0.0f && samples[i] > 0.0f)
+                {
+                    period = i - triggerIdx;
+                    break;
+                }
+            }
+
+            // Choose window to show 2 cycles if period detected, or a reasonable window
+            int samplesToShow;
+            if (period > 0)
+            {
+                const int targetCycles = (period < 90) ? 3 : 2;
+                samplesToShow = juce::jlimit (32, numSamples - triggerIdx, targetCycles * period);
+            }
+            else
+            {
+                samplesToShow = juce::jlimit (32, numSamples - triggerIdx, 256);
+            }
+
+            // Auto-gain so the waveform comfortably fills ~82% of vertical range
+            const float autoGain = juce::jlimit (1.0f, 4.0f, 0.82f / maxAmp);
+
+            // Resample to numScopePoints (128) using linear interpolation
+            const float step = (float) (samplesToShow - 1) / (float) (numScopePoints - 1);
+            for (int i = 0; i < numScopePoints; ++i)
+            {
+                const float srcPos = (float) triggerIdx + (float) i * step;
+                const int i0 = juce::jlimit (0, numSamples - 1, (int) srcPos);
+                const int i1 = juce::jlimit (0, numSamples - 1, i0 + 1);
+                const float frac = srcPos - (float) i0;
+                const float rawSample = (samples[i0] + frac * (samples[i1] - samples[i0])) * autoGain;
+
+                // Immediate zero-latency sample update for instantaneous rhythmic response
+                scopePoints[i] = rawSample;
+            }
+        }
     }
 
-    if (maxAmp < 0.005f)
+    // Coalesce meter and scope repaints into a single repaint call
+    if (meterDirty || scopeChanged)
     {
-        // Smoothly decay to flat line at zero when silent
-        for (int i = 0; i < numScopePoints; ++i)
-            scopePoints[i] *= 0.75f;
-
+        meterDirty = false;
         repaint();
-        return;
     }
-
-    // Trigger detection: find the first rising zero-crossing
-    const int searchRange = juce::jmin (numSamples / 2, 256);
-    int triggerIdx = -1;
-    for (int i = 1; i < searchRange; ++i)
-    {
-        if (samples[i - 1] <= 0.0f && samples[i] > 0.0f)
-        {
-            triggerIdx = i;
-            break;
-        }
-    }
-
-    if (triggerIdx < 0)
-        triggerIdx = 0;
-
-    // Estimate fundamental period by finding the second rising zero-crossing
-    int period = 0;
-    const int minPeriod = 6;
-    for (int i = triggerIdx + minPeriod; i < numSamples - 1; ++i)
-    {
-        if (samples[i - 1] <= 0.0f && samples[i] > 0.0f)
-        {
-            period = i - triggerIdx;
-            break;
-        }
-    }
-
-    // Choose window to show 2 cycles if period detected, or a reasonable window
-    int samplesToShow;
-    if (period > 0)
-    {
-        const int targetCycles = (period < 90) ? 3 : 2;
-        samplesToShow = juce::jlimit (32, numSamples - triggerIdx, targetCycles * period);
-    }
-    else
-    {
-        samplesToShow = juce::jlimit (32, numSamples - triggerIdx, 256);
-    }
-
-    // Auto-gain so the waveform comfortably fills ~82% of vertical range
-    const float autoGain = juce::jlimit (1.0f, 4.0f, 0.82f / maxAmp);
-
-    // Resample to numScopePoints (128) using linear interpolation
-    const float step = (float) (samplesToShow - 1) / (float) (numScopePoints - 1);
-    for (int i = 0; i < numScopePoints; ++i)
-    {
-        const float srcPos = (float) triggerIdx + (float) i * step;
-        const int i0 = juce::jlimit (0, numSamples - 1, (int) srcPos);
-        const int i1 = juce::jlimit (0, numSamples - 1, i0 + 1);
-        const float frac = srcPos - (float) i0;
-        const float rawSample = (samples[i0] + frac * (samples[i1] - samples[i0])) * autoGain;
-
-        // Immediate zero-latency sample update for instantaneous rhythmic response
-        scopePoints[i] = rawSample;
-    }
-
-    repaint();
 }

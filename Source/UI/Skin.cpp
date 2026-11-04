@@ -7,12 +7,14 @@
     #define METULIFER_HAS_BINARY_DATA 0
 #endif
 
-#include <map>
+#include <unordered_map>
+#include <vector>
 #include <cctype>
 
 namespace Skin
 {
-    static std::map<juce::String, juce::Image> imageCache;
+    static std::unordered_map<std::string, juce::Image> imageCache;
+    static std::unordered_map<std::string, juce::File> diskFiles;
     static bool scanned = false;
 
     juce::String normalise (const juce::String& name)
@@ -52,19 +54,14 @@ namespace Skin
             if (! img.isValid())
                 continue;
 
-            imageCache[normalise (resourceName)] = img;
+            imageCache[normalise (resourceName).toStdString()] = img;
 
             if (const auto* original = BinaryData::getNamedResourceOriginalFilename (resourceName))
-                imageCache[normalise (juce::File::createFileWithoutExtension (original))] = img;
+                imageCache[normalise (juce::File::createFileWithoutExtension (original)).toStdString()] = img;
         }
        #endif
-    }
 
-    static juce::Image loadFromDisk (const juce::String& cleanName)
-    {
-        static const juce::StringArray extensions { ".png", "@2x.png", ".jpg", ".jpeg" };
-
-        const auto dirs = {
+        const juce::File dirs[] = {
             juce::File ("/Users/mathoodelessert/juice/Metulifer/Resources"),
             juce::File::getSpecialLocation (juce::File::currentExecutableFile).getParentDirectory().getSiblingFile ("Resources"),
             juce::File::getSpecialLocation (juce::File::currentApplicationFile).getChildFile ("Contents/Resources"),
@@ -76,24 +73,27 @@ namespace Skin
             if (! dir.isDirectory())
                 continue;
 
-            for (const auto& ext : extensions)
+            juce::Array<juce::File> files;
+            dir.findChildFiles (files, juce::File::findFiles, false);
+
+            for (const auto& file : files)
             {
-                auto file = dir.getChildFile (cleanName + ext);
-                if (file.existsAsFile())
-                {
-                    auto img = juce::ImageFileFormat::loadFrom (file);
-                    if (img.isValid())
-                        return img;
-                }
+                const auto nameWithoutExt = normalise (file.getFileNameWithoutExtension()).toStdString();
+                const auto fullName = normalise (file.getFileName()).toStdString();
+
+                if (diskFiles.find (nameWithoutExt) == diskFiles.end())
+                    diskFiles[nameWithoutExt] = file;
+
+                if (diskFiles.find (fullName) == diskFiles.end())
+                    diskFiles[fullName] = file;
             }
         }
-
-        return {};
     }
 
     void clearCache()
     {
         imageCache.clear();
+        diskFiles.clear();
         scanned = false;
     }
 
@@ -101,18 +101,21 @@ namespace Skin
     {
         scan();
 
-        const auto key = normalise (assetName);
+        const auto key = normalise (assetName).toStdString();
         const auto it = imageCache.find (key);
         if (it != imageCache.end())
             return it->second;
 
-        auto diskImg = loadFromDisk (key);
-        if (diskImg.isValid())
+        const auto fileIt = diskFiles.find (key);
+        if (fileIt != diskFiles.end())
         {
-            imageCache[key] = diskImg;
-            return diskImg;
+            auto img = juce::ImageFileFormat::loadFrom (fileIt->second);
+            imageCache[key] = img;
+            return img;
         }
 
+        // Negative cache: remember that this asset does not exist so future lookups are instant
+        imageCache[key] = juce::Image();
         return {};
     }
 
