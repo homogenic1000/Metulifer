@@ -56,40 +56,82 @@ void SequenceRowComponent::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced (0.5f);
 
-    Skin::drawPanel (g, "panel_row", bounds, juce::Colours::white, 5.0f);
+    const auto cardColour = selected ? juce::Colours::white : juce::Colour (0xfff7f8fa);
+    Skin::drawPanel (g, "panel_row", bounds, cardColour, 5.0f);
 
     if (selected)
     {
-        g.setColour (juce::Colour (0xff3a7bd5));
-        g.drawRoundedRectangle (bounds, 5.0f, 2.0f);
+        // Highlight outline
+        g.setColour (juce::Colour (0xff2563eb));
+        g.drawRoundedRectangle (bounds, 5.0f, 1.5f);
+
+        // Left accent bar
+        juce::Path accent;
+        accent.addRoundedRectangle (bounds.getX(), bounds.getY(), 4.0f, bounds.getHeight(),
+                                    5.0f, 5.0f, true, false, true, false);
+        g.fillPath (accent);
     }
+
+    // Sequence badge: S1 .. S6
+    const float badgeW = 22.0f;
+    const float badgeH = 22.0f;
+    auto badgeArea = juce::Rectangle<float> (bounds.getX() + 8.0f,
+                                             bounds.getY() + (bounds.getHeight() - badgeH) * 0.5f,
+                                             badgeW, badgeH);
+
+    g.setColour (selected ? juce::Colour (0xff2563eb) : juce::Colour (0xff333842));
+    g.fillRoundedRectangle (badgeArea, 4.0f);
+
+    g.setColour (juce::Colours::white);
+    g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+    g.drawText ("S" + juce::String (seqIndex + 1), badgeArea, juce::Justification::centred);
 }
 
 void SequenceRowComponent::resized()
 {
-    const float pad = 5.6f;
-    const float gap = 3.5f;
+    const float pad = 5.0f;
+    const float gap = 3.0f;
     auto area = getLocalBounds().toFloat().reduced (pad);
 
-    auto buttonsArea = area.removeFromLeft (76.0f);
-    auto copyArea = buttonsArea.removeFromLeft (33.0f);
-    copyButton.setBounds (copyArea.getX(), (getHeight() - 31) / 2, 33, 31);
-    buttonsArea.removeFromLeft (10.0f);
-    pasteButton.setBounds (buttonsArea.getX(), (getHeight() - 31) / 2, 33, 31);
+    // Left area: Badge space (32) + C (25) + 3 gap + P (25) = 85px
+    auto leftArea = area.removeFromLeft (88.0f);
+    leftArea.removeFromLeft (32.0f); // Space for S1..S6 badge
+
+    const float btnSize = 25.0f;
+    const float btnY = (getHeight() - btnSize) * 0.5f;
+
+    auto copyArea = leftArea.removeFromLeft (btnSize);
+    copyButton.setBounds (juce::roundToInt (copyArea.getX()), juce::roundToInt (btnY),
+                          juce::roundToInt (btnSize), juce::roundToInt (btnSize));
+
+    leftArea.removeFromLeft (3.0f);
+    auto pasteArea = leftArea.removeFromLeft (btnSize);
+    pasteButton.setBounds (juce::roundToInt (pasteArea.getX()), juce::roundToInt (btnY),
+                           juce::roundToInt (btnSize), juce::roundToInt (btnSize));
 
     area.removeFromLeft (gap);
 
-    auto volumeArea = area.removeFromRight (50.0f);
-    volumeKnob.setBounds (volumeArea.getX(), (getHeight() - 50) / 2, 50, 50);
-    area.removeFromRight (gap);
-    auto lengthArea = area.removeFromRight (50.0f);
-    lengthKnob.setBounds (lengthArea.getX(), (getHeight() - 50) / 2, 50, 50);
+    // Right area: Knobs
+    const float knobSize = 48.0f;
+    const float knobY = (getHeight() - knobSize) * 0.5f;
+
+    auto volumeArea = area.removeFromRight (knobSize);
+    volumeKnob.setBounds (juce::roundToInt (volumeArea.getX()), juce::roundToInt (knobY),
+                          juce::roundToInt (knobSize), juce::roundToInt (knobSize));
+
     area.removeFromRight (gap);
 
+    auto lengthArea = area.removeFromRight (knobSize);
+    lengthKnob.setBounds (juce::roundToInt (lengthArea.getX()), juce::roundToInt (knobY),
+                          juce::roundToInt (knobSize), juce::roundToInt (knobSize));
+
+    area.removeFromRight (gap);
+
+    // Middle area: 32 Steps
     const int n = (int) stepButtons.size();
     const float stepW = juce::jmin (26.0f, (area.getWidth() - gap * (float) (n - 1)) / (float) n);
-    const float startX = area.getX() + (area.getWidth() - (stepW * n + gap * (float) (n - 1))) / 2.0f;
-    const float y = (getHeight() - stepW) / 2.0f;
+    const float startX = area.getX() + (area.getWidth() - (stepW * n + gap * (float) (n - 1))) * 0.5f;
+    const float y = (getHeight() - stepW) * 0.5f;
 
     for (int i = 0; i < n; ++i)
         stepButtons[(size_t) i]->setBounds (juce::roundToInt (startX + i * (stepW + gap)),

@@ -22,4 +22,17 @@ public:
 
 private:
     static juce::Image findButtonImage (const juce::Button& button);
+
+    void drawHardwareKnob (juce::Graphics& g, float x, float y, float width, float height,
+                           float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
+                           juce::Slider& slider);
+
+    void drawStepButtonBackground (juce::Graphics& g, juce::Button& button,
+                                   bool isHighlighted, bool isDown);
+
+    void drawStepButtonText (juce::Graphics& g, juce::TextButton& button);
+
+    void drawStandardButtonBackground (juce::Graphics& g, juce::Button& button,
+                                       const juce::Colour& backgroundColour,
+                                       bool isHighlighted, bool isDown);
 };

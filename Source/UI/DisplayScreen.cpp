@@ -8,11 +8,19 @@ void DisplayScreen::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced (0.5f);
 
-    g.setColour (juce::Colour (0xff1a1a1a));
+    // Drop shadow
+    g.setColour (juce::Colour (0x18000000));
+    g.fillRoundedRectangle (bounds.translated (0.0f, 1.5f), 8.0f);
+
+    // OLED Dark Glass Screen
+    g.setColour (juce::Colour (0xff14161a));
     g.fillRoundedRectangle (bounds, 8.0f);
 
-    g.setColour (juce::Colour (0xff3a7bd5));
+    // Cyber blue border with inner highlight
+    g.setColour (juce::Colour (0xff2563eb));
     g.drawRoundedRectangle (bounds, 8.0f, 1.5f);
+    g.setColour (juce::Colour (0x20ffffff));
+    g.drawRoundedRectangle (bounds.reduced (1.0f), 7.0f, 1.0f);
 
     auto area = getLocalBounds().reduced (14);
 
@@ -29,7 +37,7 @@ void DisplayScreen::paint (juce::Graphics& g)
     }
 
     auto signalArea = getLocalBounds().removeFromBottom (34).reduced (14, 8);
-    g.setColour (juce::Colour (0xff2a2a2a));
+    g.setColour (juce::Colour (0xff22252c));
     g.fillRoundedRectangle (signalArea.toFloat(), 4.0f);
 
     auto level = juce::jlimit (0.0f, 1.0f, rms);

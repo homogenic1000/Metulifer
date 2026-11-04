@@ -160,19 +160,27 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 void MetuliferAudioProcessorEditor::paint (juce::Graphics& g)
 {
     if (auto img = Skin::find ("bg_editor"); img.isValid())
+    {
         g.drawImage (img, getLocalBounds().toFloat(),
                      juce::RectanglePlacement::stretchToFit, false);
+    }
     else
-        g.fillAll (juce::Colour (0xffe9e9e9));
+    {
+        g.fillAll (juce::Colour (0xffe2e5ea));
+    }
 
-    g.setColour (juce::Colours::black);
-    g.setFont (juce::FontOptions (14.0f, juce::Font::bold));
-    g.drawText ("METULIFER", 32, 8, 200, 20, juce::Justification::centredLeft);
+    g.setColour (juce::Colour (0xff1e293b));
+    g.setFont (juce::FontOptions (15.0f, juce::Font::bold));
+    g.drawText ("METULIFER", 32, 7, 120, 20, juce::Justification::centredLeft);
+
+    g.setColour (juce::Colour (0xff64748b));
+    g.setFont (juce::FontOptions (10.0f, juce::Font::plain));
+    g.drawText ("MODULAR STEP SEQUENCER & DUAL SYNTH", 145, 9, 320, 18, juce::Justification::centredLeft);
 }
 
 void MetuliferAudioProcessorEditor::resized()
 {
-    inspectButton.setBounds (120, 8, 60, 18);
+    inspectButton.setBounds (getWidth() - 92, 8, 60, 18);
     sequencerPanel.setBounds (32, 32, 910, 417);
     displayScreen.setBounds (986, 32, 247, 132);
     clockPanel.setBounds (961, 164, 297, 284);

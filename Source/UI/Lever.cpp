@@ -71,24 +71,54 @@ void Lever::mouseDrag (const juce::MouseEvent& e)
 
 void Lever::paint (juce::Graphics& g)
 {
-    auto area = getLocalBounds().toFloat();
+    auto area = getLocalBounds().toFloat().reduced (0.5f);
 
-    g.setColour (juce::Colour (0xffc4c4c4));
-    g.fillRoundedRectangle (area, 5.0f);
+    // Frame with drop shadow
+    g.setColour (juce::Colour (0x15000000));
+    g.fillRoundedRectangle (area.translated (0.0f, 1.0f), 5.0f);
 
-    g.setColour (juce::Colour (0xff9a9a9a));
-    g.drawRoundedRectangle (area.reduced (0.5f), 5.0f, 1.0f);
+    // Slot recess
+    g.setColour (juce::Colour (0xff20242c));
+    g.fillRoundedRectangle (area, 4.0f);
 
-    const float travel = area.getHeight() - 22.0f;
+    g.setColour (juce::Colour (0xff475569));
+    g.drawRoundedRectangle (area, 4.0f, 1.0f);
+
+    // Vertical center groove
+    const float trackW = 4.0f;
+    const float trackX = area.getCentreX() - trackW * 0.5f;
+    g.setColour (juce::Colour (0xff14171d));
+    g.fillRoundedRectangle (trackX, area.getY() + 6.0f, trackW, area.getHeight() - 12.0f, 2.0f);
+
+    // 5 Position tick marks
+    const float travel = area.getHeight() - 20.0f;
+    for (int i = 0; i < numPositions; ++i)
+    {
+        const float t = (float) i / 4.0f;
+        const float tickY = area.getY() + 10.0f + (1.0f - t) * travel;
+        const bool isCurrent = (i == (value + 2));
+        g.setColour (isCurrent ? juce::Colour (0xff60a5fa) : juce::Colour (0xff475569));
+        g.fillRect (area.getX() + 2.0f, tickY - 0.5f, 3.5f, 1.0f);
+        g.fillRect (area.getRight() - 5.5f, tickY - 0.5f, 3.5f, 1.0f);
+    }
+
+    // Handle
     const float t = (float) (value + 2) / 4.0f;
-    const float handleY = area.getY() + (1.0f - t) * travel;
+    const float handleH = 16.0f;
+    const float handleY = area.getY() + 2.0f + (1.0f - t) * travel;
+    auto handleRect = juce::Rectangle<float> (area.getX() + 2.0f, handleY,
+                                              area.getWidth() - 4.0f, handleH);
 
-    g.setColour (juce::Colour (0xff3a7bd5));
-    g.fillRoundedRectangle (area.getX() + 3.0f, handleY + 3.0f,
-                            area.getWidth() - 6.0f, 16.0f, 4.0f);
+    juce::ColourGradient handleGrad (juce::Colour (0xff475569), handleRect.getCentreX(), handleRect.getY(),
+                                     juce::Colour (0xff1e293b), handleRect.getCentreX(), handleRect.getBottom(), false);
+    g.setGradientFill (handleGrad);
+    g.fillRoundedRectangle (handleRect, 3.0f);
 
-    g.setColour (juce::Colour (0xffffffff));
-    g.drawRoundedRectangle (juce::Rectangle<float> (area.getX() + 3.0f, handleY + 3.0f,
-                                                    area.getWidth() - 6.0f, 16.0f),
-                            4.0f, 1.0f);
+    // Handle center accent indicator
+    g.setColour (juce::Colour (0xff3b82f6));
+    g.fillRect (handleRect.getX() + 3.0f, handleRect.getCentreY() - 1.0f,
+                handleRect.getWidth() - 6.0f, 2.0f);
+
+    g.setColour (juce::Colour (0xff94a3b8));
+    g.drawRoundedRectangle (handleRect, 3.0f, 1.0f);
 }

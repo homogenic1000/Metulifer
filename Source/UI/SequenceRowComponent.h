@@ -52,14 +52,19 @@ private:
     public:
         void paint (juce::Graphics& g) override
         {
-            g.setColour (juce::Colour (0xffff7a1a));
-            g.drawRoundedRectangle (getLocalBounds().toFloat().reduced (1.0f), 4.0f, 2.0f);
+            auto b = getLocalBounds().toFloat().reduced (0.5f);
+            g.setColour (juce::Colour (0x35ffffff));
+            g.fillRoundedRectangle (b, 3.5f);
+            g.setColour (juce::Colour (0xffff9500));
+            g.drawRoundedRectangle (b, 3.5f, 2.0f);
+            g.setColour (juce::Colour (0x80ffffff));
+            g.drawRoundedRectangle (b.reduced (1.0f), 2.5f, 1.0f);
         }
     };
 
     PlayheadMarker playhead;
 
-    juce::TextButton copyButton { "Copy" }, pasteButton { "Paste" };
+    juce::TextButton copyButton { "C" }, pasteButton { "P" };
     std::vector<std::unique_ptr<juce::TextButton>> stepButtons;
     juce::Slider lengthKnob, volumeKnob;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lengthAttachment, volumeAttachment;

@@ -83,7 +83,24 @@ namespace Skin
             return;
         }
 
-        g.setColour (fallbackColour);
+        // Panel drop shadow for separation against main background
+        g.setColour (juce::Colour (0x12000000));
+        g.fillRoundedRectangle (bounds.translated (0.0f, 1.5f), cornerRadius);
+
+        // Subtle gradient fill for depth
+        const auto topCol = fallbackColour.brighter (0.02f);
+        const auto botCol = fallbackColour.darker (0.03f);
+        juce::ColourGradient grad (topCol, bounds.getCentreX(), bounds.getY(),
+                                   botCol, bounds.getCentreX(), bounds.getBottom(), false);
+        g.setGradientFill (grad);
         g.fillRoundedRectangle (bounds, cornerRadius);
+
+        // Crisp border outline
+        g.setColour (juce::Colour (0xffb4b9c2));
+        g.drawRoundedRectangle (bounds, cornerRadius, 1.0f);
+
+        // Subtle top highlight
+        g.setColour (juce::Colour (0x45ffffff));
+        g.drawRoundedRectangle (bounds.reduced (0.8f), juce::jmax (1.0f, cornerRadius - 0.8f), 0.8f);
     }
 }

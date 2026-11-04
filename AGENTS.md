@@ -115,6 +115,20 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-11-04 — Modernisation de l'UI : potentiomètres hardware, états boutons et contraste
+- **Tâche** : Améliorer le contraste global de l'interface squelette, doter les potentiomètres rotatifs d'un rendu matériel analogique avec arcs de valeur dynamiques, concevoir tous les états interactifs des boutons (normal/survol/clic/actif) et clarifier les pas du séquenceur
+- **Fichiers** : `Source/UI/MetuliferLookAndFeel.{h,cpp}`, `Source/UI/Skin.cpp`, `Source/UI/SequenceRowComponent.{h,cpp}`, `Source/UI/Lever.cpp`, `Source/UI/DisplayScreen.cpp`, `Source/PluginEditor.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/UI/MetuliferLookAndFeel.{h,cpp}` : Rendu vectoriel personnalisé pour tous les sliders rotatifs (`drawRotarySlider` / `drawHardwareKnob`) avec rainure extérieure, arc de valeur actif coloré selon le type de contrôle (ambre pour Tempo/Reverb, cyan pour Cutoff, bleu électrique pour Volume, violet pour Mix, ciel pour ADSR), corps en métal foncé biseauté, hub central et aiguille blanche réactive au survol/glissement. Rendu spécifique des boutons de pas (`drawStepButtonBackground` / `drawStepButtonText`) affichant le numéro de pas (1..32), rétro-éclairage ambre/orange tactile à l'activation, slate foncé avec accentuation des temps 1, 5, 9, 13 (rhythm beat grouping 4/4) à l'état inactif. Rendu tactile des boutons standards (`drawStandardButtonBackground`) : Play/Stop (vert émeraude / rouge rubis), On/Off (vert / slate sombre), LPF/HPF (bleu électrique actif / slate), Copy/Paste ("C"/"P") et Mode/Wave avec survol et appui nets.
+  2. `Source/UI/Skin.cpp` : `drawPanel` enrichi d'une ombre portée subtile, d'un dégradé vertical et d'une bordure contrastée `#B4B9C2` avec reflet supérieur pour détacher physiquement les panneaux du châssis.
+  3. `Source/UI/SequenceRowComponent.{h,cpp}` : Remplacement des libellés de boutons "Copy"/"Paste" par "C" et "P" (avec tooltips préservés). Ajout d'un badge de séquence ("S1".."S6") et d'une barre d'accentuation bleue à gauche sur la rangée sélectionnée. Amélioration du `PlayheadMarker` avec liseré orange vif et halo translucide.
+  4. `Source/UI/Lever.cpp` : Rendu du sélecteur d'octave avec rail creux, 5 crans de positionnement avec surbrillance bleue du cran actif, et poignée métallique graduée.
+  5. `Source/UI/DisplayScreen.cpp` : Écran OLED avec verre fumé sombre et double cerclage cyber bleu.
+  6. `Source/PluginEditor.cpp` : Teinte de châssis `#E2E5EA`, typographie de titre "METULIFER" en ardoise sombre contrastée avec sous-titre "MODULAR STEP SEQUENCER & DUAL SYNTH", et replacement discret du bouton "Inspect" en haut à droite.
+- **Validation** : ✅ Build Xcode réussi (`** BUILD SUCCEEDED **` sur VST3, AU et Standalone) + validation automatisée complète `pluginval` aux niveaux de rigueur 5 et 8 (`SUCCESS`, 0 échec, tous tests audio, état et automation passés).
+- **Commit** : `5fb3b60` — `feat: modernize skeleton UI with hardware rotary knobs, tactile button states and enhanced contrast`
+- **Next steps** : —
+```
 ### 2026-11-04 — Intégration du module Melatonin Inspector
 - **Tâche** : Intégrer l'inspecteur de composants visuel `melatonin_inspector` de Sudara (https://github.com/sudara/melatonin_inspector) au projet JUCE
 - **Fichiers** : `modules/melatonin_inspector` (submodule git), `.gitmodules`, `Metulifer.jucer`, `Source/PluginEditor.h`, `Source/PluginEditor.cpp`, `AGENTS.md`
