@@ -65,6 +65,7 @@ private:
     void sliderDragStarted (juce::Slider* slider) override;
     void timerCallback() override;
     void parameterChanged (const juce::String& parameterID, float newValue) override;
+    bool keyPressed (const juce::KeyPress& key) override;
 
     MetuliferAudioProcessor& audioProcessor;
 

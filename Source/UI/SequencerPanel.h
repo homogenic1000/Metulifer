@@ -18,6 +18,7 @@ public:
     SequenceRowComponent* getRow (int index);
 
     std::function<void (int)> onSelectionChanged;
+    std::function<void (const juce::String&)> onStatusMessage;
 
 private:
     void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,

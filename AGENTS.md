@@ -280,6 +280,21 @@ Metulifer/
 - **Commit** : — (ce commit)
 - **Next steps** : vérifier en séance que le son sort bien (steps ON + Play) ; Phase 6 (FX) en attente du design Figma
 
+### 2026-11-04 — Audit DSP & UI : corrections Arp, Ping-Pong Delay, Reverb CPU, Mono downmix & raccourcis
+- **Tâche** : Audit complet sur la branche `main` après fusion de la branche feature, correction de bugs DSP et améliorations ergonomiques.
+- **Fichiers** : `Source/DSP/Voice.{h,cpp}`, `Source/Sequencer/SequencerEngine.{h,cpp}`, `Source/UI/SequencerPanel.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `AGENTS.md`
+- **Modifs** :
+  1. **Arp Chord Pools sans doublons** (`Voice.cpp`) : Correction de `buildNotePool` où les accords multi-octaves (notamment Octaves et Fifths) répétaient la même note à la frontière de chaque octave.
+  2. **Arp Thumb-Pinky restauré** (`Voice.cpp`) : Le mode `Thumb-Pinky` (case 6) était un copié-collé identique du mode `Converge` (case 7). Implémentation du pattern musical authentique alternant basse/racine et mélodie ascendante (`0, 1, 0, 2, 0, 3, ...`).
+  3. **Véritable Stereo Ping-Pong Delay** (`Voice.cpp`) : L'implémentation précédente n'était qu'un delay asymétrique double mono (ratio 0.75). Réécriture avec cross-feedback authentique (le retard Gauche réinjecte dans Droite, et Droite réinjecte dans Gauche) pour un véritable rebond spatial gauche/droite.
+  4. **Optimisation CPU Reverb** (`Voice.cpp`) : Évite de recalculer les coefficients de filtres peignes Freeverb à chaque bloc audio en filtrant les appels `reverb.setParameters()` sur changement réel des paramètres.
+  5. **Downmix Mono** (`Voice.cpp`) : Sur une piste mono (`outChannels == 1`), les composantes réverbérées et les échos de droite sont désormais sommés proprement à -3 dB plutôt que d'être tronqués.
+  6. **Protection anti-burst de Delay** (`Voice.cpp`) : Le tampon de retard est vidé lors de la désactivation du délai pour éviter qu'un ancien écho résiduel ne réapparaisse lors de la réactivation 30 secondes plus tard.
+  7. **Raccourci Cmd+I actif** (`PluginEditor.cpp`) : Implémentation de `keyPressed` pour déclencher le Melatonin Inspector au clavier tel qu'annoncé dans l'infobulle du bouton.
+  8. **Notification Copier/Coller Pattern** (`SequencerPanel.cpp`) : L'écran OLED affiche désormais un retour immédiat (`SEQ N COPIED` et `SEQ N PASTED`).
+  9. **Zéro-allocation Sequencer Events** (`SequencerEngine.cpp`) : Réservation de 1024 événements dans `prepare()` pour garantir l'absence totale de réallocation mémoire sur le thread audio.
+- **Build & Tests** : ✅ `** BUILD SUCCEEDED **` (Xcode Release), ✅ `pluginval` strictness level 5 sur VST3 (SUCCESS) et AU (SUCCESS).
+
 ### 2026-11-04 — Fix LFO DSP, câbles virtuels, écran OLED de liaison et animation temps-réel des knobs
 - **Tâche** : Réparer les LFO et câbles non fonctionnels, ajouter un écran OLED dédié sur chaque module LFO indiquant la liaison/destination active, et animer visuellement le knob assigné en rythme avec le LFO.
 - **Fichiers** : `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Source/UI/CableLayer.{h,cpp}`, `Source/UI/LFOPanel.{h,cpp}`, `Source/UI/MetuliferLookAndFeel.cpp`, `AGENTS.md`

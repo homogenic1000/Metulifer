@@ -14,10 +14,14 @@ SequencerPanel::SequencerPanel (juce::AudioProcessorValueTreeState& apvts)
         row->onCopy = [this, i]
         {
             clipboard = rows[(size_t) i]->getPattern();
+            if (onStatusMessage)
+                onStatusMessage ("SEQ " + juce::String (i + 1) + " COPIED");
         };
         row->onPaste = [this, i]
         {
             rows[(size_t) i]->setPattern ((int) clipboard);
+            if (onStatusMessage)
+                onStatusMessage ("SEQ " + juce::String (i + 1) + " PASTED");
         };
         addAndMakeVisible (*row);
         rows.push_back (std::move (row));

@@ -15,6 +15,7 @@ void SequencerEngine::prepare (double sr)
     sampleRate = sr;
     masterAccumulator = 0.0;
     globalStep = 0;
+    events.reserve (1024);
 
     for (int i = 0; i < numSequences; ++i)
     {

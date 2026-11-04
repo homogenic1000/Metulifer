@@ -3,17 +3,17 @@
 
 static int buildNotePool (int chordIndex, int numOctaves, int* outPool)
 {
-    static const int chordIntervals[10][14] = {
-        { 4, 0, 4, 7, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0 },                   // 0: Major
-        { 4, 0, 3, 7, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0 },                   // 1: Minor
-        { 6, 0, 3, 5, 7, 10, 12, 0, 0, 0, 0, 0, 0, 0 },                  // 2: Pentatonic
-        { 3, 0, 12, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },                  // 3: Octaves
-        { 5, 0, 4, 7, 11, 12, 0, 0, 0, 0, 0, 0, 0, 0 },                  // 4: Maj7
-        { 5, 0, 3, 7, 10, 12, 0, 0, 0, 0, 0, 0, 0, 0 },                  // 5: Min7
-        { 5, 0, 4, 7, 10, 12, 0, 0, 0, 0, 0, 0, 0, 0 },                  // 6: Dom7
-        { 4, 0, 5, 7, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0 },                   // 7: Sus4
-        { 4, 0, 7, 12, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0 },                  // 8: Fifths
-        { 13, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }                // 9: Chromatic
+    static const int chordIntervals[10][13] = {
+        { 3, 0, 4, 7 },                   // 0: Major
+        { 3, 0, 3, 7 },                   // 1: Minor
+        { 5, 0, 3, 5, 7, 10 },            // 2: Pentatonic
+        { 1, 0 },                         // 3: Octaves
+        { 4, 0, 4, 7, 11 },               // 4: Maj7
+        { 4, 0, 3, 7, 10 },               // 5: Min7
+        { 4, 0, 4, 7, 10 },               // 6: Dom7
+        { 3, 0, 5, 7 },                   // 7: Sus4
+        { 2, 0, 7 },                      // 8: Fifths
+        { 12, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 } // 9: Chromatic
     };
 
     chordIndex = juce::jlimit (0, 9, chordIndex);
@@ -24,14 +24,12 @@ static int buildNotePool (int chordIndex, int numOctaves, int* outPool)
     numOctaves = juce::jlimit (1, 3, numOctaves);
 
     for (int oct = 0; oct < numOctaves; ++oct)
-    {
         for (int i = 0; i < count; ++i)
-        {
-            if (oct > 0 && i == 0)
-                continue;
             outPool[total++] = intervals[i] + oct * 12;
-        }
-    }
+
+    // Append closing root note for highest octave
+    outPool[total++] = numOctaves * 12;
+
     return total;
 }
 
@@ -105,6 +103,12 @@ void Voice::resetArp()
 
 void Voice::setParams (const Params& p)
 {
+    const bool reverbParamsChanged = (p.reverbEnabled != currentParams.reverbEnabled
+                                   || p.reverbMode != currentParams.reverbMode
+                                   || std::abs (p.reverbMix - currentParams.reverbMix) > 0.001f);
+
+    const bool delayToggledOff = (currentParams.delayEnabled && ! p.delayEnabled);
+
     currentParams = p;
 
     osc1.setWave (p.wave1);
@@ -126,8 +130,11 @@ void Voice::setParams (const Params& p)
                              : juce::dsp::StateVariableTPTFilterType::highpass);
     filter.setCutoffFrequency (juce::jlimit (20.0f, (float) (sampleRate * 0.49), p.cutoff));
 
+    if (delayToggledOff)
+        delayBuffer.clear();
+
     reverbActive = p.reverbEnabled && p.reverbMix > 0.001f;
-    if (reverbActive)
+    if (reverbActive && reverbParamsChanged)
     {
         juce::dsp::Reverb::Parameters rp;
         const float wet = juce::jlimit (0.0f, 1.0f, p.reverbMix / 100.0f);
@@ -229,8 +236,16 @@ void Voice::advanceArp()
 
         case 6: // Thumb-Pinky
         {
-            const int p = arpStep % N;
-            idx = (p % 2 == 0) ? (p / 2) : (N - 1 - p / 2);
+            if (N <= 1)
+            {
+                idx = 0;
+            }
+            else
+            {
+                const int cycle = 2 * (N - 1);
+                const int p = arpStep % cycle;
+                idx = (p % 2 == 0) ? 0 : (1 + (p / 2));
+            }
             break;
         }
 
@@ -371,11 +386,8 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         const float wet = juce::jlimit (0.0f, 1.0f, currentParams.delayMix / 100.0f);
         const float fb  = juce::jlimit (0.0f, 0.90f, currentParams.delayFeedback / 100.0f);
         const int delayLen = delayBuffer.getNumSamples();
-        const int delaySamplesL = juce::jlimit (1, delayLen - 1,
+        const int delaySamples = juce::jlimit (1, delayLen - 1,
             juce::roundToInt (currentParams.delayTime * 0.001f * (float) sampleRate));
-        const int delaySamplesR = currentParams.delayPingpong
-            ? juce::jlimit (1, delayLen - 1, juce::roundToInt ((float) delaySamplesL * 0.75f))
-            : delaySamplesL;
 
         auto* delayL = delayBuffer.getWritePointer (0);
         auto* delayR = delayBuffer.getWritePointer (1);
@@ -384,17 +396,24 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         {
             const float in = mono[i];
 
-            int rposL = delayWritePos - delaySamplesL;
-            if (rposL < 0) rposL += delayLen;
+            int rpos = delayWritePos - delaySamples;
+            if (rpos < 0) rpos += delayLen;
 
-            int rposR = delayWritePos - delaySamplesR;
-            if (rposR < 0) rposR += delayLen;
+            const float outL = delayL[rpos];
+            const float outR = delayR[rpos];
 
-            const float outL = delayL[rposL];
-            const float outR = delayR[rposR];
-
-            delayL[delayWritePos] = in + std::tanh (outL * fb);
-            delayR[delayWritePos] = in + std::tanh (outR * fb);
+            if (currentParams.delayPingpong)
+            {
+                // True Ping-Pong: Left echoes into Right, Right echoes into Left
+                delayL[delayWritePos] = in + std::tanh (outR * fb);
+                delayR[delayWritePos] = std::tanh (outL * fb);
+            }
+            else
+            {
+                // Dual Stereo Delay: each channel feedbacks to itself
+                delayL[delayWritePos] = in + std::tanh (outL * fb);
+                delayR[delayWritePos] = in + std::tanh (outR * fb);
+            }
 
             if (++delayWritePos >= delayLen)
                 delayWritePos = 0;
@@ -421,8 +440,17 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         reverb.process (revContext);
     }
 
-    // Sum into output channels
-    const int channels = juce::jmin (2, out.getNumChannels());
-    for (int ch = 0; ch < channels; ++ch)
-        out.addFrom (ch, startSample, scratchStereo, ch, 0, numSamples);
+    // Sum into output channels (with mono track downmix support)
+    const int outChannels = out.getNumChannels();
+    if (outChannels >= 2)
+    {
+        out.addFrom (0, startSample, scratchStereo, 0, 0, numSamples);
+        out.addFrom (1, startSample, scratchStereo, 1, 0, numSamples);
+    }
+    else if (outChannels == 1)
+    {
+        // Downmix stereo reverb and delay smoothly to mono
+        out.addFrom (0, startSample, scratchStereo, 0, 0, numSamples, 0.5f);
+        out.addFrom (0, startSample, scratchStereo, 1, 0, numSamples, 0.5f);
+    }
 }

@@ -37,6 +37,11 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
         sequenceSelected (index);
     };
 
+    sequencerPanel.onStatusMessage = [this] (const juce::String& msg)
+    {
+        showText (msg);
+    };
+
     vcfPanel.onFilterToggled = [this] (bool useLpf)
     {
         setFilterTypeParam (useLpf);
@@ -872,4 +877,15 @@ void MetuliferAudioProcessorEditor::timerCallback()
 
     if (paramShown && juce::Time::getMillisecondCounter() >= paramShownUntilMs)
         clearParamDisplay();
+}
+
+bool MetuliferAudioProcessorEditor::keyPressed (const juce::KeyPress& key)
+{
+    if (key.getModifiers().isCommandDown() && (key.getKeyCode() == 'I' || key.getKeyCode() == 'i'))
+    {
+        inspector.toggle();
+        return true;
+    }
+
+    return AudioProcessorEditor::keyPressed (key);
 }
