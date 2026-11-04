@@ -42,14 +42,44 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
         setFilterTypeParam (useLpf);
     };
 
-    reverbPanel.onPowerToggled = [this] (bool on)
+    reverbPanel.onReverbPowerToggled = [this] (bool on)
     {
         setReverbPowerParam (on);
     };
 
-    reverbPanel.onModeToggled = [this] (int mode)
+    reverbPanel.onReverbModeToggled = [this] (int mode)
     {
         setReverbModeParam (mode);
+    };
+
+    reverbPanel.onDelayPowerToggled = [this] (bool on)
+    {
+        setDelayPowerParam (on);
+    };
+
+    reverbPanel.onDelayModeToggled = [this] (bool pp)
+    {
+        setDelayModeParam (pp);
+    };
+
+    reverbPanel.onReduxPowerToggled = [this] (bool on)
+    {
+        setReduxPowerParam (on);
+    };
+
+    synthPanel.onArpPowerToggled = [this] (bool on)
+    {
+        setArpPowerParam (on);
+    };
+
+    synthPanel.onArpModeToggled = [this] (int mode)
+    {
+        setArpModeParam (mode);
+    };
+
+    synthPanel.onArpChordToggled = [this] (int chord)
+    {
+        setArpChordParam (chord);
     };
 
     clockPanel.onPlayToggled = [this] (bool shouldPlay)
@@ -81,6 +111,22 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
                    "seq " + juce::String (i + 1) + " length");
             track (row->getVolumeKnob(), MetuliferAudioProcessor::seqParamId (i, "volume"),
                    "seq " + juce::String (i + 1) + " volume");
+
+            row->onArpToggled = [this, i] (bool on)
+            {
+                if (i == currentSeq)
+                    setArpPowerParam (on);
+                else
+                {
+                    auto* param = audioProcessor.apvts.getParameter (MetuliferAudioProcessor::seqParamId (i, "arp_enabled"));
+                    if (param != nullptr)
+                    {
+                        param->beginChangeGesture();
+                        param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+                        param->endChangeGesture();
+                    }
+                }
+            };
         }
 
     track (clockPanel.tempoKnob, "tempo", "tempo");
@@ -129,8 +175,11 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
                         &synthPanel.adsr2Attack, &synthPanel.adsr2Decay,
                         &synthPanel.adsr2Sustain, &synthPanel.adsr2Release,
                         &synthPanel.mixVco1, &synthPanel.mixVco2,
+                        &synthPanel.arpOctavesKnob,
                         &vcfPanel.cutoffKnob,
-                        &reverbPanel.mixKnob })
+                        &reverbPanel.revMixKnob,
+                        &reverbPanel.dlyTimeKnob, &reverbPanel.dlyFeedbackKnob, &reverbPanel.dlyMixKnob,
+                        &reverbPanel.rdxBitsKnob, &reverbPanel.rdxRateKnob, &reverbPanel.rdxMixKnob })
         knob->addListener (this);
 
     bindSequence (0);
@@ -151,9 +200,23 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 
     if (reverbEnabledParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (reverbEnabledParamId, this);
-
     if (reverbModeParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (reverbModeParamId, this);
+
+    if (delayEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (delayEnabledParamId, this);
+    if (delayPingpongParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (delayPingpongParamId, this);
+
+    if (reduxEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (reduxEnabledParamId, this);
+
+    if (arpEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (arpEnabledParamId, this);
+    if (arpModeParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (arpModeParamId, this);
+    if (arpChordParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (arpChordParamId, this);
 }
 
 //==============================================================================
@@ -180,15 +243,35 @@ void MetuliferAudioProcessorEditor::paint (juce::Graphics& g)
 
 void MetuliferAudioProcessorEditor::resized()
 {
-    inspectButton.setBounds (getWidth() - 92, 8, 60, 18);
-    sequencerPanel.setBounds (32, 32, 910, 417);
-    displayScreen.setBounds (986, 32, 247, 132);
-    clockPanel.setBounds (961, 164, 297, 284);
-    synthPanel.setBounds (32, 458, 786, 237);
-    vcfPanel.setBounds (684, 471, 105, 224);
-    lfoPanel1.setBounds (874, 471, 105, 224);
-    lfoPanel2.setBounds (1013, 471, 105, 224);
-    reverbPanel.setBounds (1144, 471, 105, 224);
+    const int marginX = 32;
+    const int rightColWidth = 288;
+    const int rightColX = getWidth() - marginX - rightColWidth; // 1280 - 32 - 288 = 960
+
+    inspectButton.setBounds (getWidth() - marginX - 60, 8, 60, 18);
+
+    // Top Section: Sequencer (Left) | DisplayScreen + ClockPanel (Right)
+    sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, 417);
+    displayScreen.setBounds (rightColX, 32, rightColWidth, 128);
+    clockPanel.setBounds (rightColX, 172, rightColWidth, 277);
+
+    // Bottom Section: SynthPanel + 4 modular slices (VCF, LFO1, LFO2, Reverb/Multi-FX)
+    const int botY = 468;
+    const int botH = 224;
+    const int moduleW = 105;
+    const int gap = 14;
+
+    const int revX  = getWidth() - marginX - moduleW; // 1143
+    const int lfo2X = revX - gap - moduleW;           // 1024
+    const int lfo1X = lfo2X - gap - moduleW;          // 905
+    const int vcfX  = lfo1X - gap - moduleW;          // 786
+    const int synthW = vcfX - gap - marginX;          // 740
+
+    synthPanel.setBounds (marginX, botY, synthW, botH);
+    vcfPanel.setBounds (vcfX, botY, moduleW, botH);
+    lfoPanel1.setBounds (lfo1X, botY, moduleW, botH);
+    lfoPanel2.setBounds (lfo2X, botY, moduleW, botH);
+    reverbPanel.setBounds (revX, botY, moduleW, botH);
+
     cableLayer.setBounds (0, 0, getWidth(), getHeight());
 
     refreshCableTargets();
@@ -216,7 +299,13 @@ void MetuliferAudioProcessorEditor::refreshCableTargets()
         { &synthPanel.adsr2Sustain, "s2"   }, { &synthPanel.adsr2Release, "r2"   },
         { &synthPanel.mixVco1,      "mix1" }, { &synthPanel.mixVco2,      "mix2" },
         { &vcfPanel.cutoffKnob,     "cutoff" },
-        { &reverbPanel.mixKnob,     "reverb_mix" },
+        { &reverbPanel.revMixKnob,  "reverb_mix" },
+        { &reverbPanel.dlyTimeKnob, "delay_time" },
+        { &reverbPanel.dlyFeedbackKnob, "delay_feedback" },
+        { &reverbPanel.dlyMixKnob,  "delay_mix" },
+        { &reverbPanel.rdxBitsKnob, "redux_bits" },
+        { &reverbPanel.rdxRateKnob, "redux_rate" },
+        { &reverbPanel.rdxMixKnob,  "redux_mix" },
     };
 
     for (const auto& r : refs)
@@ -248,10 +337,23 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
         audioProcessor.apvts.removeParameterListener (reverbEnabledParamId, this);
     if (reverbModeParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (reverbModeParamId, this);
+    if (delayEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (delayEnabledParamId, this);
+    if (delayPingpongParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (delayPingpongParamId, this);
+    if (reduxEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (reduxEnabledParamId, this);
+    if (arpEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (arpEnabledParamId, this);
+    if (arpModeParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (arpModeParamId, this);
+    if (arpChordParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (arpChordParamId, this);
 
     synthAttachments.clear();
     vcfAttachments.clear();
-    reverbAttachments.clear();
+    fxAttachments.clear();
+    arpAttachments.clear();
 
     auto addKnob = [this] (std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>>& target,
                            juce::Slider& knob, const juce::String& paramName, const juce::String& display)
@@ -291,7 +393,18 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
     addKnob (synthAttachments, synthPanel.mixVco2,      id ("mix2"),  "mix VCO2");
 
     addKnob (vcfAttachments,   vcfPanel.cutoffKnob,     id ("cutoff"), "cutoff");
-    addKnob (reverbAttachments, reverbPanel.mixKnob,   id ("reverb_mix"), "reverb mix");
+
+    // FX: Reverb, Delay, Redux
+    addKnob (fxAttachments, reverbPanel.revMixKnob,      id ("reverb_mix"),     "reverb mix");
+    addKnob (fxAttachments, reverbPanel.dlyTimeKnob,     id ("delay_time"),     "delay time");
+    addKnob (fxAttachments, reverbPanel.dlyFeedbackKnob, id ("delay_feedback"), "delay feedback");
+    addKnob (fxAttachments, reverbPanel.dlyMixKnob,      id ("delay_mix"),      "delay mix");
+    addKnob (fxAttachments, reverbPanel.rdxBitsKnob,     id ("redux_bits"),     "redux bits");
+    addKnob (fxAttachments, reverbPanel.rdxRateKnob,     id ("redux_rate"),     "redux rate");
+    addKnob (fxAttachments, reverbPanel.rdxMixKnob,      id ("redux_mix"),      "redux mix");
+
+    // Arp: Octaves
+    addKnob (arpAttachments, synthPanel.arpOctavesKnob,  id ("arp_octaves"),    "arp octaves");
 
     filterParamId = id ("filter");
     audioProcessor.apvts.addParameterListener (filterParamId, this);
@@ -301,7 +414,24 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
     reverbModeParamId    = id ("reverb_mode");
     audioProcessor.apvts.addParameterListener (reverbEnabledParamId, this);
     audioProcessor.apvts.addParameterListener (reverbModeParamId, this);
-    updateReverbButtons();
+
+    delayEnabledParamId  = id ("delay_enabled");
+    delayPingpongParamId = id ("delay_pingpong");
+    audioProcessor.apvts.addParameterListener (delayEnabledParamId, this);
+    audioProcessor.apvts.addParameterListener (delayPingpongParamId, this);
+
+    reduxEnabledParamId  = id ("redux_enabled");
+    audioProcessor.apvts.addParameterListener (reduxEnabledParamId, this);
+
+    arpEnabledParamId    = id ("arp_enabled");
+    arpModeParamId       = id ("arp_mode");
+    arpChordParamId      = id ("arp_chord");
+    audioProcessor.apvts.addParameterListener (arpEnabledParamId, this);
+    audioProcessor.apvts.addParameterListener (arpModeParamId, this);
+    audioProcessor.apvts.addParameterListener (arpChordParamId, this);
+
+    updateFxButtons();
+    updateArpButtons();
 
     updatingBindings = false;
 }
@@ -401,15 +531,125 @@ void MetuliferAudioProcessorEditor::setReverbModeParam (int mode)
     showText ("reverb " + juce::String (mode == 0 ? "Room" : "Hall"));
 }
 
-void MetuliferAudioProcessorEditor::updateReverbButtons()
+void MetuliferAudioProcessorEditor::setDelayPowerParam (bool on)
 {
-    auto* pEn = audioProcessor.apvts.getParameter (reverbEnabledParamId);
-    if (pEn != nullptr)
-        reverbPanel.setEnabledState (pEn->getValue() > 0.5f);
+    auto* param = audioProcessor.apvts.getParameter (delayEnabledParamId);
+    if (param == nullptr)
+        return;
 
-    auto* pMode = audioProcessor.apvts.getParameter (reverbModeParamId);
-    if (pMode != nullptr)
-        reverbPanel.setModeIndex (pMode->getValue() > 0.5f ? 1 : 0);
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+    param->endChangeGesture();
+
+    showText ("delay " + juce::String (on ? "on" : "off"));
+}
+
+void MetuliferAudioProcessorEditor::setDelayModeParam (bool pp)
+{
+    auto* param = audioProcessor.apvts.getParameter (delayPingpongParamId);
+    if (param == nullptr)
+        return;
+
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (pp ? 1.0f : 0.0f);
+    param->endChangeGesture();
+
+    showText ("delay " + juce::String (pp ? "PingPong" : "Stereo"));
+}
+
+void MetuliferAudioProcessorEditor::setReduxPowerParam (bool on)
+{
+    auto* param = audioProcessor.apvts.getParameter (reduxEnabledParamId);
+    if (param == nullptr)
+        return;
+
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+    param->endChangeGesture();
+
+    showText ("redux " + juce::String (on ? "on" : "off"));
+}
+
+void MetuliferAudioProcessorEditor::updateFxButtons()
+{
+    if (auto* p = audioProcessor.apvts.getParameter (reverbEnabledParamId))
+        reverbPanel.setReverbEnabled (p->getValue() > 0.5f);
+    if (auto* p = audioProcessor.apvts.getParameter (reverbModeParamId))
+        reverbPanel.setReverbMode (p->getValue() > 0.5f ? 1 : 0);
+
+    if (auto* p = audioProcessor.apvts.getParameter (delayEnabledParamId))
+        reverbPanel.setDelayEnabled (p->getValue() > 0.5f);
+    if (auto* p = audioProcessor.apvts.getParameter (delayPingpongParamId))
+        reverbPanel.setDelayPingpong (p->getValue() > 0.5f);
+
+    if (auto* p = audioProcessor.apvts.getParameter (reduxEnabledParamId))
+        reverbPanel.setReduxEnabled (p->getValue() > 0.5f);
+}
+
+void MetuliferAudioProcessorEditor::setArpPowerParam (bool on)
+{
+    auto* param = audioProcessor.apvts.getParameter (arpEnabledParamId);
+    if (param == nullptr)
+        return;
+
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+    param->endChangeGesture();
+
+    showText ("arp " + juce::String (on ? "on" : "off"));
+}
+
+void MetuliferAudioProcessorEditor::setArpModeParam (int mode)
+{
+    auto* param = audioProcessor.apvts.getParameter (arpModeParamId);
+    if (param == nullptr)
+        return;
+
+    const float norm = (float) mode / 10.0f;
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (norm);
+    param->endChangeGesture();
+
+    static const char* names[] = {
+        "Up", "Down", "Up&Down", "Down&Up", "Pinky Up", "Pinky Down",
+        "Thumb-Pinky", "Converge", "Diverge", "Random", "Order"
+    };
+    showText ("arp mode " + juce::String (names[juce::jlimit (0, 10, mode)]));
+}
+
+void MetuliferAudioProcessorEditor::setArpChordParam (int chord)
+{
+    auto* param = audioProcessor.apvts.getParameter (arpChordParamId);
+    if (param == nullptr)
+        return;
+
+    const float norm = (float) chord / 9.0f;
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (norm);
+    param->endChangeGesture();
+
+    static const char* names[] = {
+        "Major", "Minor", "Penta", "Octaves", "Maj7", "Min7",
+        "Dom7", "Sus4", "Fifths", "Chrom"
+    };
+    showText ("arp chord " + juce::String (names[juce::jlimit (0, 9, chord)]));
+}
+
+void MetuliferAudioProcessorEditor::updateArpButtons()
+{
+    if (auto* p = audioProcessor.apvts.getParameter (arpEnabledParamId))
+    {
+        const bool on = p->getValue() > 0.5f;
+        synthPanel.setArpEnabled (on);
+        if (auto* row = sequencerPanel.getRow (currentSeq))
+            row->setArpEnabled (on);
+    }
+
+    if (auto* p = audioProcessor.apvts.getParameter (arpModeParamId))
+        synthPanel.setArpModeIndex (juce::roundToInt (p->getValue() * 10.0f));
+
+    if (auto* p = audioProcessor.apvts.getParameter (arpChordParamId))
+        synthPanel.setArpChordIndex (juce::roundToInt (p->getValue() * 9.0f));
 }
 
 void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parameterID, float)
@@ -422,9 +662,16 @@ void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parame
         if (param != nullptr)
             showText ("filter " + juce::String (param->getValue() < 0.5f ? "LPF" : "HPF"));
     }
-    else if (parameterID == reverbEnabledParamId || parameterID == reverbModeParamId)
+    else if (parameterID == reverbEnabledParamId || parameterID == reverbModeParamId
+          || parameterID == delayEnabledParamId || parameterID == delayPingpongParamId
+          || parameterID == reduxEnabledParamId)
     {
-        updateReverbButtons();
+        updateFxButtons();
+    }
+    else if (parameterID == arpEnabledParamId || parameterID == arpModeParamId
+          || parameterID == arpChordParamId)
+    {
+        updateArpButtons();
     }
 }
 
@@ -460,6 +707,11 @@ void MetuliferAudioProcessorEditor::setLfoPower (int lfoIndex, bool on)
 void MetuliferAudioProcessorEditor::timerCallback()
 {
     displayScreen.setRmsLevel (audioProcessor.getCurrentRms());
+
+    // Push real-time oscilloscope samples to the OLED display
+    float scopeData[128];
+    audioProcessor.getScopeBuffer (scopeData, 128);
+    displayScreen.pushScopeSamples (scopeData, 128);
 
     const bool playing = audioProcessor.isPlaying();
 

@@ -145,6 +145,37 @@ Metulifer/
 - **Commit** : `d591d8c` — `fix: correct inverted arguments in AudioBuffer applyGain calls in Voice`
 - **Next steps** : —
 
+### 2026-11-04 — Phase 7 : Multi-FX (Reverb, Delay, Redux), Arpégiateur 11 modes & Documentation Fumadocs
+- **Tâche** :
+  1. Transformer le module reverb en processeur Multi-FX 3-en-1 (Reverb stéréo Room/Hall, Ping-Pong Delay avec saturation tanh, Redux bitcrusher/décimateur) avec onglets `[REV]`, `[DLY]`, `[RDX]` et LEDs de statut.
+  2. Implémenter l'arpégiateur par séquence (11 modes : Up, Down, Up&Down, Down&Up, Pinky Up, Pinky Down, Thumb-Pinky, Converge, Diverge, Random, Order ; 10 gammes/accords ; 1 à 3 octaves) avec boutons `ARP` sur chaque rangée et contrôles dédiés dans SynthPanel.
+  3. Résoudre la désynchronisation des séquences lors du changement de longueur : horloge master unique et calcul de pas `globalStep % length` pour maintenir un verrouillage de phase perpétuel sur la grille de double-croches.
+  4. Intégrer un oscilloscope temps réel sur l'écran OLED avec buffer circulaire lock-free, affichant le signal joué en direct lorsqu'aucun paramètre n'est manipulé.
+  5. Réaligner rigoureusement toute l'interface 1280×720 (marges symétriques de 32 px, espacements réguliers de 14 px, suppression du chevauchement VCF/SynthPanel, alignement vertical parfait DisplayScreen + ClockPanel).
+  6. Intégrer l'inspecteur visuel Melatonin Inspector (`⌘I` et bouton « Inspect »).
+  7. Valider le plugin avec `pluginval` aux niveaux de rigueur 5 et 8 (100 % pass).
+  8. Rédiger et structurer la documentation bilingue FR/EN complète avec Fumadocs (Next.js 16 / Turbopack), 38 pages statiques générées sans erreur.
+- **Fichiers** :
+  - DSP/Engine : `Source/DSP/Voice.{h,cpp}`, `Source/PluginProcessor.{h,cpp}`, `Source/Sequencer/SequencerEngine.{h,cpp}`
+  - UI : `Source/PluginEditor.{h,cpp}`, `Source/UI/DisplayScreen.{h,cpp}`, `Source/UI/ReverbPanel.{h,cpp}`, `Source/UI/SynthPanel.{h,cpp}`, `Source/UI/SequenceRowComponent.{h,cpp}`, `Source/UI/MetuliferLookAndFeel.cpp`
+  - Documentation : `docs/` (app, content/docs/fr, content/docs/en, lib, components)
+- **Modifs DSP & UI** :
+  - `SequencerEngine` : remplacement des 6 accumulateurs indépendants par un accumulateur master unique et un pas global `globalStep` ; `step = globalStep % lengthOf(s)` assure qu'aucun décalage de phase n'est jamais accumulé lors des changements de longueur en cours de lecture.
+  - `PluginProcessor` : buffer circulaire `scopeBuffer[512]` et méthode `getScopeBuffer` pour alimenter l'oscilloscope sans aucun verrou.
+  - `DisplayScreen` : affichage d'un oscilloscope néon cyan avec réticule et lueur sur le signal master en temps réel quand le plugin est au repos, bascule automatique sur l'affichage paramètre grand format lors des réglages.
+  - `PluginEditor` & `SynthPanel` : grille d'alignement au pixel près (SynthPanel w=740, VCF x=786, LFO1 x=905, LFO2 x=1024, MultiFX x=1143 avec espacement constant de 14 px ; colonne droite DisplayScreen + ClockPanel alignée à x=960 w=288).
+  - `Voice.h`/`Voice.cpp` : réservoir de notes pour 10 gammes (`buildNotePool`), avancement d'arpège (`advanceArp`), DSP Redux (quantification de bits 2..16 et décimation 1..32x), DSP Ping-Pong Delay (buffer circulaire stéréo 2.5s, soft clipping tanh dans la boucle de feedback), chaîne série `Voice -> Redux -> Delay -> Reverb -> Out`, zéro allocation en temps réel.
+  - `PluginProcessor.h`/`PluginProcessor.cpp` : déclaration des paramètres APVTS pour Delay (`enabled, time, feedback, mix, pingpong`), Redux (`enabled, bits, rate, mix`) et Arp (`enabled, mode, chord, octaves`) par séquence (total 209 paramètres APVTS) ; ajout des champs de modulation dans `DestField` ; `resetArp()` à l'arrêt du transport.
+  - `ReverbPanel` : transformation en Multi-FX avec 3 onglets et voyants LED d'état actif.
+  - `SynthPanel` : colonne Arpégiateur avec boutons cycliques Mode et Chord, knob Octaves, bouton On/Off.
+  - `SequenceRowComponent` : bouton toggle rapide `ARP` par rangée de séquence.
+  - `MetuliferLookAndFeel` : styles vectoriels pour boutons ARP, REV, DLY, RDX et Inspect.
+- **Build & Tests** :
+  - `xcodebuild` Debug : ✅ `** BUILD SUCCEEDED **` (Shared Code, VST3, AU, Standalone).
+  - `pluginval` Level 5 : ✅ `SUCCESS` (44.1 kHz, 48 kHz, 96 kHz, buffers 64 à 1024, automation intensive).
+  - `docs` Next.js SSG : ✅ `38/38 static pages generated` (FR et EN, search API, 100 % TypeScript OK).
+- **Commit** : — (en attente de confirmation de l'utilisateur)
+
 ### 2026-11-04 — Fix clipping audio & réactivité des potentiomètres Mix et Volume
 - **Tâche** : Résoudre l'écrêtage/clipping excessif de la reverb et corriger le comportement des potentiomètres « Mix out DB » et des volumes de séquence
 - **Fichiers** : `Source/DSP/Voice.cpp`, `Source/PluginProcessor.cpp`, `Source/PluginEditor.cpp`, `Source/UI/SequenceRowComponent.cpp`, `AGENTS.md`

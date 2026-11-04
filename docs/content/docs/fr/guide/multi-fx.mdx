@@ -1,0 +1,88 @@
+---
+title: Multi-FX (Reverb, Delay, Redux)
+description: Le module d'effets 3-en-1 par séquence avec onglets, témoins LED d'activation et traitement en série.
+---
+
+Le module **Multi-FX** (situé à droite de l'interface) regroupe trois effets audio indépendants pour chaque séquence :
+1. **Reverb Stéréo** (réverbération d'espace Room / Hall)
+2. **Ping-Pong Delay** (écho stéréo avec réinjection saturée)
+3. **Redux** (bitcrusher et réducteur de fréquence d'échantillonnage)
+
+Chaque effet peut être activé ou désactivé indépendamment et dispose de ses propres réglages dédiés à la séquence sélectionnée.
+
+```
+Signal Voix ──▶ [Redux] ──▶ [Delay Stéréo] ──▶ [Reverb Stéréo] ──▶ Sortie
+```
+
+---
+
+## Navigation par onglets & Témoins LED
+
+Pour concilier compacité visuelle (105 × 224 pixels) et richesse de contrôle, le panneau utilise trois onglets de sélection :
+- `[REV]` : Panneau Reverb
+- `[DLY]` : Panneau Delay
+- `[RDX]` : Panneau Redux
+
+Chaque onglet comporte une **LED lumineuse** (verte / cyan) qui signale d'un coup d'œil si l'effet correspondant est en cours de fonctionnement sur la séquence sélectionnée, même lorsque l'onglet n'est pas actif à l'écran.
+
+---
+
+## 1. Onglet Reverb (`REV`)
+
+Fournit une réverbération spatiale naturelle basée sur l'algorithme Freeverb optimisé pour JUCE.
+
+| Contrôle | Paramètre | Plage | Défaut | Description |
+|---|---|---|---|---|
+| **On / Off** | `seqN_reverb_enabled` | Bool | Off | Active ou désactive le processeur de reverb |
+| **Mode** | `seqN_reverb_mode` | Room / Hall | Room | Modèle acoustique (pièce serrée ou grande salle) |
+| **Mix** | `seqN_reverb_mix` | 0 – 100 % | 30 % | Balance dry / wet avec compensation de niveau |
+
+### Caractéristiques des modes
+- **Room** : Taille de pièce 0,45, amortissement 0,55, largeur stéréo 0,80. Idéal pour donner du relief à un lead ou une basse sans noyer l'attaque.
+- **Hall** : Taille de pièce 0,85, amortissement 0,25, largeur stéréo 1,00. Idéal pour les nappes et les mélodies planantes.
+
+---
+
+## 2. Onglet Delay (`DLY`)
+
+Ligne de retard stéréo synchronisable avec feedback chaud et spatialisation ping-pong.
+
+| Contrôle | Paramètre | Plage | Défaut | Description |
+|---|---|---|---|---|
+| **On / Off** | `seqN_delay_enabled` | Bool | Off | Active ou court-circuite le délai |
+| **Mode** | `seqN_delay_pingpong` | Stereo / PingPong | PingPong | Alterne les rebonds d'écho entre gauche et droite |
+| **Time** | `seqN_delay_time` | 20 – 1000 ms | 250 ms | Durée de l'écho (skew 0,4 pour un réglage fin) |
+| **Feedback** | `seqN_delay_feedback` | 0 – 90 % | 40 % | Nombre de répétitions avec soft-saturation tanh |
+| **Mix** | `seqN_delay_mix` | 0 – 100 % | 35 % | Dosage du signal retardé |
+
+<Callout type="tip" title="Sécurité analogique du feedback">
+  Le circuit de feedback intègre une fonction de saturation douce `tanh` : même poussé à 90 %, le délai épaissit le son sans jamais entrer en distorsion numérique agressive.
+</Callout>
+
+---
+
+## 3. Onglet Redux (`RDX`)
+
+Le processeur Redux apporte le grain numérique « vintage » et l'agressivité des échantillonneurs 8-bits et 12-bits des années 80/90.
+
+| Contrôle | Paramètre | Plage | Défaut | Description |
+|---|---|---|---|---|
+| **On / Off** | `seqN_redux_enabled` | Bool | Off | Active ou désactive l'effet redux |
+| **Bits** | `seqN_redux_bits` | 2 – 16 bits | 8 bits | Résolution de quantification d'amplitude |
+| **Rate** | `seqN_redux_rate` | 1 – 32 | 4 | Décimation d'échantillonnage (Sample & Hold) |
+| **Mix** | `seqN_redux_mix` | 0 – 100 % | 50 % | Dosage dry / wet |
+
+### Conseils d'utilisation créative
+- **Chiptune / Lo-Fi 8-bit** : `Bits = 8`, `Rate = 4` ou `8`.
+- **Fuzz numérique extrême** : `Bits = 2` ou `3`, `Rate = 1`, mix à 70 %.
+- **Aliasage subtil** : `Bits = 12`, `Rate = 2`, mix à 30 %.
+
+---
+
+## Câbles de modulation LFO
+
+Les potentiomètres du module Multi-FX possèdent des embases de câblage virtuel. Vous pouvez relier les LFO 1 ou 2 pour animer :
+- Le temps de délai (`seqN_delay_time`) pour des effets de chorus / flanger / pitch-bend.
+- La réinjection (`seqN_delay_feedback`) pour des nappes d'écho gonflantes.
+- Le taux de décimation (`seqN_redux_rate`) pour des balayages d'aliasage percutants.
+- Le mix de la réverbération (`seqN_reverb_mix`).

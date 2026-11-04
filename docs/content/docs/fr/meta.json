@@ -1,0 +1,16 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "---Pour commencer---",
+    "getting-started",
+    "---Guide utilisateur---",
+    "guide",
+    "---Architecture---",
+    "architecture",
+    "---Développement---",
+    "development",
+    "---Référence---",
+    "reference"
+  ]
+}

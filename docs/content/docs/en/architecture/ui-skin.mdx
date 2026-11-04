@@ -1,0 +1,58 @@
+---
+title: UI System & Skinning
+description: MetuliferLookAndFeel vector rendering, layout coordinates, asset modularity, and Blender 3D integration workflow.
+---
+
+Metulifer features a fixed **1280 × 720 pixel** desktop footprint, crafted to emulate the tactile immediacy of modern hardware synthesizers.
+
+## Vector Rendering Engine (`MetuliferLookAndFeel`)
+
+All GUI widgets are rendered dynamically using pure vector geometry in `Source/UI/MetuliferLookAndFeel.{h,cpp}`:
+
+### 1. Rotary Knobs
+- **Milled Aluminum Body**: Circular dual-tone dark metallic gradients with subtle beveled highlights.
+- **Track Arc**: High-contrast illuminated indicator arc (Electric Blue `#60a5fa` or Cyan `#38bdf8`).
+- **Indicator Pointer**: Distinct radial pointer indicating current knob position.
+- **Mouse Precision**: Supports smooth vertical mouse dragging with fine-resolution adjustment when holding `Shift`.
+
+### 2. Step Buttons
+Each sequencer step button reflects three stacked graphical states:
+- **Inactive (Off)**: Matte dark background with subtle border outline.
+- **Active (On)**: Luminous neon accent with crisp white typography.
+- **Playhead Sweep**: High-intensity border highlight tracking the real-time audio clock position.
+
+### 3. Function & Mode Buttons
+Tab selectors (`REV`, `DLY`, `RDX`), arpeggiator switches (`ARP`), filter mode buttons (`LPF`, `HPF`), and clipboard buttons (`C`, `P`) include built-in LED activity indicators for glanceable stage readability.
+
+---
+
+## Modularity and Skin Support (`Skin.h`)
+
+The `Skin` subsystem provides hot-swapping between rendering paradigms:
+1. **Pure Vector Mode (Default)**: Zero external bitmap dependencies, perfectly crisp scaling across Retina and High-DPI screens.
+2. **Skinned Bitmap Mode**: Capable of loading high-resolution brushed metal faceplates, photorealistic shadows, and textures.
+
+---
+
+## Blender 3D to JUCE Workflow
+
+The current vector look serves as an ergonomic skeleton. The visual roadmap incorporates a photorealistic 3D hardware frontplate modeled and rendered in **Blender 3D**:
+
+```
+[Blender 3D Modeling]
+       │  Machined aluminum chassis, tactile knurled knobs, cast shadows
+       ▼
+[Cycles / Eevee Render Passes]
+       │  1. High-resolution faceplate backdrop (1280x720 @2x Retina)
+       │  2. Knob sprite filmstrips (64 or 128 frames of rotation)
+       ▼
+[JUCE Skin.h Integration]
+       │  Seamlessly painted through juce::Image and FilmstripKnob
+       ▼
+[Tactile Hardware Instrument in Host DAW]
+```
+
+### Blender Design Guidelines
+- **Canvas Resolution**: 1280 × 720 px base (and 2560 × 1440 px for 2x Retina rendering).
+- **Knob Pivot Alignment**: Rotational knob axes in 3D scene cameras must match the exact pixel centers in `Source/PluginEditor.cpp`.
+- **OLED Window**: Leave an empty/transparent cutout at `(986, 32)` with dimensions `247 × 132 px` to preserve the dynamic vector oscilloscope and parameter display.

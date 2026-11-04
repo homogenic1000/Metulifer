@@ -7,12 +7,20 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
 {
     addAndMakeVisible (copyButton);
     addAndMakeVisible (pasteButton);
+    addAndMakeVisible (arpButton);
 
     copyButton.setTooltip ("Copy pattern (Seq " + juce::String (seqIndex + 1) + ")");
     pasteButton.setTooltip ("Paste pattern (Seq " + juce::String (seqIndex + 1) + ")");
+    arpButton.setTooltip ("Toggle Arpeggiator (Seq " + juce::String (seqIndex + 1) + ")");
 
     copyButton.onClick = [this] { if (onCopy) onCopy(); };
     pasteButton.onClick = [this] { if (onPaste) onPaste(); };
+    arpButton.setClickingTogglesState (true);
+    arpButton.onClick = [this]
+    {
+        if (onArpToggled)
+            onArpToggled (arpButton.getToggleState());
+    };
 
     for (int i = 0; i < numSteps; ++i)
     {
@@ -43,6 +51,8 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
         apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "length"), lengthKnob);
     volumeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "volume"), volumeKnob);
+    arpAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "arp_enabled"), arpButton);
 
     addMouseListener (&mouseListener, true);
 }
@@ -93,11 +103,11 @@ void SequenceRowComponent::resized()
     const float gap = 3.0f;
     auto area = getLocalBounds().toFloat().reduced (pad);
 
-    // Left area: Badge space (32) + C (25) + 3 gap + P (25) = 85px
-    auto leftArea = area.removeFromLeft (88.0f);
-    leftArea.removeFromLeft (32.0f); // Space for S1..S6 badge
+    // Left area: Badge space (30) + C (24) + P (24) + ARP (28) = 112px
+    auto leftArea = area.removeFromLeft (116.0f);
+    leftArea.removeFromLeft (30.0f); // Space for S1..S6 badge
 
-    const float btnSize = 25.0f;
+    const float btnSize = 24.0f;
     const float btnY = (getHeight() - btnSize) * 0.5f;
 
     auto copyArea = leftArea.removeFromLeft (btnSize);
@@ -108,6 +118,11 @@ void SequenceRowComponent::resized()
     auto pasteArea = leftArea.removeFromLeft (btnSize);
     pasteButton.setBounds (juce::roundToInt (pasteArea.getX()), juce::roundToInt (btnY),
                            juce::roundToInt (btnSize), juce::roundToInt (btnSize));
+
+    leftArea.removeFromLeft (3.0f);
+    auto arpArea = leftArea.removeFromLeft (30.0f);
+    arpButton.setBounds (juce::roundToInt (arpArea.getX()), juce::roundToInt (btnY),
+                         30, juce::roundToInt (btnSize));
 
     area.removeFromLeft (gap);
 
@@ -140,6 +155,11 @@ void SequenceRowComponent::resized()
                                             juce::roundToInt (stepW));
 
     placePlayhead();
+}
+
+void SequenceRowComponent::setArpEnabled (bool on)
+{
+    arpButton.setToggleState (on, juce::dontSendNotification);
 }
 
 void SequenceRowComponent::setPlayheadStep (int step)

@@ -1,0 +1,132 @@
+---
+title: Référence des paramètres
+description: Les 209 paramètres APVTS automatisables, leurs types, plages, identifiants et comportements.
+---
+
+Metulifer expose **209 paramètres automatisables** gérés par un `juce::AudioProcessorValueTreeState` (APVTS) unique.
+Tous les paramètres sont thread-safe, consultables en lecture atomique par le thread audio sans allocation ni verrou.
+
+## Nomenclature
+
+Les identifiants de paramètres suivent une convention uniforme :
+
+- **Paramètres globaux** : `tempo`
+- **Paramètres de modulation** : `lfo<M>_<param>` (où `M` vaut 1 ou 2)
+- **Paramètres de voix / séquence** : `seq<N>_<param>` (où `N` varie de 1 à 6)
+
+<Callout type="info" title="Indexation 1-based pour l'utilisateur">
+  Dans l'APVTS et dans le DAW, les séquences sont nommées de `seq1` à `seq6` et les LFO `lfo1` et `lfo2`.
+  En interne C++, les boucles parcourent les indices 0 à 5.
+</Callout>
+
+---
+
+## 1. Paramètres globaux (1)
+
+| Identifiant | Nom affiché | Type | Plage | Défaut | Unité / Skew |
+|---|---|---|---|---|---|
+| `tempo` | `Tempo` | Int | 20 – 300 | 120 | BPM |
+
+---
+
+## 2. Modulateurs LFO (10 paramètres = 2 × 5)
+
+Chaque LFO dispose de 5 paramètres :
+
+| Identifiant | Nom affiché | Type | Plage | Défaut | Description |
+|---|---|---|---|---|---|
+| `lfo<M>_rate` | `LFO<M> Rate` | Float | 0,1 – 20,0 Hz | 1,0 Hz | Fréquence (skew 1,0 Hz au centre) |
+| `lfo<M>_wave` | `LFO<M> Wave` | Choice | Sine, Saw, Square, Triangle | Sine | Forme d'onde du modulateur |
+| `lfo<M>_offset` | `LFO<M> Offset` | Float | −100 – +100 % | 0 % | Décalage continu de la forme |
+| `lfo<M>_depth` | `LFO<M> Depth` | Float | 0 – 100 % | 100 % | Amplitude de modulation envoyée aux câbles |
+| `lfo<M>_enabled` | `LFO<M> Enabled` | Bool | On / Off | Off | Activation du LFO |
+
+---
+
+## 3. Paramètres par séquence (198 = 6 × 33)
+
+Pour chaque séquence `seq<N>` (où `N` varie de 1 à 6) :
+
+### Enveloppes ADSR (8 paramètres)
+
+Chaque voix possède 2 oscillateurs avec enveloppe ADSR indépendante :
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_a1` / `seq<N>_a2` | Float | 0,1 – 2000 ms | 5 ms | Temps d'attaque (skew 0,3) |
+| `seq<N>_d1` / `seq<N>_d2` | Float | 0,1 – 2000 ms | 200 ms | Temps de chute / decay (skew 0,3) |
+| `seq<N>_s1` / `seq<N>_s2` | Float | 0 – 100 % | 70 % | Niveau de maintien / sustain |
+| `seq<N>_r1` / `seq<N>_r2` | Float | 0,1 – 5000 ms | 300 ms | Temps d'extinction / release (skew 0,3) |
+
+### Oscillateurs & Tonalité (6 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_octave1` | Int | −2 … +2 | 0 | Octave VCO1 |
+| `seq<N>_note1` | Choice | C à B (12 demi-tons) | C | Note fondamentale VCO1 |
+| `seq<N>_wave1` | Choice | Sine, Saw, Square, Triangle | Saw | Forme d'onde VCO1 |
+| `seq<N>_octave2` | Int | −2 … +2 | 0 | Octave VCO2 |
+| `seq<N>_note2` | Choice | C à B (12 demi-tons) | C | Note fondamentale VCO2 |
+| `seq<N>_wave2` | Choice | Sine, Saw, Square, Triangle | Saw | Forme d'onde VCO2 |
+
+### Mixage & Filtre VCF (4 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_mix1` | Float | −60,0 … +6,0 dB | 0,0 dB | Niveau de sortie VCO1 |
+| `seq<N>_mix2` | Float | −60,0 … +6,0 dB | 0,0 dB | Niveau de sortie VCO2 |
+| `seq<N>_filter` | Choice | LPF, HPF | LPF | Mode filtre passe-bas ou passe-haut |
+| `seq<N>_cutoff` | Float | 20 – 20 000 Hz | 1000 Hz | Fréquence de coupure (skew 0,3) |
+
+### Séquenceur (2 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_length` | Int | 1 – 32 | 32 | Nombre de pas actifs dans la boucle |
+| `seq<N>_volume` | Float | 0 – 100 % | 80 % | Volume de sortie de la séquence |
+
+### Multi-FX : Reverb (3 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_reverb_enabled` | Bool | On / Off | Off | Activation de la reverb |
+| `seq<N>_reverb_mode` | Choice | Room, Hall | Room | Algorithme de réflexion et taille d'espace |
+| `seq<N>_reverb_mix` | Float | 0 – 100 % | 30 % | Mix dry / wet avec compensation de gain |
+
+### Multi-FX : Delay Stéréo Ping-Pong (5 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_delay_enabled` | Bool | On / Off | Off | Activation du delay |
+| `seq<N>_delay_time` | Float | 20 – 1000 ms | 250 ms | Temps de retard principal (skew 0,4) |
+| `seq<N>_delay_feedback` | Float | 0 – 90 % | 40 % | Taux de réinjection avec soft clip |
+| `seq<N>_delay_mix` | Float | 0 – 100 % | 35 % | Proportion du signal retardé |
+| `seq<N>_delay_pingpong` | Bool | Stereo / PingPong | True | Élargissement spatial stéréo alterné |
+
+### Multi-FX : Redux Bitcrusher / Downsampler (4 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_redux_enabled` | Bool | On / Off | Off | Activation du réducteur numérique |
+| `seq<N>_redux_bits` | Int | 2 – 16 bits | 8 bits | Résolution de quantification d'amplitude |
+| `seq<N>_redux_rate` | Int | 1 – 32 | 4 | Facteur de décimation du taux d'échantillonnage |
+| `seq<N>_redux_mix` | Float | 0 – 100 % | 50 % | Mix dry / wet du signal dégradé |
+
+### Arpégiateur (4 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_arp_enabled` | Bool | On / Off | Off | Activation du mode mélodique arpégé |
+| `seq<N>_arp_mode` | Choice | 11 modes (Up, Down, Pinky...) | Up | Direction et algorithme de parcours des notes |
+| `seq<N>_arp_chord` | Choice | 10 gammes / accords | Minor | Réservoir harmonique (Major, Minor, Pentatonic...) |
+| `seq<N>_arp_octaves` | Int | 1 – 3 octaves | 1 | Étalement du réservoir sur 1, 2 ou 3 octaves |
+
+---
+
+## Ce qui n'est PAS dans l'APVTS
+
+Certaines données dynamiques ne sont intentionnellement pas déclarées comme paramètres APVTS :
+
+1. **Les masques de pas (32 pas × 6 séquences = 192 pas)** : ils sont conservés dans un `ValueTree` séparé (`steps`) pour éviter d'inonder la fenêtre d'automation du DAW de centaines d'automations binaires.
+2. **Les câbles de modulation virtuels** : ils sont sauvegardés dans l'arbre `mod`.
+3. **Le compteur de pas courant et l'état de gate** : mis à jour en temps réel à chaque cycle de restitution audio.

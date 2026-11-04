@@ -1,0 +1,97 @@
+---
+title: Séquenceur
+description: Six séquences indépendantes de 32 pas, polyrythmie, longueur, volume, copy/paste et tête de lecture.
+---
+
+## Six séquences, six horloges
+
+Metulifer contient **6 séquences** (`numSequences = 6`) affichées sous forme de rangées.
+Chaque séquence possède **son propre compteur de pas** : elles ne sont pas verrouillées
+les unes aux autres. C'est ce qui rend la **polyrythmie** possible : une séquence de
+7 pas tourne en boucle pendant qu'une autre en fait 16.
+
+```
+séquence 1 : 1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8 ...
+séquence 2 : 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 ...
+```
+
+- Un pas = une **double-croche** (1/16 de mesure).
+- Durée d'un pas : `sampleRate × 60 / (BPM × 4)`.
+  À 120 BPM et 44,1 kHz : **5 512,5 échantillons** (≈ 125 ms).
+- Le tempo est **global** (`tempo`, 20–300 BPM).
+
+## Les pas
+
+Chaque rangée contient **32 boutons de pas** :
+
+- **Clic** : bascule le pas (actif = rétro-éclairage ambre).
+- Les temps forts (pas 1, 5, 9, 13…) sont accentués visuellement à l'état inactif.
+- Le motif est stocké sous forme de **bitfield 32 bits** par séquence, dans un `ValueTree`
+  sérialisé avec l'état du plugin — pas dans les paramètres du host.
+
+<Callout type="info" title="Pourquoi pas des paramètres ?">
+  Stocker 192 pas en paramètres automatisables polluerait l'automation du DAW.
+  Le motif vit donc dans `stepsTree` (propriétés `p0`…`p5`), sauvegardé par
+  `getStateInformation()`.
+</Callout>
+
+## Longueur et volume
+
+| Contrôle | Paramètre | Plage | Défaut |
+|---|---|---|---|
+| Longueur | `seqN_length` | 1–32 pas | 32 |
+| Volume | `seqN_volume` | 0–100 % | 80 % |
+
+La longueur définit la **période de boucle** de la séquence : au-delà, le compteur revient
+au pas 0. Réduire la longueur à 7 transforme une séquence de 32 pas en boucle de 7 pas
+(les pas 8 à 32 sont ignorés).
+
+<Callout type="warn" title="Longueur et volume sont par séquence">
+  Ces deux potentiomètres sont **permanents** : ils restent attachés à leur rangée,
+  contrairement aux knobs du synthé qui suivent la sélection.
+</Callout>
+
+## Boutons de rangée : Copy, Paste et ARP
+
+Chaque rangée dispose de trois boutons d'action directe :
+
+| Bouton | Action | Rôle |
+|---|---|---|
+| **C** | Copy | Copie le motif de 32 pas dans le presse-papiers interne partagé. |
+| **P** | Paste | Colle le motif mémorisé sur la rangée cible (conserve la longueur active). |
+| **ARP** | Arpégiateur | Active/désactive instantanément l'arpège sur la séquence (voyant bleu néon). |
+
+Le bouton **ARP** de rangée permet d'activer le mode mélodique d'une simple pression pendant le jeu en direct, tout en conservant les réglages détaillés de mode et de gamme dans le [panneau Arpégiateur](/fr/docs/guide/arpeggiator).
+
+## Tête de lecture
+
+Pendant la lecture, un **marqueur orange** se déplace sur chaque rangée, à la position
+du pas courant de cette séquence. Le marqueur est rafraîchi à 30 Hz par le timer de
+l'éditeur (pas par le thread audio).
+
+À l'arrêt, les marqueurs disparaissent et les compteurs repartent de zéro au prochain **Play**.
+
+## Sélection et pagination
+
+Cliquer sur une rangée la **sélectionne** (barre d'accent bleue à gauche) et :
+
+- re-branche le **synthé**, le **VCF**, la **reverb** et les **câbles LFO** sur cette séquence ;
+- met à jour l'**écran** (`SEQ n`) ;
+- filtre les câbles de modulation visibles.
+
+La sélection est purement visuelle : elle ne change pas le son des autres séquences.
+
+## Câblage interne
+
+```
+UI (rangée)  ──clic──▶  stepsTree["pN"]  ──listener──▶  patterns[N] (atomique)
+                                                              │
+                                              SequencerEngine::process()
+                                                              │
+                                       StepEvent { offset, seq, gateOn }
+                                                              │
+                                          Voice[seq].noteOn() / noteOff()
+```
+
+Le thread audio ne lit **jamais** le `ValueTree` : il lit un tableau d'`int` atomiques
+(`patterns[6]`) recopié par un listener sur le thread message.

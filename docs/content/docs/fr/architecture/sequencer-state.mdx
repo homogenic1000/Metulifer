@@ -1,0 +1,79 @@
+---
+title: Séquenceur et Persistance
+description: Moteur polyrythmique d'horloge, génération d'événements à l'échantillon près et sérialisation de l'état.
+---
+
+Le moteur de séquençage (`Source/Sequencer/SequencerEngine.{h,cpp}`) pilote le déclenchement des notes et l'animation des têtes de lecture.
+Il est conçu pour assurer une synchronisation rigoureuse tout en autorisant une indépendance métrique complète entre les 6 pistes.
+
+## Architecture du moteur d'horloge
+
+Le moteur est cadencé par le paramètre global `tempo` (BPM) :
+
+```
+samplesPerStep = (sampleRate * 60.0) / (tempo * 4.0)
+```
+
+Chaque pas correspond à une **double-croche** (1/16 de ronde).
+
+### Polyrythmie à 6 pistes indépendantes
+Contrairement aux séquenceurs classiques où une seule horloge globale réinitialise tous les compteurs, chaque séquence `s` possède son propre accumulateur d'échantillons et sa propre longueur active `L_s` comprise entre 1 et 32 pas :
+
+```
+Séquence 1 (longueur 16) : | 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 | 0  1 ...
+Séquence 2 (longueur  7) : | 0  1  2  3  4  5  6 | 0  1  2  3  4  5  6 | 0  1  2 ...
+Séquence 3 (longueur  5) : | 0  1  2  3  4 | 0  1  2  3  4 | 0  1  2  3  4 | ...
+```
+
+Les motifs se décalent et créent des textures polyrythmiques évolutives sans dérive d'horloge.
+
+---
+
+## Découpage des blocs audio (`process`)
+
+Pour éliminer toute gigue rythmique (jitter) liée à la taille de buffer du DAW (e.g. 512 ou 1024 échantillons), le moteur découpe chaque bloc audio en tranches précises :
+
+```cpp
+struct StepEvent
+{
+    int sampleOffset;    // Position exacte dans le bloc audio [0, numSamples - 1]
+    int sequenceIndex;   // Séquence concernée (0..5)
+    bool gateOn;         // true = déclenchement noteOn, false = noteOff
+};
+```
+
+Quand un pas franchit la frontière temporelle :
+1. Un événement `gateOff` est émis pour achever la note précédente.
+2. Si le pas actif est coché dans le masque binaire de la séquence (`(mask & (1 << step)) != 0`), un événement `gateOn` est généré avec son offset d'échantillon exact.
+3. La méthode `Voice::renderSegment()` traite le signal entre deux événements successifs.
+
+---
+
+## Persistance de l'état du plugin
+
+Metulifer sérialise l'intégralité du projet lors de la sauvegarde du DAW ou d'un preset via `getStateInformation()` et le restaure via `setStateInformation()`.
+
+L'état est structuré sous forme d'un `juce::ValueTree` hiérarchique :
+
+```xml
+<MetuliferState version="1">
+    <!-- Arbre APVTS : 209 paramètres automatisables -->
+    <PARAM id="tempo" value="128.0" />
+    <PARAM id="seq1_cutoff" value="1850.0" />
+    ...
+    <!-- Masques de pas : 6 séquences x 32 bits -->
+    <steps p0="0x80808080" p1="0x01010101" p2="0x00FF00FF"
+           p3="0xAAAAAAAA" p4="0x55555555" p5="0x00000001" />
+
+    <!-- Câbles de patch de modulation LFO -->
+    <mod>
+        <cable src="0" dest="seq1_cutoff" />
+        <cable src="1" dest="seq1_mix1" />
+    </mod>
+</MetuliferState>
+```
+
+### Avantages de la séparation en trois arbres
+1. **Légèreté de l'automation du DAW** : Les 192 interrupteurs de pas et les branchements de câbles ne polluent pas les courbes d'automation de la station hôte.
+2. **Robustesse binaire** : L'arbre est converti en binaire compressé via `juce::copyXmlToBinary` pour une écriture instantanée et sans faille.
+3. **Compatibilité ascendante** : De nouvelles propriétés peuvent être ajoutées sans altérer les sessions existantes.

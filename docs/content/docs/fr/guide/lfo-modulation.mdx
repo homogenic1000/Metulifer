@@ -1,0 +1,126 @@
+---
+title: LFO et câbles de modulation
+description: Deux LFO (rate, forme, offset, profondeur) reliés aux knobs du synthé par des câbles virtuels.
+---
+
+## Deux LFO globaux
+
+Metulifer possède **2 LFO** indépendants, globaux (ils ne sont pas dupliqués par séquence).
+Chaque panneau LFO contient :
+
+| Contrôle | Paramètre | Plage | Défaut |
+|---|---|---|---|
+| Rate | `lfoN_rate` | 0,1 – 20 Hz (skew 1 Hz) | 1 Hz |
+| Wave | `lfoN_wave` | Sine / Saw / Square / Triangle | Sine |
+| Offset | `lfoN_offset` | −100 … +100 % | 0 % |
+| Depth | `lfoN_depth` | 0 … 100 % | 100 % |
+| On/Off | `lfoN_enabled` | bool | `false` |
+
+Valeur calculée à chaque bloc audio :
+
+```
+lfo = clamp( wave(phase) × depth + offset , −1 … +1 )
+```
+
+`offset` décale le centre de modulation (utile pour ne moduler que vers le haut),
+`depth` réduit l'amplitude.
+
+## Auto-off
+
+Un LFO est **inactif** si :
+
+- `enabled = false`, **ou**
+- **aucun câble** ne part de son jack.
+
+Dans ce cas, sa valeur de sortie est forcée à `0` et aucun paramètre n'est modifié.
+Il n'y a donc pas de modulation fantôme.
+
+## Câbles virtuels
+
+### Créer un câble
+
+<Steps>
+  <Step>
+    ### Choisir la séquence
+
+    Cliquer sur la rangée de la séquence dont on veut moduler un knob.
+  </Step>
+  <Step>
+    ### Tirer depuis le jack
+
+    Cliquer sur le **jack** (cercle en bas du panneau LFO) et faire glisser.
+    Une courbe verte suit le curseur ; les knobs compatibles s'illuminent.
+  </Step>
+  <Step>
+    ### Relâcher sur le knob
+
+    Le câble est créé et reste dessiné en bézier entre le jack et le knob.
+  </Step>
+</Steps>
+
+### Supprimer un câble
+
+Cliquer sur le câble : il est retiré du `modTree`. L'opération est **annulable**
+(`undoManager` du processor).
+
+<Callout type="warn" title="Un seul LFO par destination">
+  Une destination ne peut recevoir qu'un seul câble. Si un câble existe déjà vers ce knob,
+  le nouveau drop est ignoré — il faut d'abord supprimer l'ancien.
+</Callout>
+
+## Destinations disponibles
+
+| Suffixe | Paramètre | Type |
+|---|---|---|
+| `a1`, `d1`, `s1`, `r1` | `seqN_a1`… | ADSR du VCO1 |
+| `a2`, `d2`, `s2`, `r2` | `seqN_a2`… | ADSR du VCO2 |
+| `mix1`, `mix2` | `seqN_mix1`, `seqN_mix2` | niveaux VCO |
+| `cutoff` | `seqN_cutoff` | filtre VCF |
+| `reverb_mix` | `seqN_reverb_mix` | Reverb Multi-FX |
+| `delay_time`, `delay_feedback`, `delay_mix` | `seqN_delay_*` | Delay Stéréo Multi-FX |
+| `redux_bits`, `redux_rate`, `redux_mix` | `seqN_redux_*` | Redux Multi-FX |
+| `arp_octaves` | `seqN_arp_octaves` | Plage d'octaves Arpégiateur |
+
+Exclus volontairement en v1 : `octave`, `note`, `wave`, `length`, `volume`, `tempo`.
+
+## Application de la modulation
+
+La modulation est appliquée **par bloc audio**, sur une **copie** des paramètres lus :
+
+```cpp
+float norm = param->convertTo0to1 (rawValue);
+norm = jlimit (0.0f, 1.0f, norm + lfoValue * 0.5f);   // ±50 % en normalisé
+setField (params[seq], field, param->convertFrom0to1 (norm));
+```
+
+Conséquences :
+
+- l'**APVTS n'est jamais écrite** par le thread audio → pas de feedback vers le host,
+  pas de conflit d'automation ;
+- l'amplitude maximale est **±50 % de la plage** du paramètre ;
+- la modulation est appliquée **avant** `voice.setParams()`, donc au bloc courant.
+
+## Portée visuelle
+
+Les câbles ne sont dessinés que pour la **séquence sélectionnée**. Changer de séquence
+masque les câbles des autres séquences, sans les supprimer : ils réapparaissent au retour.
+
+## Persistance
+
+Les câbles sont stockés dans un `ValueTree` dédié :
+
+```xml
+<mod>
+  <cable src="0" dest="seq1_cutoff"/>
+  <cable src="1" dest="seq1_reverb_mix"/>
+</mod>
+```
+
+`modTree` est sérialisé avec `apvts` et `stepsTree` dans `getStateInformation()`.
+Les câbles sont donc restaurés au rechargement du projet.
+
+## Répartition mémoire
+
+Le processor maintient **deux buffers de câbles** (`cableBuffers[2][32]`) et un index
+atomique `activeBuffer`. Le thread message écrit dans le buffer inactif puis bascule
+l'index : le thread audio lit toujours un buffer cohérent, sans verrou.

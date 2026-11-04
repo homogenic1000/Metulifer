@@ -1,0 +1,60 @@
+---
+title: Testing & Quality Assurance
+description: Automated pluginval verification (levels 5 & 8), Melatonin visual inspector, and pre-release test matrix.
+---
+
+Metulifer enforces audio-industry standards for stability and compliance using **pluginval** for DSP/host testing and **Melatonin Inspector** for real-time GUI debugging.
+
+## 1. Automated Validation with `pluginval`
+
+[pluginval](https://github.com/Tracktion/pluginval) is the audio development industry benchmark for verifying VST3 and AU plugins across hostile host environments.
+
+### Command Line Validation
+
+```bash
+# Standard strictness validation (Level 5)
+/Applications/pluginval.app/Contents/MacOS/pluginval \
+  --validate "/Users/mathoodelessert/Library/Audio/Plug-Ins/VST3/Metulifer.vst3" \
+  --strictness-level 5
+
+# High strictness validation (Level 8 - heavy automation stress & varied buffer sizes)
+/Applications/pluginval.app/Contents/MacOS/pluginval \
+  --validate "/Users/mathoodelessert/Library/Audio/Plug-Ins/VST3/Metulifer.vst3" \
+  --strictness-level 8
+```
+
+### Test Scope Executed by pluginval
+1. **Cold & Warm Editor Instantiation**: Validates memory leak freedom and UI thread responsiveness.
+2. **Multi-Sample Rate & Buffer Size Processing**: Tested at 44.1 kHz, 48 kHz, and 96 kHz across buffer block sizes of 64, 128, 256, 512, and 1024 samples.
+3. **Aggressive Parameter Automation**: Sweeps all 209 automatable parameters simultaneously to test DSP stability.
+4. **State Persistence**: Ensures `getStateInformation` and `setStateInformation` execute full binary roundtrips with 100% fidelity.
+5. **Bus Layout Negotiation**: Verifies stereo and mono stream layouts.
+
+---
+
+## 2. In-App Visual Debugging with Melatonin Inspector
+
+Metulifer bundles [Melatonin Inspector](https://github.com/sudara/melatonin_inspector) by Sudara, enabling interactive runtime inspection of the JUCE component tree.
+
+### How to Use the Inspector
+1. Launch `Metulifer.app` (Standalone) or insert the plugin inside your DAW.
+2. Click the **Inspect** button located at the top right of the toolbar.
+3. A floating overlay panel displays:
+   - Full hierarchy tree of all GUI widgets (`SequencerPanel`, `SynthPanel`, `MultiFX`, etc.).
+   - Exact bounding boxes (`x, y, width, height`) and internal component padding.
+   - Active colors, typography, and visibility flags.
+   - Mouse-hover red highlight outlines identifying components in the live interface.
+
+---
+
+## 3. Manual Release Checklist
+
+Before tagging any release:
+
+- [ ] **Clean Compilation**: Zero errors or warnings under `xcodebuild`.
+- [ ] **pluginval Pass**: Returns `SUCCESS` at strictness level 5.
+- [ ] **Standalone Verification**: Launch `Metulifer.app`, verify audio output and control response.
+- [ ] **DAW Integration**: Insert plugin into Reaper, Ableton Live, or Logic Pro:
+  - Verify transport sync with host clock.
+  - Test parameter automation curves.
+  - Save session, close host, re-open: verify complete restoration of steps and patch cables.

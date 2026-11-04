@@ -1,0 +1,64 @@
+---
+title: Filter (VCF)
+description: Low-pass or high-pass TPT filter, cutoff 20 Hz – 20 kHz, per sequence.
+---
+
+## Two exclusive modes
+
+The **VCF** panel offers two mutually exclusive buttons:
+
+| Button | Parameter `seqN_filter` | Behaviour |
+|---|---|---|
+| **LPF** | `0` | low-pass: passes frequencies below the cutoff |
+| **HPF** | `1` | high-pass: passes frequencies above the cutoff |
+
+Clicking the already-active button does nothing: the choice is always exactly one of the two.
+
+## Cutoff
+
+| Parameter | ID | Range | Default |
+|---|---|---|---|
+| Cutoff | `seqN_cutoff` | 20 Hz – 20,000 Hz (skew 1 kHz) | 1,000 Hz |
+
+The cutoff is **skewed** around 1 kHz: the musically useful range (100 Hz – 5 kHz)
+occupies most of the knob's travel.
+
+<Callout type="warn" title="Nyquist limit">
+  The frequency is clamped in code to `min(cutoff, sampleRate × 0.49)`.
+  At 44.1 kHz the effective maximum is therefore ≈ 21.6 kHz; at 96 kHz the 20 kHz
+  setting stays unchanged.
+</Callout>
+
+## Implementation
+
+The filter is a **State Variable TPT** (`juce::dsp::StateVariableTPTFilter<float>`),
+used in low-pass or high-pass mode:
+
+```cpp
+filter.setType (p.useLpf ? StateVariableTPTFilterType::lowpass
+                         : StateVariableTPTFilterType::highpass);
+filter.setCutoffFrequency (jlimit (20.0f, (float) (sampleRate * 0.49), p.cutoff));
+```
+
+Characteristics:
+
+- **topology-preserving variable state** (TPT / SVF) → stable response even at high cutoff;
+- **1 channel** processed per voice (the signal is mono before the reverb);
+- **no exposed resonance** for now (fixed Q);
+- the filter runs **after** summing both VCOs and **before** the sequence volume.
+
+## Signal order
+
+```
+VCO1 ─┐
+      ├─ sum ×0.5 ─▶ VCF (LPF/HPF) ─▶ volume ─▶ reverb ─▶ out
+VCO2 ─┘
+```
+
+The filter is therefore **per voice**, not global: every sequence has its own cutoff.
+Selecting another sequence in the UI re-binds the **Cutoff** knob to the new sequence.
+
+## Modulation target
+
+`cutoff` is one of the destinations accepted by LFO cables.
+See [LFOs and modulation cables](/en/docs/guide/lfo-modulation).

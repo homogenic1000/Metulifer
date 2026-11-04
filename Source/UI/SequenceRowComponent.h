@@ -19,13 +19,16 @@ public:
 
     /** Highlights the playing step (-1 hides the marker). */
     void setPlayheadStep (int step);
+    void setArpEnabled (bool on);
 
     juce::Slider& getLengthKnob()  { return lengthKnob; }
     juce::Slider& getVolumeKnob()  { return volumeKnob; }
+    juce::TextButton& getArpButton() { return arpButton; }
 
     std::function<void()> onSelected;
     std::function<void()> onCopy;
     std::function<void()> onPaste;
+    std::function<void (bool on)> onArpToggled;
 
     static constexpr int numSteps = 32;
 
@@ -64,10 +67,11 @@ private:
 
     PlayheadMarker playhead;
 
-    juce::TextButton copyButton { "C" }, pasteButton { "P" };
+    juce::TextButton copyButton { "C" }, pasteButton { "P" }, arpButton { "ARP" };
     std::vector<std::unique_ptr<juce::TextButton>> stepButtons;
     juce::Slider lengthKnob, volumeKnob;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lengthAttachment, volumeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> arpAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SequenceRowComponent)
 };

@@ -1,0 +1,95 @@
+---
+title: Sequencer
+description: Six independent 32-step sequences, polyrhythm, length, volume, copy/paste and playhead.
+---
+
+## Six sequences, six clocks
+
+Metulifer contains **6 sequences** (`numSequences = 6`) displayed as rows.
+Each sequence owns **its own step counter**: they are not locked to one another.
+That is what makes **polyrhythm** possible: a 7-step sequence can loop while another runs 16 steps.
+
+```
+sequence 1 : 1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8 ...
+sequence 2 : 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 ...
+```
+
+- One step = a **sixteenth note** (1/16).
+- Step duration: `sampleRate × 60 / (BPM × 4)`.
+  At 120 BPM and 44.1 kHz: **5,512.5 samples** (≈ 125 ms).
+- Tempo is **global** (`tempo`, 20–300 BPM).
+
+## Steps
+
+Each row holds **32 step buttons**:
+
+- **Click**: toggles the step (active = amber backlight).
+- Downbeats (steps 1, 5, 9, 13…) are visually accented while inactive.
+- The pattern is stored as a **32-bit bitfield** per sequence, inside a `ValueTree`
+  serialised with the plugin state — not in host parameters.
+
+<Callout type="info" title="Why not parameters?">
+  Storing 192 steps as automatable parameters would pollute the DAW automation lane.
+  The pattern lives in `stepsTree` (properties `p0`…`p5`) and is saved by
+  `getStateInformation()`.
+</Callout>
+
+## Length and volume
+
+| Control | Parameter | Range | Default |
+|---|---|---|---|
+| Length | `seqN_length` | 1–32 steps | 32 |
+| Volume | `seqN_volume` | 0–100 % | 80 % |
+
+Length sets the sequence's **loop period**: past it, the counter returns to step 0.
+Reducing the length to 7 turns a 32-step sequence into a 7-step loop
+(steps 8 to 32 are ignored).
+
+<Callout type="warn" title="Length and volume are per sequence">
+  These two knobs are **permanent**: they stay attached to their row,
+  unlike synth knobs which follow the selection.
+</Callout>
+
+## Row Buttons: Copy, Paste, and ARP
+
+Each sequence row provides three quick-action buttons:
+
+| Button | Action | Purpose |
+|---|---|---|
+| **C** | Copy | Copies the entire 32-step pattern to the shared internal clipboard. |
+| **P** | Paste | Pastes the cached pattern onto the destination row (preserves loop length). |
+| **ARP** | Arpeggiator | Instantly toggles the arpeggiator on/off (lights up in luminous blue). |
+
+The row-level **ARP** button allows you to engage melodic variations on the fly during live performance, with detailed chord and algorithm settings configured in the [Arpeggiator panel](/en/docs/guide/arpeggiator).
+
+## Playhead
+
+During playback, an **orange marker** moves along each row, at that sequence's current step.
+The marker is refreshed at 30 Hz by the editor timer (not by the audio thread).
+
+When stopped, markers disappear and counters restart from zero on the next **Play**.
+
+## Selection and pagination
+
+Clicking a row **selects** it (blue accent bar on the left) and:
+
+- re-binds the **synth**, **VCF**, **reverb** and **LFO cables** to that sequence;
+- updates the **display** (`SEQ n`);
+- filters the visible modulation cables.
+
+Selection is purely visual: it does not change how the other sequences sound.
+
+## Internal wiring
+
+```
+UI (row)  ──click──▶  stepsTree["pN"]  ──listener──▶  patterns[N] (atomic)
+                                                            │
+                                            SequencerEngine::process()
+                                                            │
+                                     StepEvent { offset, seq, gateOn }
+                                                            │
+                                        Voice[seq].noteOn() / noteOff()
+```
+
+The audio thread **never** reads the `ValueTree`: it reads an array of atomic `int`s
+(`patterns[6]`) mirrored by a listener on the message thread.

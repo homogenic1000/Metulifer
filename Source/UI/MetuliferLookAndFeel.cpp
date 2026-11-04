@@ -296,9 +296,33 @@ void MetuliferLookAndFeel::drawStandardButtonBackground (juce::Graphics& g, juce
         botCol = isHighlighted ? juce::Colour (0xff2e333d) : isDown ? juce::Colour (0xff14161c) : juce::Colour (0xff22262e);
         borderCol = isHighlighted ? juce::Colour (0xff60a5fa) : juce::Colour (0xff475569);
     }
+    else if (text == "ARP")
+    {
+        cr = 4.0f;
+        const bool isActive = button.getToggleState();
+        if (isActive)
+        {
+            topCol = isHighlighted ? juce::Colour (0xff3b82f6) : isDown ? juce::Colour (0xff1e40af) : juce::Colour (0xff2563eb);
+            botCol = isHighlighted ? juce::Colour (0xff2563eb) : isDown ? juce::Colour (0xff172554) : juce::Colour (0xff1d4ed8);
+            borderCol = isHighlighted ? juce::Colour (0xffbfdbfe) : juce::Colour (0xff60a5fa);
+        }
+        else
+        {
+            topCol = isHighlighted ? juce::Colour (0xff3e4553) : isDown ? juce::Colour (0xff1a1d24) : juce::Colour (0xff2e333d);
+            botCol = isHighlighted ? juce::Colour (0xff2e333d) : isDown ? juce::Colour (0xff14161c) : juce::Colour (0xff22262e);
+            borderCol = isHighlighted ? juce::Colour (0xff60a5fa) : juce::Colour (0xff475569);
+        }
+    }
+    else if (text == "REV" || text == "DLY" || text == "RDX")
+    {
+        cr = 3.0f;
+        topCol = isHighlighted ? juce::Colour (0xff383e4d) : isDown ? juce::Colour (0xff181a20) : juce::Colour (0xff262a34);
+        botCol = isHighlighted ? juce::Colour (0xff262a34) : isDown ? juce::Colour (0xff121418) : juce::Colour (0xff1d2028);
+        borderCol = isHighlighted ? juce::Colour (0xff60a5fa) : juce::Colour (0xff475569);
+    }
     else
     {
-        // Mode ("Room"/"Hall"), Wave ("Sin"/"Saw"...), Inspect ("Inspect")
+        // Mode ("Room"/"Hall", "PingPong"/"Stereo"), Wave ("Sin"/"Saw"...), Arp modes/chords, Inspect ("Inspect")
         topCol = isHighlighted ? juce::Colour (0xff3d4452) : isDown ? juce::Colour (0xff1a1d24) : juce::Colour (0xff2d323c);
         botCol = isHighlighted ? juce::Colour (0xff2d323c) : isDown ? juce::Colour (0xff14161b) : juce::Colour (0xff21252d);
         borderCol = isHighlighted ? juce::Colour (0xff38bdf8) : juce::Colour (0xff475569);
@@ -360,6 +384,16 @@ void MetuliferLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& 
     else if (text == "C" || text == "P" || text == "Copy" || text == "Paste")
     {
         fontH = 12.0f;
+        textCol = shouldDrawButtonAsHighlighted ? juce::Colours::white : juce::Colour (0xffe2e8f0);
+    }
+    else if (text == "ARP")
+    {
+        fontH = 10.5f;
+        textCol = isOn ? juce::Colours::white : (shouldDrawButtonAsHighlighted ? juce::Colour (0xffcbd5e1) : juce::Colour (0xff94a3b8));
+    }
+    else if (text == "REV" || text == "DLY" || text == "RDX")
+    {
+        fontH = 10.0f;
         textCol = shouldDrawButtonAsHighlighted ? juce::Colours::white : juce::Colour (0xffe2e8f0);
     }
     else if (text == "Inspect")

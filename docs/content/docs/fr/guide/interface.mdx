@@ -1,0 +1,100 @@
+---
+title: Interface et écran
+description: Carte de l'interface 1280 × 720, écran OLED, pagination et inspecteur de composants.
+---
+
+## Carte de l'interface
+
+L'éditeur fait **1280 × 720** et place ses panneaux à des coordonnées absolues
+(`resized()` dans `Source/PluginEditor.cpp`).
+
+| Panneau | Position (x, y) | Taille |
+|---|---|---|
+| Séquenceur (6 rangées avec boutons ARP) | 32, 32 | 910 × 417 |
+| Écran OLED | 986, 32 | 247 × 132 |
+| CLOCK | 961, 164 | 297 × 284 |
+| Synthé (2 VCO, 2 ADSR, Mix, section ARP) | 32, 458 | 786 × 237 |
+| VCF (Filtre LPF/HPF) | 684, 471 | 105 × 224 |
+| LFO 1 | 874, 471 | 105 × 224 |
+| LFO 2 | 1013, 471 | 105 × 224 |
+| Multi-FX (Onglets REV, DLY, RDX) | 1144, 471 | 105 × 224 |
+| Bouton **Inspect** | 1188, 8 | 60 × 18 |
+
+Le `CableLayer` couvre toute la fenêtre (0, 0, 1280, 720) mais son `hitTest()` ne
+renvoie `true` que près d'un jack ou d'un câble : les clics passent à travers partout ailleurs.
+
+## L'écran OLED
+
+Trois modes d'affichage, gérés par un `Timer` à **30 Hz** :
+
+| Mode | Contenu | Durée |
+|---|---|---|
+| **Signal** (défaut) | numéro de séquence + barre RMS de sortie | permanent |
+| **Paramètre** | nom du paramètre + valeur + unité (ex. `attack 120 ms`) | 2 s après manipulation |
+| **Message** | texte libre (ex. `seq 3 volume 80 %`, `octave 1`) | 2 s |
+
+Le retour au mode signal est automatique après **2 secondes** d'inactivité
+(`paramShownUntilMs`). Le RMS est calculé dans le thread audio et lu sans verrou
+par l'interface (`std::atomic<float> rms`).
+
+## Pagination par sélection
+
+Un seul jeu de knobs sert les six séquences :
+
+- cliquer une rangée appelle `bindSequence(index)` ;
+- les `SliderAttachment` du synthé, de l'arpégiateur, du VCF et du Multi-FX sont **détruits puis recréés**
+  sur les paramètres `seqN_*` de la séquence choisie ;
+- un flag `updatingBindings` empêche les faux affichages pendant le re-binding ;
+- les boutons LPF/HPF, Multi-FX On/Off, Delay Ping-Pong, Redux On/Off, ARP On/Off, Mode et Chord sont synchronisés par des listeners de
+  paramètres, pour suivre aussi l'**automation du host**.
+
+<Callout type="info" title="Tempo, longueur, volume">
+  Ces contrôles ne sont **pas** re-branchés : ils ont chacun leur attachement permanent,
+  car ils appartiennent à une rangée précise (ou au projet pour le tempo).
+</Callout>
+
+## Inspecteur de composants
+
+Le plugin embarque **melatonin_inspector**. Deux façons de l'ouvrir :
+
+- raccourci **⌘I** ;
+- bouton **Inspect** en haut à droite.
+
+L'inspecteur permet de :
+
+- sélectionner n'importe quel composant au clic ;
+- modifier ses bounds, couleurs, marges en direct ;
+- parcourir l'arbre des composants et vérifier les `LookAndFeel` ;
+- annuler les modifications (lié au `undoManager` du processor).
+
+<Callout type="warn" title="Outil de développement">
+  L'inspecteur est compilé dans toutes les configurations. Il n'a aucun impact sur le DSP
+  mais reste un outil de mise au point : le désactiver pour une distribution publique
+  demande de retirer l'instance `melatonin::Inspector` de l'éditeur.
+</Callout>
+
+## Thème « hardware »
+
+L'interface n'utilise pas le LookAndFeel par défaut :
+
+- `MetuliferLookAndFeel` dessine des **potentiomètres matériels** (rainure, arc de valeur,
+  corps métallique, aiguille) et des **boutons tactiles** avec états normal / survol / clic ;
+- la couleur de l'arc dépend du type de contrôle (ambre pour tempo/reverb, cyan pour cutoff,
+  bleu pour volume, violet pour mix, ciel pour ADSR) ;
+- les boutons de pas affichent leur numéro et regroupent visuellement les temps 4/4.
+
+Voir [UI et skinning](/fr/docs/architecture/ui-skin) pour remplacer ces dessins par des assets.
+
+## Raccourcis et aides
+
+| Action | Interaction |
+|---|---|
+| Sélectionner une séquence | clic sur la rangée |
+| Activer un pas | clic sur le carré |
+| Afficher un paramètre à l'écran | glisser un knob, molette, ou clic sur un bouton |
+| Créer un câble LFO | glisser du jack vers un knob |
+| Supprimer un câble | clic sur le câble |
+| Ouvrir l'inspecteur | `⌘I` |
+| Lire / arrêter | bouton **Play** du panneau CLOCK |
+
+La plupart des boutons ont un **tooltip** explicatif (sursis d'une seconde).

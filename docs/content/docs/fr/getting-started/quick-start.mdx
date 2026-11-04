@@ -1,0 +1,85 @@
+---
+title: Premier son
+description: Activer des pas, lancer la lecture et régler le tempo — la prise en main en cinq minutes.
+---
+
+## 1. Ouvrir le plugin
+
+Lancer `Metulifer.app` (cible Standalone) ou charger `Metulifer.vst3` / `Metulifer.component`
+dans un DAW. L'interface fait 1280 × 720.
+
+## 2. Comprendre les six rangées
+
+En haut à gauche, le **séquenceur** affiche six rangées, une par séquence :
+
+```
+[S1] [C][P]   ▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢   [Length] [Volume]
+```
+
+- Le badge **S1…S6** identifie la séquence.
+- Les 32 carrés sont les **pas** : cliquer bascule le pas entre actif (ambre) et inactif.
+- `C` / `P` copient et collent le motif de la rangée.
+- Les deux potentiomètres règlent la **longueur** (1–32 pas) et le **volume** (0–100 %).
+
+Cliquer n'importe où sur une rangée la **sélectionne** : le synthé, le filtre, la reverb
+et les câbles de modulation se re-branchent sur cette séquence.
+
+## 3. Programmer quelques pas
+
+<Steps>
+  <Step>
+    ### Activer des pas
+
+    Sur la rangée **S1**, cliquer par exemple sur les pas 1, 5, 9 et 13.
+  </Step>
+  <Step>
+    ### Lancer la lecture
+
+    Cliquer sur **Play** dans le panneau **CLOCK**. Le bouton passe au vert et un marqueur
+    orange suit la tête de lecture sur chaque rangée.
+  </Step>
+  <Step>
+    ### Ajuster le tempo
+
+    Tourner le gros potentiomètre **CLOCK** (20–300 BPM, défaut 120).
+  </Step>
+</Steps>
+
+<Callout title="Rien ne sonne ?">
+  Vérifier dans cet ordre : (1) au moins un pas est actif sur la rangée, (2) **Play** est enclenché,
+  (3) le **volume** de la séquence n'est pas à 0 %, (4) **Mix VCO1/VCO2** n'est pas à −60 dB,
+  (5) le cutoff du **VCF** n'étouffe pas le signal.
+  Détails : [Dépannage](/fr/docs/reference/troubleshooting).
+</Callout>
+
+## 4. Façonner le son
+
+Le panneau **synth** (en bas à gauche) agit sur la séquence sélectionnée :
+
+| Colonne | Effet |
+|---|---|
+| **Octave** (levier) | transpose le VCO de −2 à +2 octaves |
+| **Note** (12 crans) | demi-ton de 0 (C) à 11 (B), base C3 = 130,81 Hz |
+| **Wave** | sine / saw / square / triangle |
+| **ADSR** | attaque, decay, sustain, release par VCO |
+| **Mix out DB** | niveau de chaque VCO de −60 à +6 dB |
+
+En bas au centre, le **VCF** choisit **LPF** ou **HPF** et règle le **cutoff** (20 Hz – 20 kHz).
+À droite, **reverb** (On/Off, Room/Hall, Mix) et les deux **LFO**.
+
+## 5. Vérifier l'écran
+
+L'écran OLED (en haut à droite) affiche en permanence :
+
+- le numéro de la **séquence sélectionnée** ;
+- le **paramètre touché** et sa valeur pendant 2 secondes après manipulation
+  (ex. `attack 120 ms`, `seq 3 volume 80 %`) ;
+- une **barre RMS** du signal de sortie.
+
+## Étape suivante
+
+<Cards>
+  <Card title="Le séquenceur en détail" href="/fr/docs/guide/sequencer" />
+  <Card title="Le synthé par séquence" href="/fr/docs/guide/synth" />
+  <Card title="LFO et câbles de modulation" href="/fr/docs/guide/lfo-modulation" />
+</Cards>

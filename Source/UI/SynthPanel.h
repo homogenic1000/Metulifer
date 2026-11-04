@@ -17,12 +17,30 @@ public:
     juce::Slider adsr2Attack, adsr2Decay, adsr2Sustain, adsr2Release;
     juce::Slider mixVco1, mixVco2;
 
+    // Arpeggiator controls
+    juce::TextButton arpModeButton;
+    juce::TextButton arpChordButton;
+    juce::Slider arpOctavesKnob;
+    juce::TextButton arpOnOffButton { "Off" };
+
+    void setArpEnabled (bool on);
+    void setArpModeIndex (int mode);
+    void setArpChordIndex (int chord);
+
+    std::function<void (bool on)> onArpPowerToggled;
+    std::function<void (int mode)> onArpModeToggled;
+    std::function<void (int chord)> onArpChordToggled;
+
 private:
     void setupKnob (juce::Slider& knob, const juce::String& name,
                     double min, double max, double step, double def);
     juce::Label* makeLabel (juce::Component& parent, const juce::String& text, float fontHeight);
 
     std::vector<std::unique_ptr<juce::Label>> labels;
+
+    bool arpOn = false;
+    int arpModeIdx = 0;
+    int arpChordIdx = 1;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SynthPanel)
 };

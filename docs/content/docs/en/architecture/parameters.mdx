@@ -1,0 +1,132 @@
+---
+title: Parameters Reference
+description: The 209 automatable APVTS parameters, their types, ranges, identifiers, and behaviors.
+---
+
+Metulifer exposes **209 automatable parameters** managed by a single `juce::AudioProcessorValueTreeState` (APVTS).
+All parameters are thread-safe and read atomically by the audio thread with zero real-time heap allocations or mutexes.
+
+## Naming Convention
+
+Parameter identifiers follow a strict naming scheme:
+
+- **Global parameters**: `tempo`
+- **Modulation parameters**: `lfo<M>_<param>` (where `M` is 1 or 2)
+- **Voice / sequence parameters**: `seq<N>_<param>` (where `N` is from 1 to 6)
+
+<Callout type="info" title="1-based indexing for hosts">
+  In the APVTS and your DAW automation list, sequences are labeled `seq1` through `seq6`, and LFOs are `lfo1` and `lfo2`.
+  Internal C++ logic iterates over 0-based indices.
+</Callout>
+
+---
+
+## 1. Global Parameters (1)
+
+| Parameter ID | Display Name | Type | Range | Default | Unit / Skew |
+|---|---|---|---|---|---|
+| `tempo` | `Tempo` | Int | 20 – 300 | 120 | BPM |
+
+---
+
+## 2. LFO Modulators (10 parameters = 2 × 5)
+
+Each LFO provides 5 parameters:
+
+| Parameter ID | Display Name | Type | Range | Default | Description |
+|---|---|---|---|---|---|
+| `lfo<M>_rate` | `LFO<M> Rate` | Float | 0.1 – 20.0 Hz | 1.0 Hz | Frequency (skew 1.0 Hz at center) |
+| `lfo<M>_wave` | `LFO<M> Wave` | Choice | Sine, Saw, Square, Triangle | Sine | Modulator waveform shape |
+| `lfo<M>_offset` | `LFO<M> Offset` | Float | −100 – +100 % | 0 % | Continuous DC bias offset |
+| `lfo<M>_depth` | `LFO<M> Depth` | Float | 0 – 100 % | 100 % | Modulation intensity sent to patch cables |
+| `lfo<M>_enabled` | `LFO<M> Enabled` | Bool | On / Off | Off | LFO power switch |
+
+---
+
+## 3. Per-Sequence Parameters (198 = 6 × 33)
+
+For each sequence `seq<N>` (where `N` runs from 1 to 6):
+
+### ADSR Envelopes (8 parameters)
+
+Each voice features two distinct oscillators with independent ADSR envelopes:
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_a1` / `seq<N>_a2` | Float | 0.1 – 2000 ms | 5 ms | Attack duration (skew 0.3) |
+| `seq<N>_d1` / `seq<N>_d2` | Float | 0.1 – 2000 ms | 200 ms | Decay duration (skew 0.3) |
+| `seq<N>_s1` / `seq<N>_s2` | Float | 0 – 100 % | 70 % | Sustain level |
+| `seq<N>_r1` / `seq<N>_r2` | Float | 0.1 – 5000 ms | 300 ms | Release duration (skew 0.3) |
+
+### Oscillators & Tuning (6 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_octave1` | Int | −2 … +2 | 0 | VCO1 octave offset |
+| `seq<N>_note1` | Choice | C to B (12 semitones) | C | VCO1 root note |
+| `seq<N>_wave1` | Choice | Sine, Saw, Square, Triangle | Saw | VCO1 waveform |
+| `seq<N>_octave2` | Int | −2 … +2 | 0 | VCO2 octave offset |
+| `seq<N>_note2` | Choice | C to B (12 semitones) | C | VCO2 root note |
+| `seq<N>_wave2` | Choice | Sine, Saw, Square, Triangle | Saw | VCO2 waveform |
+
+### Mixer & VCF Filter (4 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_mix1` | Float | −60.0 … +6.0 dB | 0.0 dB | VCO1 level in dB |
+| `seq<N>_mix2` | Float | −60.0 … +6.0 dB | 0.0 dB | VCO2 level in dB |
+| `seq<N>_filter` | Choice | LPF, HPF | LPF | Low-pass or High-pass topology |
+| `seq<N>_cutoff` | Float | 20 – 20 000 Hz | 1000 Hz | Filter cutoff frequency (skew 0.3) |
+
+### Sequencer (2 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_length` | Int | 1 – 32 | 32 | Number of active steps in sequence loop |
+| `seq<N>_volume` | Float | 0 – 100 % | 80 % | Master output volume of sequence |
+
+### Multi-FX: Stereo Reverb (3 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_reverb_enabled` | Bool | On / Off | Off | Reverb toggle |
+| `seq<N>_reverb_mode` | Choice | Room, Hall | Room | Acoustic space reflection preset |
+| `seq<N>_reverb_mix` | Float | 0 – 100 % | 30 % | Dry / Wet blend with gain compensation |
+
+### Multi-FX: Ping-Pong Delay (5 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_delay_enabled` | Bool | On / Off | Off | Delay toggle |
+| `seq<N>_delay_time` | Float | 20 – 1000 ms | 250 ms | Primary delay time in milliseconds (skew 0.4) |
+| `seq<N>_delay_feedback` | Float | 0 – 90 % | 40 % | Feedback ratio with soft saturator |
+| `seq<N>_delay_mix` | Float | 0 – 100 % | 35 % | Wet blend ratio |
+| `seq<N>_delay_pingpong` | Bool | Stereo / PingPong | True | Stereo ping-pong channel alternate |
+
+### Multi-FX: Redux Bitcrusher / Decimator (4 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_redux_enabled` | Bool | On / Off | Off | Redux toggle |
+| `seq<N>_redux_bits` | Int | 2 – 16 bits | 8 bits | Quantization bit depth |
+| `seq<N>_redux_rate` | Int | 1 – 32 | 4 | Downsampling sample-hold decimator factor |
+| `seq<N>_redux_mix` | Float | 0 – 100 % | 50 % | Dry / Wet blend ratio |
+
+### Arpeggiator (4 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_arp_enabled` | Bool | On / Off | Off | Enable melodic arpeggiation on triggered steps |
+| `seq<N>_arp_mode` | Choice | 11 modes (Up, Down, Pinky...) | Up | Stepping pattern algorithm |
+| `seq<N>_arp_chord` | Choice | 10 scales / chords | Minor | Harmonic interval bank (Major, Minor, Pentatonic...) |
+| `seq<N>_arp_octaves` | Int | 1 – 3 octaves | 1 | Octave span for note generation |
+
+---
+
+## State Not Stored in APVTS
+
+Some data structures are purposefully segregated from the APVTS:
+
+1. **Step bitmasks (32 steps × 6 sequences = 192 steps)**: Stored in a separate `steps` ValueTree child to prevent cluttering host automation lists with binary toggles.
+2. **Virtual modulation patch cables**: Stored in the `mod` ValueTree child.
+3. **Current playhead positions and gate triggers**: Dynamically calculated per audio block.

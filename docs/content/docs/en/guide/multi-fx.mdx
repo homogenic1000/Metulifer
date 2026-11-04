@@ -1,0 +1,88 @@
+---
+title: Multi-FX (Reverb, Delay, Redux)
+description: 3-in-1 effects processor per sequence with tabs, LED status indicators, and serialized DSP processing.
+---
+
+The **Multi-FX** panel (located at the right edge of the interface) provides three independent audio processors for each sequence:
+1. **Stereo Reverb** (Room / Hall acoustic space emulation)
+2. **Ping-Pong Delay** (Stereo echo line with analog-modeled soft saturation)
+3. **Redux** (Bitcrusher and sample-rate decimation engine)
+
+Each effect can be engaged or bypassed independently, with full per-sequence parameter isolation.
+
+```
+Voice Signal ──▶ [Redux] ──▶ [Stereo Delay] ──▶ [Stereo Reverb] ──▶ Audio Out
+```
+
+---
+
+## Tab Navigation & Activity LEDs
+
+To combine ergonomic space efficiency (105 × 224 pixels) with immediate control, the panel uses three tabs:
+- `[REV]`: Reverb parameters
+- `[DLY]`: Delay parameters
+- `[RDX]`: Redux parameters
+
+Each tab button hosts an **integrated LED indicator** (green / cyan) that shows real-time active status for that effect on the selected sequence, regardless of which tab is currently displayed.
+
+---
+
+## 1. Reverb Tab (`REV`)
+
+Produces spatial acoustics using an optimized Freeverb stereo engine.
+
+| Control | Parameter | Range | Default | Description |
+|---|---|---|---|---|
+| **On / Off** | `seqN_reverb_enabled` | Bool | Off | Reverb toggle |
+| **Mode** | `seqN_reverb_mode` | Room / Hall | Room | Acoustic space model |
+| **Mix** | `seqN_reverb_mix` | 0 – 100 % | 30 % | Dry / wet balance with level compensation |
+
+### Mode Profiles
+- **Room**: Room size 0.45, damping 0.55, width 0.80. Adds air and acoustic glue without muddying fast transients.
+- **Hall**: Room size 0.85, damping 0.25, width 1.00. Deep, expansive decay tails for lush pads and ambient leads.
+
+---
+
+## 2. Delay Tab (`DLY`)
+
+Full-featured stereo delay with warm tanh feedback saturation and stereo ping-pong bounce.
+
+| Control | Parameter | Range | Default | Description |
+|---|---|---|---|---|
+| **On / Off** | `seqN_delay_enabled` | Bool | Off | Delay toggle |
+| **Mode** | `seqN_delay_pingpong` | Stereo / PingPong | PingPong | Alternates left and right stereo reflection taps |
+| **Time** | `seqN_delay_time` | 20 – 1000 ms | 250 ms | Delay interval (skew 0.4 for smooth sweet spot) |
+| **Feedback** | `seqN_delay_feedback` | 0 – 90 % | 40 % | Regeneration count with tanh soft-clipping |
+| **Mix** | `seqN_delay_mix` | 0 – 100 % | 35 % | Wet signal proportion |
+
+<Callout type="tip" title="Analog-Style Feedback Saturation">
+  The delay feedback path incorporates a hyperbolic tangent (`tanh`) transfer curve: pushing feedback to high percentages produces rich harmonic density without unpleasant digital harshness.
+</Callout>
+
+---
+
+## 3. Redux Tab (`RDX`)
+
+The Redux processor recreates vintage digital grit and early digital sampler character (8-bit and 12-bit eras).
+
+| Control | Parameter | Range | Default | Description |
+|---|---|---|---|---|
+| **On / Off** | `seqN_redux_enabled` | Bool | Off | Redux toggle |
+| **Bits** | `seqN_redux_bits` | 2 – 16 bits | 8 bits | Amplitude quantization resolution |
+| **Rate** | `seqN_redux_rate` | 1 – 32 | 4 | Downsampling sample & hold decimation ratio |
+| **Mix** | `seqN_redux_mix` | 0 – 100 % | 50 % | Wet balance |
+
+### Creative Recipes
+- **Chiptune / Lo-Fi 8-bit**: `Bits = 8`, `Rate = 4` or `8`.
+- **Digital Fuzz Stabs**: `Bits = 2` or `3`, `Rate = 1`, Mix = 70%.
+- **Subtle Modern Crunch**: `Bits = 12`, `Rate = 2`, Mix = 30%.
+
+---
+
+## Patch Cable LFO Modulation
+
+All Multi-FX knobs are fully modulatable via virtual patch cables:
+- Modulate delay time (`seqN_delay_time`) for organic tape-warble, chorus, or pitch sweeps.
+- Modulate feedback (`seqN_delay_feedback`) for rhythmic swelling textures.
+- Modulate sample rate decimation (`seqN_redux_rate`) for cutting sweeps.
+- Modulate reverb mix (`seqN_reverb_mix`) for dynamic breathing tails.

@@ -47,7 +47,14 @@ private:
     void updateFilterButtons();
     void setReverbPowerParam (bool on);
     void setReverbModeParam (int mode);
-    void updateReverbButtons();
+    void setDelayPowerParam (bool on);
+    void setDelayModeParam (bool pp);
+    void setReduxPowerParam (bool on);
+    void updateFxButtons();
+    void setArpPowerParam (bool on);
+    void setArpModeParam (int mode);
+    void setArpChordParam (int chord);
+    void updateArpButtons();
     void setLfoWave (int lfoIndex, int waveIndex);
     void setLfoPower (int lfoIndex, bool on);
     void refreshCableTargets();
@@ -74,13 +81,17 @@ private:
 
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> synthAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> vcfAttachments;
-    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> reverbAttachments;
+    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> fxAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> lfoAttachments;
+    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> arpAttachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tempoAttachment;
     std::map<juce::Slider*, juce::String> sliderParamIds;
 
     juce::String filterParamId;
     juce::String reverbEnabledParamId, reverbModeParamId;
+    juce::String delayEnabledParamId, delayPingpongParamId;
+    juce::String reduxEnabledParamId;
+    juce::String arpEnabledParamId, arpModeParamId, arpChordParamId;
     int currentSeq = 0;
     bool updatingBindings = false;
     int lastPlayhead[MetuliferAudioProcessor::numSequences] { -1, -1, -1, -1, -1, -1 };

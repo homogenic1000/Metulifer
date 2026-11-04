@@ -1,0 +1,113 @@
+---
+title: Installation
+description: Prérequis, régénération du projet Projucer et compilation des cibles VST3, AU et Standalone.
+---
+
+## Prérequis
+
+| Outil | Version / note |
+|---|---|
+| **macOS** | 12.0 minimum (`macOSDeploymentTarget` du `.jucer`) |
+| **Xcode** | Version installée via l'App Store, avec la licence acceptée |
+| **JUCE** | Modules complets (dont `juce_dsp`), typiquement `~/JUCE/modules` |
+| **Projucer** | Fourni avec JUCE (`/Applications/Projucer.app` ou `~/JUCE/Projucer.app`) |
+| **Git** | Pour récupérer le dépôt et le sous-module |
+
+<Callout type="warn" title="Sous-module melatonin_inspector">
+  L'inspecteur d'interface est un sous-module git. Après un clone frais :
+
+  ```bash
+  git submodule update --init --recursive
+  ```
+</Callout>
+
+## Récupérer le projet
+
+```bash
+git clone <url-du-depot> Metulifer
+cd Metulifer
+git submodule update --init --recursive
+```
+
+## Régénérer les fichiers Projucer
+
+`JuceLibraryCode/` et `Builds/` ne sont **pas** versionnés : ils se régénèrent à partir de
+`Metulifer.jucer`, la source de vérité du projet.
+
+**Setup unique** — ajoute un alias `Projucer` qui détecte l'emplacement de l'application :
+
+```bash
+printf '\nfor p in "$HOME/JUCE/Projucer.app" /Applications/Projucer.app "$HOME/Downloads/JUCE/Projucer.app"; do [ -x "$p/Contents/MacOS/Projucer" ] && alias Projucer="$p/Contents/MacOS/Projucer" && break; done\n' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Puis, **après chaque modification du `.jucer`** :
+
+```bash
+Projucer --resave Metulifer.jucer
+```
+
+Sans alias :
+
+```bash
+/Applications/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer
+```
+
+## Compiler
+
+### Avec Xcode
+
+1. Ouvrir `Builds/MacOSX/Metulifer.xcodeproj`.
+2. Choisir le scheme :
+   - `Metulifer - Standalone Plugin` — application de test autonome,
+   - `Metulifer - VST3`,
+   - `Metulifer - AU`,
+   - `Metulifer - All` — les trois d'un coup.
+3. `⌘R` pour compiler et lancer.
+
+### En ligne de commande
+
+```bash
+xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
+  -scheme "Metulifer - Standalone Plugin" \
+  -configuration Debug build
+```
+
+Les binaires apparaissent dans `Builds/MacOSX/build/Debug/` :
+
+| Fichier | Cible |
+|---|---|
+| `Metulifer.app` | application Standalone |
+| `Metulifer.vst3` | plugin VST3 |
+| `Metulifer.component` | composant Audio Unit |
+
+<Callout type="warn" title="xcodebuild introuvable ou mauvais developer dir">
+  Si `xcodebuild` répond *“requires Xcode, but active developer directory is a command line tools instance”* :
+
+  ```bash
+  sudo xcode-select -s /Applications/Xcode.app
+  # ou, sans sudo, pour une seule commande :
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild ...
+  ```
+</Callout>
+
+## Installer dans un DAW
+
+Copier les binaires Release dans les dossiers système, puis redémarrer le DAW
+(ou vider son cache de plugins) :
+
+```bash
+cp -R Builds/MacOSX/build/Release/Metulifer.vst3 ~/Library/Audio/Plug-Ins/VST3/
+cp -R Builds/MacOSX/build/Release/Metulifer.component ~/Library/Audio/Plug-Ins/Components/
+```
+
+## Dépannage de build
+
+| Symptôme | Cause probable | Solution |
+|---|---|---|
+| `MACOSX_DEPLOYMENT_TARGET` trop ancien | SDK Xcode récent | garder `12.0` dans le `.jucer` |
+| Module JUCE introuvable | chemin JUCE absent | vérifier `~/JUCE/modules` ou le `MODULEPATH` |
+| Fichiers manquants (`JuceHeader.h`) | `Builds/` ou `JuceLibraryCode/` absents | relancer `Projucer --resave` |
+| `melatonin_inspector` introuvable | sous-module non initialisé | `git submodule update --init --recursive` |
+
+Voir aussi [Dépannage](/fr/docs/reference/troubleshooting).

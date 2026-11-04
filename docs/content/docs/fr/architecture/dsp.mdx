@@ -1,0 +1,120 @@
+---
+title: Traitement du Signal (DSP)
+description: Chaîne audio complète dans Voice.cpp, accumulateurs de phase, filtres TPT, multi-effets et garanties temps réel.
+---
+
+Chaque séquence de Metulifer possède son propre moteur de synthèse audio encapsulé dans la classe `Voice` (`Source/DSP/Voice.{h,cpp}`).
+Toutes les opérations audio respectent scrupuleusement les exigences de la programmation audio temps réel : **zéro allocation dynamique**, **aucun mutex** et **aucun appel système bloquant**.
+
+## Chaîne audio d'une voix
+
+Le signal traverse la chaîne suivante de manière séquentielle :
+
+```
+[VCO 1] ──▶ [ADSR 1] ──▶ [Gain Mix 1] ──┐
+                                         ├──▶ [Sommation] ──▶ [Filtre VCF] ──▶ [Gain Volume]
+[VCO 2] ──▶ [ADSR 2] ──▶ [Gain Mix 2] ──┘                                            │
+                                                                                     ▼
+[Sortie Stéréo] ◀── [Reverb Stéréo] ◀── [Delay Ping-Pong] ◀── [Redux Bitcrusher] ◀───┘
+```
+
+---
+
+## 1. Générateurs (VCO 1 & VCO 2)
+
+Les deux oscillateurs calculent leur forme d'onde via un accumulateur de phase normalisé entre `[0.0, 1.0[` :
+
+```
+delta_phase = frequency / sampleRate
+```
+
+Quatre formes d'onde sont disponibles :
+- **Sine** : `sin(2 * pi * phase)`
+- **Saw** : `2 * phase - 1` (rampe linéaire)
+- **Square** : `phase < 0.5 ? +1 : -1`
+- **Triangle** : `1 - 4 * abs(phase - 0.5)`
+
+### Hauteur de note et arpégiateur
+La fréquence fondamentale `f` est calculée à partir de la note MIDI (0 à 127) et du sélecteur d'octave (−2 à +2) :
+
+```
+f = 440.0 * pow(2.0, (midiNote - 69 + 12 * octave) / 12.0)
+```
+
+Lorsque l'**Arpégiateur** est activé sur la séquence, chaque pas actif déclenche `advanceArp()`, qui ajoute un décalage de demi-tons issu d'une gamme musicale sélectionnée sans altérer l'accordage relatif entre VCO1 et VCO2.
+
+---
+
+## 2. Enveloppes ADSR
+
+Chaque oscillateur dispose de son propre générateur d'enveloppe `juce::ADSR`.
+- L'attaque, le déclin et le relâchement utilisent une courbe exponentielle naturelle.
+- Les paramètres temporels bénéficient d'un **skew de 0,3** sur les potentiomètres pour offrir une résolution fine dans les valeurs inférieures à 100 ms tout en permettant des montées de 2 secondes.
+
+---
+
+## 3. Filtrage VCF (State Variable TPT)
+
+Le filtre repose sur le processeur `juce::dsp::StateVariableTPTFilter<float>`.
+Cette topologie préserve la stabilité numérique face aux variations rapides de cutoff modulé par les LFO :
+- **LPF (Low-Pass Filter)** : atténuation à 12 dB/octave des harmoniques aiguës.
+- **HPF (High-Pass Filter)** : suppression des sous-basses et éclaircissement du spectre.
+- Le paramètre de cutoff balaye de 20 Hz à 20 000 Hz avec une échelle logarithmique (skew 0,3).
+
+---
+
+## 4. Multi-FX : Redux (Bitcrusher & Décimateur)
+
+Le module Redux dégrade le signal par double altération :
+
+1. **Downsampling (Sous-échantillonnage temporel)** :
+   Un compteur d'échantillons modulo `rate` maintient la valeur courante (Sample & Hold) pendant `N` échantillons (1 à 32).
+2. **Quantification d'amplitude (Bit-depth)** :
+   ```
+   y = floor(x * 2^(bits - 1) + 0.5) / 2^(bits - 1)
+   ```
+   La résolution s'étend de 2 bits (fuzz numérique extrême) à 16 bits (haute fidélité).
+3. **Crossfade Dry/Wet** : mélange linéaire sans déphasage.
+
+---
+
+## 5. Multi-FX : Delay Stéréo Ping-Pong
+
+Le délai est implémenté avec une ligne de retard circulaire préallouée à l'initialisation (`prepare()`) pour accueillir jusqu'à 2,5 secondes de son à n'importe quel taux d'échantillonnage.
+
+- **Saturation douce dans la boucle** :
+  Le signal de feedback traverse une non-linéarité douce :
+  ```
+  feedback_sample = tanh(sample * saturation_gain)
+  ```
+  Ceci empêche tout risque d'emballement numérique au-delà de 0 dBFS lors de réinjections élevées (jusqu'à 90 %).
+- **Mode Ping-Pong stéréo** :
+  Le canal gauche lit le retard nominal `T`, tandis que le canal droit lit un décalage rythmique spécifique (`0.75 * T`), créant une spatialisation stéréo dynamique.
+
+---
+
+## 6. Multi-FX : Reverb Stéréo
+
+Basée sur le moteur `juce::dsp::Reverb`, la réverbération traite le signal après le délai :
+- **Mode Room** : réflexions courtes, diffusion dense, adapté aux percussions et stabs.
+- **Mode Hall** : réflexions amples, longue queue de résonance spatiale.
+- **Gain staging compensé** : le mix pondère la composante dry et wet pour éviter le gonflement d'énergie inhérent aux réverbérations de type Schroeder/Freeverb.
+
+---
+
+## 7. Protection de sortie et Soft Limiting
+
+En sortie de `processBlock()`, avant l'écriture dans le bus master du DAW :
+1. Une atténuation d'échelle (headroom −6 dB) prépare la sommation des 6 voix simultanées.
+2. Un étage de **soft clipping par tangente hyperbolique (`tanh`)** garantit l'absence de saturation numérique dure :
+
+```cpp
+for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+{
+    auto* samples = buffer.getWritePointer (ch);
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+        samples[i] = std::tanh (samples[i] * 0.5f);
+}
+```
+
+3. Un suiveur d'enveloppe RMS rapide calcule l'amplitude crête stockée dans un `std::atomic<float>` pour animer l'écran OLED à 30 Hz sans impacter le thread audio.

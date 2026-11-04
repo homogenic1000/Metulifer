@@ -1,0 +1,4 @@
+{
+  "title": "Guide utilisateur",
+  "pages": ["sequencer", "synth", "filter", "multi-fx", "arpeggiator", "lfo-modulation", "interface", "reverb"]
+}

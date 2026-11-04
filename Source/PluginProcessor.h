@@ -75,6 +75,9 @@ public:
 
     float getCurrentRms() const noexcept { return rms.load (std::memory_order_relaxed); }
 
+    static constexpr int scopeBufferSize = 512;
+    void getScopeBuffer (float* dest, int numSamplesToRead) const;
+
     void setPlaying (bool shouldPlay);
     bool isPlaying() const;
     int  getPlayheadStep (int sequenceIndex) const;
@@ -98,6 +101,19 @@ private:
         std::atomic<float>* reverbEnabled = nullptr;
         std::atomic<float>* reverbMode = nullptr;
         std::atomic<float>* reverbMix = nullptr;
+        std::atomic<float>* delayEnabled = nullptr;
+        std::atomic<float>* delayTime = nullptr;
+        std::atomic<float>* delayFeedback = nullptr;
+        std::atomic<float>* delayMix = nullptr;
+        std::atomic<float>* delayPingpong = nullptr;
+        std::atomic<float>* reduxEnabled = nullptr;
+        std::atomic<float>* reduxBits = nullptr;
+        std::atomic<float>* reduxRate = nullptr;
+        std::atomic<float>* reduxMix = nullptr;
+        std::atomic<float>* arpEnabled = nullptr;
+        std::atomic<float>* arpMode = nullptr;
+        std::atomic<float>* arpChord = nullptr;
+        std::atomic<float>* arpOctaves = nullptr;
 
         void bind (juce::AudioProcessorValueTreeState& apvts, int sequenceIndex);
         Voice::Params read() const;
@@ -111,7 +127,9 @@ private:
 
     enum DestField
     {
-        fA1, fD1, fS1, fR1, fA2, fD2, fS2, fR2, fMix1, fMix2, fCutoff, fReverbMix, fInvalid
+        fA1, fD1, fS1, fR1, fA2, fD2, fS2, fR2, fMix1, fMix2, fCutoff,
+        fReverbMix, fDelayTime, fDelayFeedback, fDelayMix, fReduxBits, fReduxRate, fReduxMix,
+        fInvalid
     };
 
     static DestField fieldForDest (const juce::String& paramId);
@@ -137,6 +155,8 @@ private:
     juce::ValueTree stepsTree { "steps" };
     juce::ValueTree modTree { "mod" };
     std::atomic<float> rms { 0.0f };
+    float scopeBuffer[scopeBufferSize] {};
+    std::atomic<int> scopeWriteIndex { 0 };
 
     SequencerEngine engine;
     Voice voices[numSequences];

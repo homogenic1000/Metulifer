@@ -1,0 +1,4 @@
+{
+  "title": "Architecture",
+  "pages": ["overview", "parameters", "dsp", "sequencer-state", "ui-skin", "testing"]
+}

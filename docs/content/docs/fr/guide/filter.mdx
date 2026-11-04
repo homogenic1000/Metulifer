@@ -1,0 +1,64 @@
+---
+title: Filtre (VCF)
+description: Filtre passe-bas ou passe-haut TPT, cutoff 20 Hz – 20 kHz, par séquence.
+---
+
+## Deux modes exclusifs
+
+Le panneau **VCF** propose deux boutons mutuellement exclusifs :
+
+| Bouton | Paramètre `seqN_filter` | Comportement |
+|---|---|---|
+| **LPF** | `0` | passe-bas : laisse passer les fréquences sous le cutoff |
+| **HPF** | `1` | passe-haut : laisse passer les fréquences au-dessus du cutoff |
+
+Cliquer sur le bouton déjà actif ne fait rien : le choix est toujours exactement l'un des deux.
+
+## Cutoff
+
+| Paramètre | ID | Plage | Défaut |
+|---|---|---|---|
+| Cutoff | `seqN_cutoff` | 20 Hz – 20 000 Hz (skew 1 kHz) | 1 000 Hz |
+
+Le cutoff est **skewé** autour de 1 kHz : la zone musicalement utile (100 Hz – 5 kHz)
+occupe la majorité de la course du potentiomètre.
+
+<Callout type="warn" title="Limite de Nyquist">
+  La fréquence est bornée dans le code à `min(cutoff, sampleRate × 0.49)`.
+  À 44,1 kHz, le maximum effectif est donc ≈ 21,6 kHz ; à 96 kHz, le réglage
+  de 20 kHz reste inchangé.
+</Callout>
+
+## Implémentation
+
+Le filtre est un **State Variable TPT** (`juce::dsp::StateVariableTPTFilter<float>`),
+utilisé en mode low-pass ou high-pass :
+
+```cpp
+filter.setType (p.useLpf ? StateVariableTPTFilterType::lowpass
+                         : StateVariableTPTFilterType::highpass);
+filter.setCutoffFrequency (jlimit (20.0f, (float) (sampleRate * 0.49), p.cutoff));
+```
+
+Caractéristiques :
+
+- **topologie à variable d'état** (TPT / SVF) → réponse stable même à cutoff élevé ;
+- **1 canal** traité par voix (le signal est mono avant la reverb) ;
+- **aucune résonance exposée** pour l'instant (Q fixe) ;
+- le filtre est appliqué **après** la somme des deux VCO et **avant** le volume de séquence.
+
+## Ordre du signal
+
+```
+VCO1 ─┐
+      ├─ somme ×0,5 ─▶ VCF (LPF/HPF) ─▶ volume ─▶ reverb ─▶ sortie
+VCO2 ─┘
+```
+
+Le filtre est donc **par voix**, pas global : chaque séquence a son propre cutoff.
+Changer de séquence dans l'interface re-branche le knob **Cutoff** sur la nouvelle séquence.
+
+## Cible de modulation
+
+`cutoff` fait partie des destinations acceptées par les câbles LFO.
+Voir [LFO et câbles de modulation](/fr/docs/guide/lfo-modulation).

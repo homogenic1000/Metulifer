@@ -46,7 +46,8 @@ private:
 
     Sources sources;
     double sampleRate = 44100.0;
-    double accumulators[numSequences] {};
+    double masterAccumulator = 0.0;
+    int64_t globalStep = 0;
     int steps[numSequences] {};
     std::atomic<bool> playing { false };
     std::atomic<bool> pendingStart { false };

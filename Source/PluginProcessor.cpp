@@ -103,6 +103,46 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
         layout.add (std::make_unique<juce::AudioParameterFloat> (
             juce::ParameterID { id + "reverb_mix", 1 }, nm + "Reverb Mix",
             juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 30.0f, pctAttr));
+
+        // Delay
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "delay_enabled", 1 }, nm + "Delay Enabled", false));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "delay_time", 1 }, nm + "Delay Time",
+            juce::NormalisableRange<float> (20.0f, 1000.0f, 1.0f, 0.4f), 250.0f, msAttr));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "delay_feedback", 1 }, nm + "Delay Feedback",
+            juce::NormalisableRange<float> (0.0f, 90.0f, 1.0f), 40.0f, pctAttr));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "delay_mix", 1 }, nm + "Delay Mix",
+            juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 35.0f, pctAttr));
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "delay_pingpong", 1 }, nm + "Delay PingPong", true));
+
+        // Redux
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "redux_enabled", 1 }, nm + "Redux Enabled", false));
+        layout.add (std::make_unique<juce::AudioParameterInt> (
+            juce::ParameterID { id + "redux_bits", 1 }, nm + "Redux Bits", 2, 16, 8));
+        layout.add (std::make_unique<juce::AudioParameterInt> (
+            juce::ParameterID { id + "redux_rate", 1 }, nm + "Redux Rate", 1, 32, 4));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "redux_mix", 1 }, nm + "Redux Mix",
+            juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 50.0f, pctAttr));
+
+        // Arpeggiator
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "arp_enabled", 1 }, nm + "Arp Enabled", false));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "arp_mode", 1 }, nm + "Arp Mode",
+            juce::StringArray { "Up", "Down", "Up&Down", "Down&Up", "Pinky Up", "Pinky Down",
+                                "Thumb-Pinky", "Converge", "Diverge", "Random", "Order" }, 0));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "arp_chord", 1 }, nm + "Arp Chord",
+            juce::StringArray { "Major", "Minor", "Pentatonic", "Octaves", "Maj7", "Min7",
+                                "Dom7", "Sus4", "Fifths", "Chromatic" }, 1));
+        layout.add (std::make_unique<juce::AudioParameterInt> (
+            juce::ParameterID { id + "arp_octaves", 1 }, nm + "Arp Octaves", 1, 3, 1));
     }
 
     layout.add (std::make_unique<juce::AudioParameterInt> (
@@ -217,6 +257,19 @@ void MetuliferAudioProcessor::VoiceSources::bind (juce::AudioProcessorValueTreeS
     reverbEnabled = raw ("reverb_enabled");
     reverbMode    = raw ("reverb_mode");
     reverbMix     = raw ("reverb_mix");
+    delayEnabled  = raw ("delay_enabled");
+    delayTime     = raw ("delay_time");
+    delayFeedback = raw ("delay_feedback");
+    delayMix      = raw ("delay_mix");
+    delayPingpong = raw ("delay_pingpong");
+    reduxEnabled  = raw ("redux_enabled");
+    reduxBits     = raw ("redux_bits");
+    reduxRate     = raw ("redux_rate");
+    reduxMix      = raw ("redux_mix");
+    arpEnabled    = raw ("arp_enabled");
+    arpMode       = raw ("arp_mode");
+    arpChord      = raw ("arp_chord");
+    arpOctaves    = raw ("arp_octaves");
 }
 
 Voice::Params MetuliferAudioProcessor::VoiceSources::read() const
@@ -237,6 +290,22 @@ Voice::Params MetuliferAudioProcessor::VoiceSources::read() const
     p.reverbEnabled = v (reverbEnabled) > 0.5f;
     p.reverbMode    = (int) v (reverbMode);
     p.reverbMix     = v (reverbMix);
+
+    p.delayEnabled  = v (delayEnabled) > 0.5f;
+    p.delayTime     = v (delayTime);
+    p.delayFeedback = v (delayFeedback);
+    p.delayMix      = v (delayMix);
+    p.delayPingpong = v (delayPingpong) > 0.5f;
+
+    p.reduxEnabled  = v (reduxEnabled) > 0.5f;
+    p.reduxBits     = (int) v (reduxBits);
+    p.reduxRate     = (int) v (reduxRate);
+    p.reduxMix      = v (reduxMix);
+
+    p.arpEnabled    = v (arpEnabled) > 0.5f;
+    p.arpMode       = (int) v (arpMode);
+    p.arpChord      = (int) v (arpChord);
+    p.arpOctaves    = (int) v (arpOctaves);
     return p;
 }
 
@@ -296,6 +365,12 @@ MetuliferAudioProcessor::DestField MetuliferAudioProcessor::fieldForDest (const 
     if (suffix == "mix2")        return fMix2;
     if (suffix == "cutoff")      return fCutoff;
     if (suffix == "reverb_mix")  return fReverbMix;
+    if (suffix == "delay_time")  return fDelayTime;
+    if (suffix == "delay_feedback") return fDelayFeedback;
+    if (suffix == "delay_mix")   return fDelayMix;
+    if (suffix == "redux_bits")  return fReduxBits;
+    if (suffix == "redux_rate")  return fReduxRate;
+    if (suffix == "redux_mix")   return fReduxMix;
 
     return fInvalid;
 }
@@ -304,19 +379,25 @@ void MetuliferAudioProcessor::setField (Voice::Params& p, DestField field, float
 {
     switch (field)
     {
-        case fA1:        p.attack1   = value; break;
-        case fD1:        p.decay1    = value; break;
-        case fS1:        p.sustain1  = value; break;
-        case fR1:        p.release1  = value; break;
-        case fA2:        p.attack2   = value; break;
-        case fD2:        p.decay2    = value; break;
-        case fS2:        p.sustain2  = value; break;
-        case fR2:        p.release2  = value; break;
-        case fMix1:      p.mixDb1    = value; break;
-        case fMix2:      p.mixDb2    = value; break;
-        case fCutoff:    p.cutoff    = value; break;
-        case fReverbMix: p.reverbMix = juce::jlimit (0.0f, 100.0f, value); break;
-        case fInvalid:   break;
+        case fA1:            p.attack1   = value; break;
+        case fD1:            p.decay1    = value; break;
+        case fS1:            p.sustain1  = value; break;
+        case fR1:            p.release1  = value; break;
+        case fA2:            p.attack2   = value; break;
+        case fD2:            p.decay2    = value; break;
+        case fS2:            p.sustain2  = value; break;
+        case fR2:            p.release2  = value; break;
+        case fMix1:          p.mixDb1    = value; break;
+        case fMix2:          p.mixDb2    = value; break;
+        case fCutoff:        p.cutoff    = value; break;
+        case fReverbMix:     p.reverbMix = juce::jlimit (0.0f, 100.0f, value); break;
+        case fDelayTime:     p.delayTime = juce::jlimit (20.0f, 1000.0f, value); break;
+        case fDelayFeedback: p.delayFeedback = juce::jlimit (0.0f, 90.0f, value); break;
+        case fDelayMix:      p.delayMix = juce::jlimit (0.0f, 100.0f, value); break;
+        case fReduxBits:     p.reduxBits = juce::jlimit (2, 16, (int) std::round (value)); break;
+        case fReduxRate:     p.reduxRate = juce::jlimit (1, 32, (int) std::round (value)); break;
+        case fReduxMix:      p.reduxMix = juce::jlimit (0.0f, 100.0f, value); break;
+        case fInvalid:       break;
     }
 }
 
@@ -515,8 +596,13 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         voices[s].setParams (params[s]);
 
     if (engine.takePendingNoteOff())
+    {
         for (auto& voice : voices)
+        {
             voice.noteOff();
+            voice.resetArp();
+        }
+    }
 
     const auto& events = engine.process (numSamples);
 
@@ -566,6 +652,32 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
         rms.store (count > 0 ? std::sqrt (sumSquares / (float) count) : 0.0f,
                    std::memory_order_relaxed);
+    }
+
+    // Oscilloscope ring buffer (lock-free, realtime safe).
+    if (numChannels > 0)
+    {
+        const auto* l = buffer.getReadPointer (0);
+        const auto* r = numChannels > 1 ? buffer.getReadPointer (1) : l;
+        int writePos = scopeWriteIndex.load (std::memory_order_relaxed);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            scopeBuffer[writePos] = (l[i] + r[i]) * 0.5f;
+            writePos = (writePos + 1) % scopeBufferSize;
+        }
+        scopeWriteIndex.store (writePos, std::memory_order_release);
+    }
+}
+
+void MetuliferAudioProcessor::getScopeBuffer (float* dest, int numSamplesToRead) const
+{
+    const int count = juce::jmin (numSamplesToRead, scopeBufferSize);
+    const int writePos = scopeWriteIndex.load (std::memory_order_acquire);
+    int readPos = (writePos - count + scopeBufferSize) % scopeBufferSize;
+    for (int i = 0; i < count; ++i)
+    {
+        dest[i] = scopeBuffer[readPos];
+        readPos = (readPos + 1) % scopeBufferSize;
     }
 }
 

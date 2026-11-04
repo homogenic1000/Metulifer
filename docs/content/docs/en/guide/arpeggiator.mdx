@@ -1,0 +1,84 @@
+---
+title: Melodic Arpeggiator
+description: 11 algorithmic modes, 10 chords & scales, up to 3-octave span, and sample-accurate step-gated triggers.
+---
+
+Metulifer's **Arpeggiator** transforms rhythmic pulse sequences into evolving melodic lines.
+Each of the six sequencer lanes operates its own independent arpeggiator engine.
+
+## Operating Principles
+
+In Metulifer, the 32-step sequence grid establishes the **rhythm and gate**, while the arpeggiator calculates the **musical pitch** on each active step trigger:
+
+```
+Sequencer Steps :  [X]   .   [X]   [X]   .   [X]   .   [X]
+Rendered Pitches:   C1        G1    C2        E2        G2  (Up mode, Major chord)
+```
+
+<Callout type="info" title="Dual-Oscillator Interval Tracking">
+  When the arpeggiator shifts note pitch, the semitone offset is applied concurrently to both **VCO1** and **VCO2**, flawlessly preserving interval relationships (octave jumps, stacked fifths, or micro-detuning).
+</Callout>
+
+---
+
+## Arpeggiator Controls
+
+You can control the arpeggiator from two locations:
+1. **On Each Sequence Row**: A dedicated **ARP** toggle button (adjacent to Copy `C` and Paste `P`) switches the effect on/off instantly.
+2. **Inside SynthPanel**: A dedicated **ARP** column provides deep controls for the active sequence:
+
+| Control | Parameter | Range | Description |
+|---|---|---|---|
+| **On / Off** | `seqN_arp_enabled` | Bool | Master arpeggiator enable switch |
+| **Mode** | `seqN_arp_mode` | 11 modes | Stepping pattern and note order trajectory |
+| **Chord** | `seqN_arp_chord` | 10 scales / chords | Harmonic interval pool (Major, Minor, Pentatonic...) |
+| **Octaves** | `seqN_arp_octaves` | 1 – 3 | Expands the note pool across 1, 2, or 3 octaves |
+
+---
+
+## The 11 Algorithmic Modes
+
+Clicking the **Mode** button cycles through 11 melodic algorithms:
+
+| Mode | Algorithmic Trajectory |
+|---|---|
+| **Up** | Ascends from root to top: `0, 1, 2, 3...` then wraps. |
+| **Down** | Descends from high to root: `N-1, N-2, N-3...` |
+| **Up&Down** | Ascends to the peak then bounces downward: `0, 1, 2, 3, 2, 1, 0...` |
+| **Down&Up** | Descends to root then bounces upward: `N-1, N-2, 0, 1...` |
+| **Pinky Up** | Alternates the root note (thumb) with climbing scale notes: `0, 1, 0, 2, 0, 3, 0, 4...` |
+| **Pinky Down** | Alternates top peak note with descending scale notes: `N-1, N-2, N-1, N-3...` |
+| **Thumb-Pinky** | Bounces between extreme outer intervals: `0, N-1, 1, N-2, 2, N-3...` |
+| **Converge** | Inward movement starting from outer edges converging to center. |
+| **Diverge** | Outward movement starting from center spreading to extremes. |
+| **Random** | Non-repeating pseudo-random selection across the active chord pool. |
+| **Order** | Strictly steps through notes in the natural order of scale intervals. |
+
+<Callout type="tip" title="The 'Pinky Up' Groove">
+  **Pinky Up** is modeled after iconic 1980s synth-bass keyboard technique: your left thumb holds down the driving bass pedal while your pinky taps accent notes higher up the keyboard.
+</Callout>
+
+---
+
+## The 10 Chords and Scales
+
+Clicking the **Chord** button selects the harmonic palette:
+
+| Chord / Scale | Intervals (semitones) | Musical Mood |
+|---|---|---|
+| **Major** | `0, 4, 7, 12` | Bright, triumphant major triad |
+| **Minor** | `0, 3, 7, 12` | Dark, emotive minor triad |
+| **Pentatonic** | `0, 3, 5, 7, 10, 12` | Driving, versatile minor pentatonic scale |
+| **Octaves** | `0, 12, 24` | Pure octave leaps for bass stabs |
+| **Maj7** | `0, 4, 7, 11, 12` | Dreamy, lush major 7th chords for ambient & jazz |
+| **Min7** | `0, 3, 7, 10, 12` | Deep house, neo-soul minor 7th warmth |
+| **Dom7** | `0, 4, 7, 10, 12` | Gritty funk & blues dominant 7th color |
+| **Sus4** | `0, 5, 7, 12` | Suspended 4th, modern cinematic tension |
+| **Fifths** | `0, 7, 12, 19` | Power chords, great with Redux bitcrushing |
+| **Chromatic** | `0, 1, 2, ..., 12` | Full 12-tone chromatic spectrum |
+
+---
+
+## Metric Phasing with Polyrhythms
+
+When combining an arpeggiator pool with an uneven count (e.g., **Min7** across 2 octaves = 9 notes) with a 16-step sequence, the melody naturally shifts across measures, producing evolving non-looping lines without needing complex generative tools.

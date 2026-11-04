@@ -1,0 +1,100 @@
+---
+title: Interface and display
+description: Map of the 1280 × 720 UI, OLED screen, pagination and component inspector.
+---
+
+## UI map
+
+The editor is **1280 × 720** and places its panels at absolute coordinates
+(`resized()` in `Source/PluginEditor.cpp`).
+
+| Panel | Position (x, y) | Size |
+|---|---|---|
+| Sequencer (6 rows with ARP toggles) | 32, 32 | 910 × 417 |
+| OLED display | 986, 32 | 247 × 132 |
+| CLOCK | 961, 164 | 297 × 284 |
+| Synth (2 VCO, 2 ADSR, Mix, ARP controls) | 32, 458 | 786 × 237 |
+| VCF (LPF/HPF filter) | 684, 471 | 105 × 224 |
+| LFO 1 | 874, 471 | 105 × 224 |
+| LFO 2 | 1013, 471 | 105 × 224 |
+| Multi-FX (Tabs: REV, DLY, RDX) | 1144, 471 | 105 × 224 |
+| **Inspect** button | 1188, 8 | 60 × 18 |
+
+The `CableLayer` covers the whole window (0, 0, 1280, 720) but its `hitTest()` only
+returns `true` near a jack or a cable: clicks pass through everywhere else.
+
+## The OLED display
+
+Three display modes, driven by a **30 Hz** `Timer`:
+
+| Mode | Content | Duration |
+|---|---|---|
+| **Signal** (default) | sequence number + output RMS bar | permanent |
+| **Parameter** | parameter name + value + unit (e.g. `attack 120 ms`) | 2 s after a change |
+| **Message** | free text (e.g. `seq 3 volume 80 %`, `octave 1`) | 2 s |
+
+It returns to signal mode automatically after **2 seconds** of inactivity
+(`paramShownUntilMs`). RMS is computed on the audio thread and read lock-free by the
+UI (`std::atomic<float> rms`).
+
+## Pagination by selection
+
+A single set of knobs serves all six sequences:
+
+- clicking a row calls `bindSequence(index)`;
+- the synth, arpeggiator, VCF and Multi-FX `SliderAttachment`s are **destroyed and recreated** on the
+  `seqN_*` parameters of the chosen sequence;
+- an `updatingBindings` flag prevents stale display during re-binding;
+- LPF/HPF, Multi-FX On/Off, PingPong, Redux On/Off, ARP On/Off, Mode and Chord buttons are synchronised through parameter listeners,
+  so they also follow **host automation**.
+
+<Callout type="info" title="Tempo, length, volume">
+  These controls are **not** re-bound: each has its own permanent attachment,
+  because they belong to a specific row (or to the project for tempo).
+</Callout>
+
+## Component inspector
+
+The plugin embeds **melatonin_inspector**. Two ways to open it:
+
+- **⌘I** shortcut;
+- the **Inspect** button, top-right.
+
+The inspector lets you:
+
+- select any component by clicking it;
+- edit bounds, colours and margins live;
+- browse the component tree and check `LookAndFeel`s;
+- undo changes (wired to the processor's `undoManager`).
+
+<Callout type="warn" title="Development tool">
+  The inspector is compiled into every configuration. It has no impact on DSP but remains
+  a debugging tool: disabling it for a public release means removing the
+  `melatonin::Inspector` instance from the editor.
+</Callout>
+
+## “Hardware” theme
+
+The UI does not use the default LookAndFeel:
+
+- `MetuliferLookAndFeel` draws **hardware potentiometers** (groove, value arc,
+  brushed metal body, needle) and **tactile buttons** with normal / hover / down states;
+- the arc colour depends on the control type (amber for tempo/reverb, cyan for cutoff,
+  blue for volume, violet for mix, sky for ADSR);
+- step buttons show their number and visually group 4/4 downbeats.
+
+See [UI and skinning](/en/docs/architecture/ui-skin) to replace these drawings with assets.
+
+## Shortcuts and helpers
+
+| Action | Interaction |
+|---|---|
+| Select a sequence | click the row |
+| Toggle a step | click the square |
+| Show a parameter on screen | drag a knob, mouse wheel, or click a button |
+| Create an LFO cable | drag from the jack to a knob |
+| Delete a cable | click the cable |
+| Open the inspector | `⌘I` |
+| Play / stop | **Play** button in the CLOCK panel |
+
+Most buttons carry an explanatory **tooltip** (one-second hover).

@@ -1,0 +1,79 @@
+---
+title: Sequencer & State Management
+description: Polyrhythmic clock engine, sub-block sample-accurate event scheduling, and full project persistence.
+---
+
+The sequencer engine (`Source/Sequencer/SequencerEngine.{h,cpp}`) drives step triggering and playhead animations.
+It provides clock-tight synchronization while enabling complete metric independence across the 6 lanes.
+
+## Clock Engine Architecture
+
+The timing grid is governed by the global `tempo` parameter (BPM):
+
+```
+samplesPerStep = (sampleRate * 60.0) / (tempo * 4.0)
+```
+
+Each step corresponds to a **sixteenth note** (1/16th note division).
+
+### 6-Lane Polyrhythmic Independence
+Unlike traditional synthesizers where a single master counter resets all tracks, each sequence `s` tracks its own fractional sample phase and its own loop length `L_s` between 1 and 32 steps:
+
+```
+Sequence 1 (length 16): | 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 | 0  1 ...
+Sequence 2 (length  7): | 0  1  2  3  4  5  6 | 0  1  2  3  4  5  6 | 0  1  2 ...
+Sequence 3 (length  5): | 0  1  2  3  4 | 0  1  2  3  4 | 0  1  2  3  4 | ...
+```
+
+Patterns slip and intertwine, generating evolving polyrhythms with zero sample drift.
+
+---
+
+## Sub-Block Event Slicing (`process`)
+
+To eliminate timing jitter caused by variable audio host buffer sizes (e.g., 256, 512, or 1024 samples), the engine slices each audio buffer at exact sample boundaries:
+
+```cpp
+struct StepEvent
+{
+    int sampleOffset;    // Precise sample index inside the block [0, numSamples - 1]
+    int sequenceIndex;   // Targeted sequence (0..5)
+    bool gateOn;         // true = noteOn trigger, false = noteOff
+};
+```
+
+When a step boundary is crossed:
+1. A `gateOff` event releases the prior active note.
+2. If the active step is enabled in the sequence bitmask (`(mask & (1 << step)) != 0`), a `gateOn` event is queued with its exact intra-buffer sample offset.
+3. `Voice::renderSegment()` renders audio slices between successive event offsets.
+
+---
+
+## Plugin State Serialization
+
+Metulifer persists complete plugin state during DAW project saves or preset archiving via `getStateInformation()` and restores it via `setStateInformation()`.
+
+State data is organized into a hierarchical `juce::ValueTree`:
+
+```xml
+<MetuliferState version="1">
+    <!-- APVTS: 209 automatable parameters -->
+    <PARAM id="tempo" value="128.0" />
+    <PARAM id="seq1_cutoff" value="1850.0" />
+    ...
+    <!-- Step bitmasks: 6 sequences x 32 bits -->
+    <steps p0="0x80808080" p1="0x01010101" p2="0x00FF00FF"
+           p3="0xAAAAAAAA" p4="0x55555555" p5="0x00000001" />
+
+    <!-- LFO patch cables -->
+    <mod>
+        <cable src="0" dest="seq1_cutoff" />
+        <cable src="1" dest="seq1_mix1" />
+    </mod>
+</MetuliferState>
+```
+
+### Architectural Benefits of Tree Segregation
+1. **Clean DAW Automation**: 192 step toggles and dynamic patch cables do not pollute DAW automation tracks.
+2. **Binary Performance**: The XML tree is serialized to compressed binary with `juce::copyXmlToBinary` for zero-overhead disk I/O.
+3. **Backward Compatibility**: New schema nodes can be introduced safely without breaking older session files.

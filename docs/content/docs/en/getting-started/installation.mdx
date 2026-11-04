@@ -1,0 +1,113 @@
+---
+title: Installation
+description: Requirements, Projucer regeneration and building the VST3, AU and Standalone targets.
+---
+
+## Requirements
+
+| Tool | Version / note |
+|---|---|
+| **macOS** | 12.0 minimum (the `.jucer` `macOSDeploymentTarget`) |
+| **Xcode** | App Store version, with the license accepted |
+| **JUCE** | Full module set (including `juce_dsp`), usually `~/JUCE/modules` |
+| **Projucer** | Shipped with JUCE (`/Applications/Projucer.app` or `~/JUCE/Projucer.app`) |
+| **Git** | To clone the repository and its submodule |
+
+<Callout type="warn" title="melatonin_inspector submodule">
+  The UI inspector is a git submodule. After a fresh clone:
+
+  ```bash
+  git submodule update --init --recursive
+  ```
+</Callout>
+
+## Get the project
+
+```bash
+git clone <repo-url> Metulifer
+cd Metulifer
+git submodule update --init --recursive
+```
+
+## Regenerate the Projucer files
+
+`JuceLibraryCode/` and `Builds/` are **not** versioned: they are regenerated from
+`Metulifer.jucer`, the project's source of truth.
+
+**One-time setup** — adds a `Projucer` alias that auto-detects the app location:
+
+```bash
+printf '\nfor p in "$HOME/JUCE/Projucer.app" /Applications/Projucer.app "$HOME/Downloads/JUCE/Projucer.app"; do [ -x "$p/Contents/MacOS/Projucer" ] && alias Projucer="$p/Contents/MacOS/Projucer" && break; done\n' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Then, **after every `.jucer` change**:
+
+```bash
+Projucer --resave Metulifer.jucer
+```
+
+Without the alias:
+
+```bash
+/Applications/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer
+```
+
+## Build
+
+### With Xcode
+
+1. Open `Builds/MacOSX/Metulifer.xcodeproj`.
+2. Pick a scheme:
+   - `Metulifer - Standalone Plugin` — standalone test app,
+   - `Metulifer - VST3`,
+   - `Metulifer - AU`,
+   - `Metulifer - All` — all three at once.
+3. `⌘R` to build and run.
+
+### From the command line
+
+```bash
+xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
+  -scheme "Metulifer - Standalone Plugin" \
+  -configuration Debug build
+```
+
+Binaries land in `Builds/MacOSX/build/Debug/`:
+
+| File | Target |
+|---|---|
+| `Metulifer.app` | Standalone app |
+| `Metulifer.vst3` | VST3 plugin |
+| `Metulifer.component` | Audio Unit component |
+
+<Callout type="warn" title="xcodebuild missing or wrong developer dir">
+  If `xcodebuild` reports *“requires Xcode, but active developer directory is a command line tools instance”*:
+
+  ```bash
+  sudo xcode-select -s /Applications/Xcode.app
+  # or, without sudo, for a single command:
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild ...
+  ```
+</Callout>
+
+## Install into a DAW
+
+Copy the Release binaries to the system folders, then restart the DAW
+(or clear its plugin cache):
+
+```bash
+cp -R Builds/MacOSX/build/Release/Metulifer.vst3 ~/Library/Audio/Plug-Ins/VST3/
+cp -R Builds/MacOSX/build/Release/Metulifer.component ~/Library/Audio/Plug-Ins/Components/
+```
+
+## Build troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `MACOSX_DEPLOYMENT_TARGET` too old | Recent Xcode SDK | keep `12.0` in the `.jucer` |
+| JUCE module not found | Missing JUCE path | check `~/JUCE/modules` or the `MODULEPATH` |
+| Missing files (`JuceHeader.h`) | `Builds/` or `JuceLibraryCode/` absent | run `Projucer --resave` |
+| `melatonin_inspector` not found | Submodule not initialised | `git submodule update --init --recursive` |
+
+See also [Troubleshooting](/en/docs/reference/troubleshooting).

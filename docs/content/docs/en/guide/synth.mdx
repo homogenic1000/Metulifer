@@ -1,0 +1,104 @@
+---
+title: Synth
+description: Two VCOs, two ADSRs, dB mix and gain staging — the synth dedicated to each sequence.
+---
+
+## One synth per sequence
+
+Every sequence owns **its own `Voice` instance** (`Source/DSP/Voice`).
+Important consequence: a sequence is **monophonic** — it plays one note at a time.
+The plugin can therefore produce up to **6 simultaneous notes**, one per sequence.
+
+```
+Voice (per sequence)
+├── VCO 1 ─▶ ADSR 1 ─▶ gain (mix1)
+├── VCO 2 ─▶ ADSR 2 ─▶ gain (mix2)
+│       sum × 0.5 ─▶ TPT filter ─▶ volume ─▶ reverb ─▶ stereo out
+```
+
+## The two VCOs
+
+| Parameter | IDs | Range | Default |
+|---|---|---|---|
+| Octave | `seqN_octave1`, `seqN_octave2` | −2 … +2 (lever, 5 positions) | 0 |
+| Note | `seqN_note1`, `seqN_note2` | 0 … 11 (C … B) | 0 (C) |
+| Waveform | `seqN_wave1`, `seqN_wave2` | Sine / Saw / Square / Triangle | Saw |
+
+Frequency is computed from **C3 = 130.81 Hz**:
+
+```
+freq = 130.81 × 2^(octave + note / 12)
+```
+
+Examples: `octave 0, note 0` → 130.81 Hz (C3) · `octave +1, note 7` → 392.00 Hz (G4).
+
+<Callout type="info" title="Anti-aliasing">
+  Saw and Square use **polyBLEP**: transitions are smoothed to strongly reduce
+  spectral aliasing, without wavetables. Sine and Triangle are computed directly
+  (no discontinuity).
+</Callout>
+
+### The octave lever
+
+The vertical lever (`Source/UI/Lever`) has **5 positions**: +2, +1, 0, −1, −2.
+It is bound to `seqN_octaveN` through a `ParameterAttachment`, so it is:
+
+- **automatable** by the DAW;
+- **undoable**;
+- saved with the plugin state.
+
+### The Note knob
+
+12 positions, from C to B. Combined with the lever, it spans 5 octaves × 12 semitones.
+No MIDI input yet: pitch comes only from these two controls.
+
+## The two ADSRs
+
+**One ADSR per VCO**: VCO1 → ADSR1, VCO2 → ADSR2.
+
+| Parameter | IDs | Range | Default |
+|---|---|---|---|
+| Attack | `seqN_a1`, `seqN_a2` | 0 – 5,000 ms (skew 500) | 5 ms |
+| Decay | `seqN_d1`, `seqN_d2` | 0 – 5,000 ms (skew 500) | 200 ms |
+| Sustain | `seqN_s1`, `seqN_s2` | 0 – 100 % | 70 % |
+| Release | `seqN_r1`, `seqN_r2` | 0 – 5,000 ms (skew 500) | 300 ms |
+
+Each active step triggers `noteOn()` on the voice; an inactive step triggers `noteOff()`.
+The release tail keeps ringing after the step, which gives the natural legato between
+close steps.
+
+## Mix and gain staging
+
+| Parameter | IDs | Range | Default |
+|---|---|---|---|
+| Mix VCO1 | `seqN_mix1` | −60 … +6 dB | 0 dB |
+| Mix VCO2 | `seqN_mix2` | −60 … +6 dB | 0 dB |
+| Volume | `seqN_volume` | 0 – 100 % | 80 % |
+
+Three safeguards prevent clipping:
+
+1. **Normalised sum**: `(VCO1 × mix1 + VCO2 × mix2) × 0.5`
+   → two oscillators at 0 dB sum to 0 dBFS, not +6 dBFS.
+2. **Hard mute**: `mix <= −59 dB` ⇒ gain exactly `0.0`.
+3. **Volume at 0**: the voice mutes its output and resets the reverb (true silence).
+
+Finally, `processBlock` applies a **global ×0.5 headroom** and a **soft `tanh()`
+saturation**, guaranteeing an analogue-style ceiling without hard converter clipping.
+
+<Callout type="warn" title="Output level">
+  If the signal still clips in your DAW, lower `seqN_volume` first, then the `mix` values,
+  instead of compensating on the host master.
+</Callout>
+
+## Full voice chain
+
+| Step | Code | Detail |
+|---|---|---|
+| 1 | `WaveOsc::next()` | generates the sample (polyBLEP for saw/square) |
+| 2 | `ADSR::applyEnvelopeToBuffer` | applies the envelope to the mono scratch buffer |
+| 3 | `applyGain` | applies the dB mix |
+| 4 | sum × 0.5 | normalises the VCO pair |
+| 5 | `StateVariableTPTFilter` | LPF or HPF (see [Filter](/en/docs/guide/filter)) |
+| 6 | `applyGain(volume)` | sequence volume |
+| 7 | stereo reverb | see [Reverb](/en/docs/guide/reverb) |
+| 8 | `addFrom` | sums into the output buffer |

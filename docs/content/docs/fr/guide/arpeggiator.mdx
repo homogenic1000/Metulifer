@@ -1,0 +1,84 @@
+---
+title: Arpégiateur Mélodique
+description: 11 modes d'arpège, 10 gammes et accords, extension sur 3 octaves et déclenchement rythmique par pas.
+---
+
+L'**arpégiateur** de Metulifer transforme n'importe quelle séquence rythmique en motif mélodique évolutif.
+Chacune des six séquences dispose de son propre moteur d'arpège indépendant.
+
+## Principe de fonctionnement
+
+Dans Metulifer, la rangée de pas du séquenceur définit le **rythme (gate)**, tandis que l'arpégiateur calcule la **hauteur de chaque note** à chaque pas actif :
+
+```
+Pas du séquenceur :  [X]   .   [X]   [X]   .   [X]   .   [X]
+Notes produites   :   C1        G1    C2        E2        G2  (Mode Up, Major)
+```
+
+<Callout type="info" title="Respect de la polyphonie interne">
+  Lorsque l'arpégiateur transpose la note, il applique le décalage simultanément à **VCO1** et **VCO2**, conservant intacts les intervalles d'octave ou de quinte réglés entre les deux oscillateurs.
+</Callout>
+
+---
+
+## Commandes de l'arpégiateur
+
+L'arpégiateur se pilote à deux endroits :
+1. **Sur la rangée de séquence** : Un bouton **ARP** dédié (situé à côté des boutons Copy `C` et Paste `P`) permet d'activer ou désactiver l'effet instantanément pour la piste.
+2. **Dans le panneau Synthé** : Une colonne complète **ARP** propose les réglages détaillés pour la séquence sélectionnée :
+
+| Contrôle | Paramètre | Plage | Description |
+|---|---|---|---|
+| **On / Off** | `seqN_arp_enabled` | Bool | Active ou désactive le mode arpégiateur |
+| **Mode** | `seqN_arp_mode` | 11 modes | Direction et schéma algorithmique de parcours |
+| **Chord** | `seqN_arp_chord` | 10 gammes / accords | Réservoir de notes et intervalles harmoniques |
+| **Octaves** | `seqN_arp_octaves` | 1 – 3 | Étend la progression sur 1, 2 ou 3 octaves consécutives |
+
+---
+
+## Les 11 modes algorithmiques
+
+En cliquant sur le bouton **Mode**, vous parcourez les 11 trajectoires mélodiques :
+
+| Mode | Algorithme et parcours des notes |
+|---|---|
+| **Up** | Monte du grave vers l'aigu : `0, 1, 2, 3...` puis recommence. |
+| **Down** | Descend de l'aigu vers le grave : `N-1, N-2, N-3...` |
+| **Up&Down** | Monte jusqu'au sommet puis redescend : `0, 1, 2, 3, 2, 1, 0...` |
+| **Down&Up** | Descend vers la fondamentale puis remonte : `N-1, N-2, 0, 1...` |
+| **Pinky Up** | Alterne la fondamentale (pouce) avec les notes montantes : `0, 1, 0, 2, 0, 3, 0, 4...` |
+| **Pinky Down** | Alterne la note la plus haute avec les notes descendantes : `N-1, N-2, N-1, N-3...` |
+| **Thumb-Pinky** | Alterne entre les extrémités (grave / aigu) : `0, N-1, 1, N-2, 2, N-3...` |
+| **Converge** | Converge des bords extérieurs vers le centre mélodique. |
+| **Diverge** | Part du centre mélodique et s'étend vers les extrêmes graves et aigus. |
+| **Random** | Sélection aléatoire d'une note parmi le réservoir harmonique. |
+| **Order** | Joue les notes dans l'ordre strict de la gamme choisie. |
+
+<Callout type="tip" title="Le style 'Pinky Up'">
+  Le mode **Pinky Up** est inspiré de la technique de synthé basse des années 80 : il martèle la note fondamentale (le « pouce ») tout en faisant jaillir les accents mélodiques supérieurs (l'« auriculaire »).
+</Callout>
+
+---
+
+## Les 10 gammes et accords
+
+Le bouton **Chord** permet de sélectionner le réservoir harmonique :
+
+| Gamme / Accord | Intervalles (en demi-tons) | Couleur musicale |
+|---|---|---|
+| **Major** | `0, 4, 7, 12` | Triade majeure lumineuse |
+| **Minor** | `0, 3, 7, 12` | Triade mineure mélancolique |
+| **Pentatonic** | `0, 3, 5, 7, 10, 12` | Pentatonique mineure percutante et polyvalente |
+| **Octaves** | `0, 12, 24` | Pur saut d'octaves percussif |
+| **Maj7** | `0, 4, 7, 11, 12` | Accord majeur septième sophistiqué, ambient, jazz |
+| **Min7** | `0, 3, 7, 10, 12` | Accord mineur septième deep house et néo-soul |
+| **Dom7** | `0, 4, 7, 10, 12` | Accord 7e de dominante blues et funk |
+| **Sus4** | `0, 5, 7, 12` | Quarte suspendue, tension spatiale moderne |
+| **Fifths** | `0, 7, 12, 19` | Quintes superposées (Power chords), puissant en distorsion |
+| **Chromatic** | `0, 1, 2, ..., 12` | Gamme chromatique complète (12 demi-tons) |
+
+---
+
+## Combinaison avec la polyrythmie
+
+En combinant un arpégiateur réglé sur une longueur de réservoir impaire (par exemple **Maj7** avec 5 notes sur 2 octaves = 9 notes) avec une séquence de 16 pas, le motif mélodique se déphase naturellement à chaque mesure, générant des mélodies organiques non répétitives.

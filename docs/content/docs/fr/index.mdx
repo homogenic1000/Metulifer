@@ -1,0 +1,73 @@
+---
+title: Metulifer
+description: Séquenceur numérique 6 pistes avec un synthé dédié par séquence — plugin audio JUCE (VST3 / AU / Standalone).
+---
+
+**Metulifer** est un séquenceur numérique à pas développé avec JUCE pour le fabricant **Saumure**.
+Il réunit **six séquences programmables indépendantes**, chacune disposant de **son propre synthé** :
+deux VCO, deux ADSR, un filtre VCF, un processeur Multi-FX (Reverb, Delay, Redux), un arpégiateur 11 modes et deux LFO câblables.
+
+<Cards>
+  <Card title="Démarrer en 5 minutes" href="/fr/docs/getting-started/quick-start">
+    Compiler le plugin, activer quelques pas et entendre le premier son.
+  </Card>
+  <Card title="Comprendre l'architecture" href="/fr/docs/architecture/overview">
+    Processor / Editor, APVTS, moteur de séquence et flux du signal.
+  </Card>
+  <Card title="Référence des paramètres" href="/fr/docs/architecture/parameters">
+    Les 209 paramètres automatisables, leurs plages et leurs valeurs par défaut.
+  </Card>
+</Cards>
+
+## Ce que fait le plugin
+
+| Bloc | Rôle |
+|---|---|
+| **Séquenceur** | 6 séquences de 32 pas maximum, longueur et tempo indépendants par séquence (polyrythmie) |
+| **Synthé** | Par séquence : 2 VCO (sine / saw / square / triangle), 2 ADSR, mix en dB |
+| **Arpégiateur** | 11 modes algorithmiques (Up, Down, Pinky Up...), 10 gammes/accords, étalement sur 1 à 3 octaves |
+| **VCF** | Filtre passe-bas ou passe-haut (TPT) avec cutoff 20 Hz – 20 kHz |
+| **Multi-FX** | Processeur 3-en-1 par séquence : Reverb (Room/Hall), Delay ping-pong saturé et Redux bitcrusher |
+| **Modulation** | 2 LFO (rate, forme, offset, profondeur) reliés aux potentiomètres par des câbles virtuels |
+| **Écran** | Retour visuel OLED : séquence sélectionnée, paramètre touché, niveau RMS de sortie |
+| **Inspection** | Inspecteur de composants visuel Melatonin intégré (`⌘I` ou bouton Inspect) |
+
+## État du projet
+
+- ✅ Séquenceur, synthèse, filtre, Multi-FX (Reverb + Delay + Redux), Arpégiateur, LFO et câbles de modulation fonctionnels.
+- ✅ 209 paramètres automatisables déclarés et synchronisés dans l'APVTS.
+- ✅ Banc de tests automatisé validé avec succès par **pluginval** (niveaux 5 et 8).
+- ✅ Inspecteur graphique Melatonin Inspector intégré pour le réglage fin des composants.
+- ✅ Interface complète 1280 × 720, thème « hardware » vectoriel, prête pour le skinning 3D sous Blender.
+- ✅ Build VST3 / AU / Standalone sur macOS 12+ (Apple Silicon et Intel x86_64).
+
+<Callout type="info" title="Deux langues">
+  Cette documentation existe en français (`/fr/docs`) et en anglais (`/en/docs`).
+  Le sélecteur de langue est dans l'en-tête.
+</Callout>
+
+## Par où commencer
+
+<Steps>
+  <Step>
+    ### Installer les prérequis
+
+    JUCE, Xcode et Projucer. Voir [Installation](/fr/docs/getting-started/installation).
+  </Step>
+  <Step>
+    ### Compiler le plugin
+
+    `Projucer --resave` puis `xcodebuild` (ou Xcode). Le mode **Standalone** suffit pour tester.
+  </Step>
+  <Step>
+    ### Faire sonner une séquence
+
+    Activer des pas sur une rangée, cliquer sur **Play**. Voir [Premier son](/fr/docs/getting-started/quick-start).
+  </Step>
+</Steps>
+
+## Conventions de cette documentation
+
+- Les chemins de fichiers sont relatifs à la racine du dépôt.
+- `Source/` est le seul dossier de code à modifier ; `Builds/` et `JuceLibraryCode/` sont générés par le Projucer.
+- Les identifiants de paramètres sont écrits en `code` : `seq1_cutoff`, `lfo2_depth`, `tempo`…

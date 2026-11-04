@@ -1,0 +1,64 @@
+---
+title: Tests et Validation
+description: Validation automatisée pluginval (niveaux 5 et 8), inspecteur visuel Melatonin et protocole de test.
+---
+
+La fiabilité et la stabilité de Metulifer reposent sur une suite d'outils de test professionnels pour plugins audio : **pluginval** pour les bancs d'essai DSP/Host et **Melatonin Inspector** pour le débogage de l'interface graphique.
+
+## 1. Validation automatisée avec `pluginval`
+
+[pluginval](https://github.com/Tracktion/pluginval) est l'outil standard de l'industrie audio pour tester la conformité VST3 et AU vis-à-vis des spécifications des hôtes (DAW).
+
+### Exécuter les tests en ligne de commande
+
+```bash
+# Niveau de sévérité standard (Level 5)
+/Applications/pluginval.app/Contents/MacOS/pluginval \
+  --validate "/Users/mathoodelessert/Library/Audio/Plug-Ins/VST3/Metulifer.vst3" \
+  --strictness-level 5
+
+# Niveau de sévérité poussé (Level 8 - stress test automation & buffer sizes)
+/Applications/pluginval.app/Contents/MacOS/pluginval \
+  --validate "/Users/mathoodelessert/Library/Audio/Plug-Ins/VST3/Metulifer.vst3" \
+  --strictness-level 8
+```
+
+### Ce qui est testé par pluginval
+1. **Ouverture à froid et à chaud** de l'éditeur sans fuite mémoire ni blocage de thread.
+2. **Traitement audio multi-fréquences** : Validation à 44,1 kHz, 48 kHz et 96 kHz sur des tailles de blocs de 64, 128, 256, 512 et 1024 échantillons.
+3. **Robustesse de l'automatisation** : Envoi de rampes d'automatisation rapides sur les 209 paramètres simultanés sans instabilité numérique.
+4. **Sauvegarde et restauration d'état** : Vérification que `getStateInformation` et `setStateInformation` rétablissent l'intégralité des réglages à l'identique.
+5. **Gestion des bus audio** : Vérification des topologies de canaux stéréo et mono.
+
+---
+
+## 2. Débogage visuel avec Melatonin Inspector
+
+Metulifer intègre la bibliothèque open-source [Melatonin Inspector](https://github.com/sudara/melatonin_inspector) pour inspecter l'arbre des composants JUCE directement dans l'application en cours d'exécution.
+
+### Utilisation dans le plugin
+1. Lancez la version Standalone ou ouvrez le plugin dans votre DAW.
+2. Cliquez sur le bouton **Inspect** situé en haut à droite à côté du logo.
+3. Une fenêtre flottante s'ouvre, affichant :
+   - L'arbre complet des composants (`SequencerPanel`, `SynthPanel`, `MultiFX`, etc.).
+   - Les dimensions exactes (`x, y, width, height`) et les marges internes.
+   - Les couleurs, polices de caractères et états de visibilité.
+   - Un survol à la souris qui met en surbrillance rouge le composant ciblé dans l'interface principale.
+
+<Callout type="info" title="Compilation de production">
+  Melatonin Inspector peut être activé en mode debug et désactivé lors de la compilation finale de release si souhaité.
+</Callout>
+
+---
+
+## 3. Protocole de test manuel avant livraison
+
+Avant chaque validation de version :
+
+- [ ] **Compilation propre** : `xcodebuild` sans aucun warning ni erreur.
+- [ ] **pluginval Level 5** : Résultat `SUCCESS` avec 0 échec.
+- [ ] **Test Standalone** : Lancer `Metulifer.app`, vérifier la réactivité audio et les potentiomètres.
+- [ ] **Test DAW réel** : Insérer dans Reaper, Ableton Live ou Logic Pro :
+  - Vérifier la synchronisation tempo du transport.
+  - Vérifier l'automatisation d'un paramètre (ex. `seq1_cutoff`).
+  - Sauvegarder la session du DAW, la fermer, la réouvrir : s'assurer que les pas et les câbles sont fidèlement restaurés.

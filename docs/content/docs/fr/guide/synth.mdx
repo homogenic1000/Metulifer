@@ -1,0 +1,104 @@
+---
+title: Synthé
+description: Deux VCO, deux ADSR, mix en dB et gain staging — le synthé dédié à chaque séquence.
+---
+
+## Un synthé par séquence
+
+Chaque séquence possède **sa propre instance de `Voice`** (`Source/DSP/Voice`).
+Conséquence importante : une séquence est **monophonique** — elle joue une note à la fois.
+Le plugin peut donc produire jusqu'à **6 notes simultanées**, une par séquence.
+
+```
+Voice (par séquence)
+├── VCO 1 ─▶ ADSR 1 ─▶ gain (mix1)
+├── VCO 2 ─▶ ADSR 2 ─▶ gain (mix2)
+│        somme × 0.5 ─▶ filtre TPT ─▶ volume ─▶ reverb ─▶ sortie stéréo
+```
+
+## Les deux VCO
+
+| Paramètre | IDs | Plage | Défaut |
+|---|---|---|---|
+| Octave | `seqN_octave1`, `seqN_octave2` | −2 … +2 (levier, 5 crans) | 0 |
+| Note | `seqN_note1`, `seqN_note2` | 0 … 11 (C … B) | 0 (C) |
+| Forme d'onde | `seqN_wave1`, `seqN_wave2` | Sine / Saw / Square / Triangle | Saw |
+
+La fréquence se calcule sur une base **C3 = 130,81 Hz** :
+
+```
+freq = 130.81 × 2^(octave + note / 12)
+```
+
+Exemples : `octave 0, note 0` → 130,81 Hz (C3) · `octave +1, note 7` → 392,00 Hz (G4).
+
+<Callout type="info" title="Anti-aliasing">
+  Saw et Square sont générés avec **polyBLEP** : les transitions sont adoucies pour
+  réduire fortement le repliement spectral, sans table d'ondes.
+  Sine et Triangle sont calculés directement (pas de discontinuité).
+</Callout>
+
+### Le levier d'octave
+
+Le levier vertical (`Source/UI/Lever`) a **5 positions** : +2, +1, 0, −1, −2.
+Il est relié au paramètre `seqN_octaveN` via un `ParameterAttachment`, donc :
+
+- il est **automatisable** par le DAW ;
+- il est **annulable** (undo) ;
+- sa valeur est sauvegardée avec l'état.
+
+### Le knob Note
+
+12 crans, de C à B. Combiné au levier, il couvre 5 octaves × 12 demi-tons.
+Pas d'entrée MIDI pour l'instant : la hauteur vient uniquement de ces deux contrôles.
+
+## Les deux ADSR
+
+**Un ADSR par VCO** : VCO1 → ADSR1, VCO2 → ADSR2.
+
+| Paramètre | IDs | Plage | Défaut |
+|---|---|---|---|
+| Attack | `seqN_a1`, `seqN_a2` | 0 – 5 000 ms (skew 500) | 5 ms |
+| Decay | `seqN_d1`, `seqN_d2` | 0 – 5 000 ms (skew 500) | 200 ms |
+| Sustain | `seqN_s1`, `seqN_s2` | 0 – 100 % | 70 % |
+| Release | `seqN_r1`, `seqN_r2` | 0 – 5 000 ms (skew 500) | 300 ms |
+
+Chaque pas actif déclenche `noteOn()` sur la voix ; un pas inactif déclenche `noteOff()`.
+La queue de release continue donc de sonner après le pas — c'est ce qui donne le lié
+naturel entre deux pas rapprochés.
+
+## Mix et gain staging
+
+| Paramètre | IDs | Plage | Défaut |
+|---|---|---|---|
+| Mix VCO1 | `seqN_mix1` | −60 … +6 dB | 0 dB |
+| Mix VCO2 | `seqN_mix2` | −60 … +6 dB | 0 dB |
+| Volume | `seqN_volume` | 0 – 100 % | 80 % |
+
+Trois garde-fous ont été ajoutés pour éviter l'écrêtage :
+
+1. **Somme normalisée** : `(VCO1 × mix1 + VCO2 × mix2) × 0.5`
+   → deux oscillateurs à 0 dB somment à 0 dBFS, pas +6 dBFS.
+2. **Mute franc** : `mix <= −59 dB` ⇒ gain exactement `0.0`.
+3. **Volume à 0** : la voix coupe la sortie et réinitialise la reverb (silence parfait).
+
+Enfin, le `processBlock` applique un **headroom global ×0.5** puis une **saturation douce
+`tanh()`**, ce qui garantit un plafond analogique sans écrêtage dur du convertisseur.
+
+<Callout type="warn" title="Niveau de sortie">
+  Si le signal sature encore dans le DAW, baisser d'abord `seqN_volume`,
+  puis les `mix`, plutôt que de compenser sur le master du host.
+</Callout>
+
+## Chaîne complète d'une voix
+
+| Étape | Code | Détail |
+|---|---|---|
+| 1 | `WaveOsc::next()` | génère l'échantillon (polyBLEP pour saw/square) |
+| 2 | `ADSR::applyEnvelopeToBuffer` | applique l'enveloppe au buffer scratch mono |
+| 3 | `applyGain` | applique le mix en dB |
+| 4 | somme × 0,5 | normalise la paire de VCO |
+| 5 | `StateVariableTPTFilter` | LPF ou HPF (voir [Filtre](/fr/docs/guide/filter)) |
+| 6 | `applyGain(volume)` | volume de séquence |
+| 7 | reverb stéréo | voir [Reverb](/fr/docs/guide/reverb) |
+| 8 | `addFrom` | somme dans le buffer de sortie |

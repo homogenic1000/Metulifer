@@ -13,10 +13,11 @@ SequencerEngine::SequencerEngine()
 void SequencerEngine::prepare (double sr)
 {
     sampleRate = sr;
+    masterAccumulator = 0.0;
+    globalStep = 0;
 
     for (int i = 0; i < numSequences; ++i)
     {
-        accumulators[i] = 0.0;
         steps[i] = 0;
 
         if (! isPlaying())
@@ -64,6 +65,8 @@ void SequencerEngine::setPlaying (bool shouldPlay)
         pendingNoteOff.store (false, std::memory_order_relaxed);
         playing.store (true, std::memory_order_relaxed);
         pendingStart.store (true, std::memory_order_release);
+        masterAccumulator = 0.0;
+        globalStep = 0;
     }
     else
     {
@@ -85,9 +88,15 @@ bool SequencerEngine::takePendingNoteOff()
 
 int SequencerEngine::getCurrentStep (int sequence) const
 {
-    return juce::isPositiveAndBelow (sequence, numSequences)
-             ? currentSteps[sequence].load (std::memory_order_relaxed)
-             : -1;
+    if (! juce::isPositiveAndBelow (sequence, numSequences))
+        return -1;
+
+    const int raw = currentSteps[sequence].load (std::memory_order_relaxed);
+    if (raw < 0)
+        return -1;
+
+    const int len = lengthOf (sequence);
+    return len > 0 ? (raw % len) : 0;
 }
 
 const std::vector<SequencerEngine::StepEvent>& SequencerEngine::process (int numSamples)
@@ -99,10 +108,12 @@ const std::vector<SequencerEngine::StepEvent>& SequencerEngine::process (int num
 
     if (pendingStart.exchange (false, std::memory_order_relaxed))
     {
+        globalStep = 0;
+        masterAccumulator = 0.0;
+
         for (int s = 0; s < numSequences; ++s)
         {
             steps[s] = 0;
-            accumulators[s] = 0.0;
             currentSteps[s].store (0, std::memory_order_relaxed);
             events.push_back ({ 0, s, gateOf (s, 0) });
         }
@@ -112,39 +123,40 @@ const std::vector<SequencerEngine::StepEvent>& SequencerEngine::process (int num
     }
 
     const double stepLen = samplesPerStep();
+    int remaining = numSamples;
+    double acc = masterAccumulator;
 
-    for (int s = 0; s < numSequences; ++s)
+    while (remaining > 0)
     {
-        int remaining = numSamples;
-        double acc = accumulators[s];
+        const double need = stepLen - acc;
 
-        while (remaining > 0)
+        if (need > (double) remaining)
         {
-            const double need = stepLen - acc;
-
-            if (need > (double) remaining)
-            {
-                acc += (double) remaining;
-                break;
-            }
-
-            const int consumed = juce::jmax (1, (int) std::ceil (need));
-            const int offset = numSamples - remaining + consumed - 1;
-
-            int next = steps[s] + 1;
-            if (next >= lengthOf (s))
-                next = 0;
-
-            steps[s] = next;
-            currentSteps[s].store (next, std::memory_order_relaxed);
-            events.push_back ({ juce::jlimit (0, numSamples - 1, offset), s, gateOf (s, next) });
-
-            acc += (double) consumed - stepLen;
-            remaining -= consumed;
+            acc += (double) remaining;
+            break;
         }
 
-        accumulators[s] = acc;
+        const int consumed = juce::jmax (1, (int) std::ceil (need));
+        const int offset = numSamples - remaining + consumed - 1;
+        const int clampedOffset = juce::jlimit (0, numSamples - 1, offset);
+
+        ++globalStep;
+
+        for (int s = 0; s < numSequences; ++s)
+        {
+            const int len = lengthOf (s);
+            const int step = (int) (globalStep % (int64_t) len);
+
+            steps[s] = step;
+            currentSteps[s].store (step, std::memory_order_relaxed);
+            events.push_back ({ clampedOffset, s, gateOf (s, step) });
+        }
+
+        acc += (double) consumed - stepLen;
+        remaining -= consumed;
     }
+
+    masterAccumulator = acc;
 
     // Events arrive per-sequence; the processor expects ascending offsets.
     std::sort (events.begin(), events.end(),

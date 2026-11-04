@@ -1,0 +1,107 @@
+---
+title: Vue d'ensemble
+description: Processor, Editor, moteur de séquence, voix et flux du signal — la carte du code source.
+---
+
+## Deux objets principaux
+
+Un plugin JUCE se résume à deux classes, et Metulifer suit exactement ce modèle :
+
+| Classe | Fichiers | Rôle |
+|---|---|---|
+| `MetuliferAudioProcessor` | `Source/PluginProcessor.{h,cpp}` | état, paramètres, moteur de séquence, DSP |
+| `MetuliferAudioProcessorEditor` | `Source/PluginEditor.{h,cpp}` | interface, timer 30 Hz, câbles, pagination |
+
+Le processor **possède** l'`AudioProcessorValueTreeState` (APVTS) ; l'éditeur ne fait que
+s'y attacher. C'est ce qui permet à l'état de survivre à la fermeture de la fenêtre.
+
+## Arborescence
+
+```
+Source/
+├── PluginProcessor.{h,cpp}      # AudioProcessor : APVTS, moteur, DSP, persistance
+├── PluginEditor.{h,cpp}         # AudioProcessorEditor : layout 1280×720
+├── DSP/
+│   └── Voice.{h,cpp}            # un synthé complet (2 VCO, 2 ADSR, filtre, reverb)
+├── Sequencer/
+│   └── SequencerEngine.{h,cpp}  # 6 compteurs de pas indépendants
+└── UI/
+    ├── SequencerPanel.{h,cpp}       # les 6 rangées
+    ├── SequenceRowComponent.{h,cpp} # une rangée : 32 pas, C/P, length, volume
+    ├── SynthPanel.{h,cpp}           # 2 VCO + 2 ADSR + mix
+    ├── VCFPanel.{h,cpp}             # LPF/HPF + cutoff
+    ├── LFOPanel.{h,cpp}             # rate, wave, offset, depth, jack
+    ├── ReverbPanel.{h,cpp}          # On/Off, mode, mix
+    ├── CableLayer.{h,cpp}           # câbles de modulation (bézier)
+    ├── ClockPanel.{h,cpp}           # tempo + Play/Stop
+    ├── DisplayScreen.{h,cpp}        # écran OLED
+    ├── Lever.{h,cpp}                # levier d'octave 5 crans
+    ├── Skin.{h,cpp}                 # assets image optionnels
+    └── MetuliferLookAndFeel.{h,cpp} # rendu vectoriel « hardware »
+```
+
+## Flux audio
+
+`processBlock()` est le cœur temps réel. Il ne fait **aucune allocation** et ne touche
+jamais au `ValueTree` : tout ce dont il a besoin est lu depuis des `std::atomic`.
+
+```
+processBlock(buffer)
+│
+├─ 1. buffer.clear()                          silence de départ
+├─ 2. updateLfos(numSamples)                  avance la phase des 2 LFO
+├─ 3. params[s] = voiceSources[s].read()      lecture atomique des 209 paramètres
+├─ 4. modulation des câbles                   ±50 % en normalisé sur une copie
+├─ 5. voices[s].setParams(params[s])          les voix reçoivent leurs réglages
+├─ 6. engine.process(numSamples)              → StepEvent { offset, seq, gateOn }
+├─ 7. pour chaque event : rendu du segment     noteOn / noteOff sur la voix
+├─ 8. buffer × 0.5 puis tanh()                headroom + saturation douce
+└─ 9. calcul du RMS                           std::atomic<float> lu par l'UI
+```
+
+Le point important est l'étape 6 : les événements arrivent avec un **offset
+échantillon** précis, ce qui permet de découper le bloc et de déclencher les notes
+exactement au bon moment — pas de gigue liée à la taille du buffer.
+
+## Flux de contrôle
+
+L'interface ne parle jamais directement au DSP :
+
+```
+Slider/Button  ──▶  APVTS (paramètre)  ──▶  std::atomic<float>  ──▶  Voice
+      ▲                                                                  │
+      └──────────── SliderAttachment / ParameterAttachment ◀────────────┘
+```
+
+- Les `SliderAttachment` synchronisent un knob avec un paramètre (dans les deux sens).
+- Le thread audio lit les `std::atomic<float>` exposés par l'APVTS : pas de verrou.
+- L'écran et les boutons d'état écoutent les paramètres pour suivre aussi
+  l'**automation du host**.
+
+## Trois états sérialisés
+
+`getStateInformation()` écrit un `ValueTree` racine `MetuliferState` contenant :
+
+| Enfant | Contenu | Type |
+|---|---|---|
+| `APVTS` | les 209 paramètres | `ValueTree` |
+| `steps` | propriétés `p0`…`p5`, un motif 32 bits par séquence | `ValueTree` |
+| `mod` | un enfant `cable { src, dest }` par câble LFO | `ValueTree` |
+
+Le tout est converti en XML puis en binaire (`copyXmlToBinary`).
+
+<Callout type="info" title="Pourquoi trois arbres ?">
+  Les paramètres sont automatisables par le host ; les pas et les câbles ne doivent
+  **pas** l'être. Les séparer évite de polluer l'automation du DAW avec 192 pas et
+  garde `getStateInformation()` lisible.
+</Callout>
+
+## Où aller ensuite
+
+<Cards>
+  <Card title="Référence des paramètres" href="/fr/docs/architecture/parameters" />
+  <Card title="Chaîne DSP" href="/fr/docs/architecture/dsp" />
+  <Card title="Séquenceur et état" href="/fr/docs/architecture/sequencer-state" />
+  <Card title="UI et skinning" href="/fr/docs/architecture/ui-skin" />
+  <Card title="Tests et validation" href="/fr/docs/architecture/testing" />
+</Cards>

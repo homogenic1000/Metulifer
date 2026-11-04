@@ -1,0 +1,126 @@
+---
+title: LFOs and modulation cables
+description: Two LFOs (rate, shape, offset, depth) wired to synth knobs with virtual patch cables.
+---
+
+## Two global LFOs
+
+Metulifer has **2 independent LFOs**, global (they are not duplicated per sequence).
+Each LFO panel contains:
+
+| Control | Parameter | Range | Default |
+|---|---|---|---|
+| Rate | `lfoN_rate` | 0.1 – 20 Hz (skew 1 Hz) | 1 Hz |
+| Wave | `lfoN_wave` | Sine / Saw / Square / Triangle | Sine |
+| Offset | `lfoN_offset` | −100 … +100 % | 0 % |
+| Depth | `lfoN_depth` | 0 … 100 % | 100 % |
+| On/Off | `lfoN_enabled` | bool | `false` |
+
+Value computed on every audio block:
+
+```
+lfo = clamp( wave(phase) × depth + offset , −1 … +1 )
+```
+
+`offset` shifts the modulation centre (handy to modulate upwards only),
+`depth` scales the amplitude.
+
+## Auto-off
+
+An LFO is **inactive** when:
+
+- `enabled = false`, **or**
+- **no cable** leaves its jack.
+
+In that case its output value is forced to `0` and no parameter is touched.
+There is no ghost modulation.
+
+## Virtual cables
+
+### Create a cable
+
+<Steps>
+  <Step>
+    ### Pick the sequence
+
+    Click the row of the sequence whose knob you want to modulate.
+  </Step>
+  <Step>
+    ### Drag from the jack
+
+    Click the **jack** (circle at the bottom of the LFO panel) and drag.
+    A green curve follows the cursor; compatible knobs light up.
+  </Step>
+  <Step>
+    ### Drop on the knob
+
+    The cable is created and stays drawn as a bézier between jack and knob.
+  </Step>
+</Steps>
+
+### Delete a cable
+
+Click the cable: it is removed from `modTree`. The action is **undoable**
+(the processor's `undoManager`).
+
+<Callout type="warn" title="One LFO per destination">
+  A destination can only receive one cable. If a cable already targets that knob,
+  the new drop is ignored — delete the old one first.
+</Callout>
+
+## Available destinations
+
+| Suffix | Parameter | Type |
+|---|---|---|
+| `a1`, `d1`, `s1`, `r1` | `seqN_a1`… | VCO1 ADSR |
+| `a2`, `d2`, `s2`, `r2` | `seqN_a2`… | VCO2 ADSR |
+| `mix1`, `mix2` | `seqN_mix1`, `seqN_mix2` | VCO levels |
+| `cutoff` | `seqN_cutoff` | VCF filter |
+| `reverb_mix` | `seqN_reverb_mix` | Multi-FX Reverb |
+| `delay_time`, `delay_feedback`, `delay_mix` | `seqN_delay_*` | Multi-FX Delay |
+| `redux_bits`, `redux_rate`, `redux_mix` | `seqN_redux_*` | Multi-FX Redux |
+| `arp_octaves` | `seqN_arp_octaves` | Arpeggiator octaves |
+
+Deliberately excluded in v1: `octave`, `note`, `wave`, `length`, `volume`, `tempo`.
+
+## How modulation is applied
+
+Modulation is applied **per audio block**, on a **copy** of the read parameters:
+
+```cpp
+float norm = param->convertTo0to1 (rawValue);
+norm = jlimit (0.0f, 1.0f, norm + lfoValue * 0.5f);   // ±50 % in normalised space
+setField (params[seq], field, param->convertFrom0to1 (norm));
+```
+
+Consequences:
+
+- the **APVTS is never written** by the audio thread → no feedback to the host,
+  no automation conflict;
+- maximum amplitude is **±50 % of the parameter range**;
+- modulation is applied **before** `voice.setParams()`, i.e. for the current block.
+
+## Visual scope
+
+Cables are only drawn for the **selected sequence**. Switching sequences hides other
+sequences' cables without deleting them: they reappear when you come back.
+
+## Persistence
+
+Cables live in a dedicated `ValueTree`:
+
+```xml
+<mod>
+  <cable src="0" dest="seq1_cutoff"/>
+  <cable src="1" dest="seq1_reverb_mix"/>
+</mod>
+```
+
+`modTree` is serialised with `apvts` and `stepsTree` in `getStateInformation()`.
+Cables are therefore restored when the project is reloaded.
+
+## Memory layout
+
+The processor keeps **two cable buffers** (`cableBuffers[2][32]`) and an atomic
+`activeBuffer` index. The message thread writes into the inactive buffer then flips
+the index: the audio thread always reads a coherent buffer, lock-free.

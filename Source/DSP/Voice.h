@@ -17,13 +17,35 @@ public:
         bool  useLpf   = true;
         float cutoff   = 1000.0f;
         float volumePct = 80.0f;
+
+        // Reverb
         bool  reverbEnabled = false;
         int   reverbMode    = 0; // 0: Room, 1: Hall
         float reverbMix     = 30.0f; // 0..100%
+
+        // Delay
+        bool  delayEnabled  = false;
+        float delayTime     = 250.0f; // 20..1000 ms
+        float delayFeedback = 40.0f;  // 0..90%
+        float delayMix      = 35.0f;  // 0..100%
+        bool  delayPingpong = true;
+
+        // Redux
+        bool  reduxEnabled  = false;
+        int   reduxBits     = 8;      // 2..16 bits
+        int   reduxRate     = 4;      // 1..32 downsample factor
+        float reduxMix      = 50.0f;  // 0..100%
+
+        // Arpeggiator
+        bool  arpEnabled    = false;
+        int   arpMode       = 0;      // 0..10
+        int   arpChord      = 1;      // 0..9
+        int   arpOctaves    = 1;      // 1..3
     };
 
     void prepare (double sampleRate, int maxBlockSize);
     void reset();
+    void resetArp();
     void setParams (const Params& p);
     void noteOn();
     void noteOff();
@@ -105,17 +127,32 @@ private:
     };
 
     static double frequencyFor (int octave, int note) noexcept;
-
     void renderChunk (juce::AudioBuffer<float>& out, int startSample, int numSamples);
+    void advanceArp();
+    void updateFrequencies();
 
     double sampleRate = 44100.0;
     int maxBlockSize = 512;
+
+    Params currentParams;
 
     WaveOsc osc1, osc2;
     juce::ADSR adsr1, adsr2;
     juce::dsp::StateVariableTPTFilter<float> filter;
     juce::dsp::Reverb reverb;
     juce::AudioBuffer<float> scratch1, scratch2, scratchStereo;
+
+    // Delay state
+    juce::AudioBuffer<float> delayBuffer;
+    int delayWritePos = 0;
+
+    // Redux state
+    int reduxCounter = 0;
+    float reduxHeldSample = 0.0f;
+
+    // Arp state
+    int arpStep = 0;
+    int currentArpOffset = 0;
 
     float mixGain1 = 1.0f, mixGain2 = 1.0f, volumeGain = 0.8f;
     bool reverbActive = false;

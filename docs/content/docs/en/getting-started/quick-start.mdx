@@ -1,0 +1,85 @@
+---
+title: First sound
+description: Toggle steps, start playback and set the tempo — a five-minute walkthrough.
+---
+
+## 1. Open the plugin
+
+Run `Metulifer.app` (Standalone target) or load `Metulifer.vst3` / `Metulifer.component`
+in a DAW. The interface is 1280 × 720.
+
+## 2. Meet the six rows
+
+Top-left, the **sequencer** shows six rows, one per sequence:
+
+```
+[S1] [C][P]   ▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢▢   [Length] [Volume]
+```
+
+- The **S1…S6** badge identifies the sequence.
+- The 32 squares are **steps**: clicking toggles a step between active (amber) and inactive.
+- `C` / `P` copy and paste the row's pattern.
+- The two knobs set the **length** (1–32 steps) and the **volume** (0–100 %).
+
+Clicking anywhere on a row **selects** it: the synth, filter, reverb and modulation cables
+re-bind to that sequence.
+
+## 3. Program a few steps
+
+<Steps>
+  <Step>
+    ### Toggle steps
+
+    On row **S1**, click for instance steps 1, 5, 9 and 13.
+  </Step>
+  <Step>
+    ### Start playback
+
+    Click **Play** in the **CLOCK** panel. The button turns green and an orange marker
+    follows the playhead on every row.
+  </Step>
+  <Step>
+    ### Set the tempo
+
+    Turn the large **CLOCK** knob (20–300 BPM, default 120).
+  </Step>
+</Steps>
+
+<Callout title="No sound?">
+  Check in this order: (1) at least one step is active on the row, (2) **Play** is engaged,
+  (3) the sequence **volume** is not at 0 %, (4) **Mix VCO1/VCO2** is not at −60 dB,
+  (5) the **VCF** cutoff is not muting the signal.
+  Details: [Troubleshooting](/en/docs/reference/troubleshooting).
+</Callout>
+
+## 4. Shape the sound
+
+The **synth** panel (bottom-left) acts on the selected sequence:
+
+| Column | Effect |
+|---|---|
+| **Octave** (lever) | transposes the VCO from −2 to +2 octaves |
+| **Note** (12 positions) | semitone from 0 (C) to 11 (B), base C3 = 130.81 Hz |
+| **Wave** | sine / saw / square / triangle |
+| **ADSR** | attack, decay, sustain, release per VCO |
+| **Mix out DB** | level of each VCO from −60 to +6 dB |
+
+Bottom-centre, the **VCF** selects **LPF** or **HPF** and sets the **cutoff** (20 Hz – 20 kHz).
+On the right: **reverb** (On/Off, Room/Hall, Mix) and the two **LFOs**.
+
+## 5. Watch the display
+
+The OLED screen (top-right) always shows:
+
+- the **selected sequence** number;
+- the **touched parameter** and its value for 2 seconds after a change
+  (e.g. `attack 120 ms`, `seq 3 volume 80 %`);
+- an output **RMS bar**.
+
+## Next step
+
+<Cards>
+  <Card title="The sequencer in depth" href="/en/docs/guide/sequencer" />
+  <Card title="The per-sequence synth" href="/en/docs/guide/synth" />
+  <Card title="LFOs and modulation cables" href="/en/docs/guide/lfo-modulation" />
+</Cards>

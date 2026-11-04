@@ -1,0 +1,59 @@
+---
+title: Interface et Habillage (Skinning)
+description: Rendu vectoriel MetuliferLookAndFeel, coordonnées d'affichage, modularité et flux de travail Blender 3D.
+---
+
+L'interface de Metulifer repose sur une résolution fixe de **1280 × 720 pixels**, pensée pour restituer l'ergonomie physique d'un synthétiseur matériel de studio.
+
+## Moteur de rendu vectoriel (`MetuliferLookAndFeel`)
+
+Toutes les commandes visuelles sont dessinées en temps réel par `Source/UI/MetuliferLookAndFeel.{h,cpp}` :
+
+### 1. Potentiomètres rotatifs (Knobs)
+- **Corps usiné** : double dégradé circulaire sombre avec relief en biseau subtil.
+- **Bague de course** : arc de progression rétro-éclairé (bleu `#60a5fa` ou cyan `#38bdf8`) indiquant la valeur relative.
+- **Curseur lumineux** : ligne radiale contrastée indiquant l'angle d'orientation avec précision.
+- **Précision gestuelle** : gestion de la sensibilité fine via glissement vertical de la souris ou Shift + clic.
+
+### 2. Boutons de pas (Step Buttons)
+Chaque bouton de pas reflète trois états superposés :
+- **Inactif** : gris neutre sombre, délimité par une bordure discrète.
+- **Actif (On)** : rétro-éclairage bleu/cyan intense avec texte contrasté.
+- **Tête de lecture (Playhead)** : contour vif lumineux blanc/ambre marquant l'instant exact où le pas est scanné par l'horloge audio.
+
+### 3. Boutons de navigation et d'effets
+Les boutons d'onglets Multi-FX (`REV`, `DLY`, `RDX`), d'arpégiateur (`ARP`), de filtre (`LPF`, `HPF`) et de presse-papier (`C`, `P`) possèdent des indicateurs LED intégrés et des typographies lisibles en basse luminosité.
+
+---
+
+## Modularité et chargement d'assets (`Skin.h`)
+
+La classe `Skin` centralise les ressources graphiques optionnelles.
+Le plugin peut basculer en toute transparence entre :
+1. **Mode Vectoriel pur (défaut)** : Zéro asset externe nécessaire, affichage net quelle que soit la densité de pixels de l'écran Retina.
+2. **Mode Bitmap / Assets skinnables** : Chargement de plaques de fond usinées, de lettrages sérigraphiés ou de textures métalliques depuis le dossier de ressources.
+
+---
+
+## Workflow Blender 3D vers JUCE
+
+L'interface actuelle constitue un socle vectoriel ultra-performant. La prochaine étape visuelle prévoit la création d'une interface skeuomorphique rendue sous **Blender 3D** :
+
+```
+[Modélisation 3D Blender]
+       │  Châssis aluminium brossé, potentiomètres moletés, ombres portées
+       ▼
+[Rendu de passes (Cycles / Eevee)]
+       │  1. Plaque de fond haute résolution (1280x720 @2x Retina)
+       │  2. Bandes d'animation de potentiomètres (Filmstrips 64/128 frames)
+       ▼
+[Intégration Skin.h dans JUCE]
+       │  Remplacement transparent via juce::Image et FilmstripKnob
+       ▼
+[Rendu final matériel réaliste dans le DAW]
+```
+
+### Directives pour les rendus 3D
+- **Dimensions de base** : 1280 × 720 (avec déclinaison 2560 × 1440 pour les écrans haute densité).
+- **Centres de rotation** : Les axes des potentiomètres rotatifs dans Blender doivent respecter rigoureusement les coordonnées des composants JUCE (`resized()` dans `PluginEditor.cpp`).
+- **Écran OLED** : Conserver une zone évidée rectangulaire transparente à `(986, 32)` de taille `247 × 132` pour laisser transparaître le composant vectoriel interactif de l'écran.

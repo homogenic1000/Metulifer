@@ -1,0 +1,106 @@
+---
+title: Overview
+description: Processor, Editor, sequencer engine, voices and signal flow — the map of the source tree.
+---
+
+## Two main objects
+
+A JUCE plugin boils down to two classes, and Metulifer follows that model exactly:
+
+| Class | Files | Role |
+|---|---|---|
+| `MetuliferAudioProcessor` | `Source/PluginProcessor.{h,cpp}` | state, parameters, sequencer engine, DSP |
+| `MetuliferAudioProcessorEditor` | `Source/PluginEditor.{h,cpp}` | UI, 30 Hz timer, cables, pagination |
+
+The processor **owns** the `AudioProcessorValueTreeState` (APVTS); the editor only
+attaches to it. That is what lets the state survive the window being closed.
+
+## Source tree
+
+```
+Source/
+├── PluginProcessor.{h,cpp}      # AudioProcessor: APVTS, engine, DSP, persistence
+├── PluginEditor.{h,cpp}         # AudioProcessorEditor: 1280×720 layout
+├── DSP/
+│   └── Voice.{h,cpp}            # a complete synth (2 VCOs, 2 ADSRs, filter, reverb)
+├── Sequencer/
+│   └── SequencerEngine.{h,cpp}  # 6 independent step counters
+└── UI/
+    ├── SequencerPanel.{h,cpp}       # the 6 rows
+    ├── SequenceRowComponent.{h,cpp} # one row: 32 steps, C/P, length, volume
+    ├── SynthPanel.{h,cpp}           # 2 VCOs + 2 ADSRs + mix
+    ├── VCFPanel.{h,cpp}             # LPF/HPF + cutoff
+    ├── LFOPanel.{h,cpp}             # rate, wave, offset, depth, jack
+    ├── ReverbPanel.{h,cpp}          # On/Off, mode, mix
+    ├── CableLayer.{h,cpp}           # modulation cables (bézier)
+    ├── ClockPanel.{h,cpp}           # tempo + Play/Stop
+    ├── DisplayScreen.{h,cpp}        # OLED screen
+    ├── Lever.{h,cpp}                # 5-position octave lever
+    ├── Skin.{h,cpp}                 # optional image assets
+    └── MetuliferLookAndFeel.{h,cpp} # vector “hardware” rendering
+```
+
+## Audio flow
+
+`processBlock()` is the real-time heart. It performs **no allocation** and never touches
+the `ValueTree`: everything it needs is read from `std::atomic` values.
+
+```
+processBlock(buffer)
+│
+├─ 1. buffer.clear()                          start from silence
+├─ 2. updateLfos(numSamples)                  advance both LFO phases
+├─ 3. params[s] = voiceSources[s].read()      atomic read of the 209 parameters
+├─ 4. cable modulation                        ±50 % in normalised space, on a copy
+├─ 5. voices[s].setParams(params[s])          voices receive their settings
+├─ 6. engine.process(numSamples)              → StepEvent { offset, seq, gateOn }
+├─ 7. per event: render the segment           noteOn / noteOff on the voice
+├─ 8. buffer × 0.5 then tanh()                headroom + soft saturation
+└─ 9. RMS computation                         std::atomic<float> read by the UI
+```
+
+The key step is 6: events carry a precise **sample offset**, so the block is split and
+notes fire exactly on time — no jitter tied to the buffer size.
+
+## Control flow
+
+The UI never talks to the DSP directly:
+
+```
+Slider/Button  ──▶  APVTS (parameter)  ──▶  std::atomic<float>  ──▶  Voice
+      ▲                                                                │
+      └──────────── SliderAttachment / ParameterAttachment ◀──────────┘
+```
+
+- `SliderAttachment`s keep a knob in sync with a parameter (both directions).
+- The audio thread reads the `std::atomic<float>` values exposed by the APVTS: lock-free.
+- The display and state buttons listen to parameters, so they also follow
+  **host automation**.
+
+## Three serialised states
+
+`getStateInformation()` writes a root `MetuliferState` `ValueTree` containing:
+
+| Child | Content | Type |
+|---|---|---|
+| `APVTS` | the 209 parameters | `ValueTree` |
+| `steps` | properties `p0`…`p5`, one 32-bit pattern per sequence | `ValueTree` |
+| `mod` | one `cable { src, dest }` child per LFO cable | `ValueTree` |
+
+Everything is converted to XML then to binary (`copyXmlToBinary`).
+
+<Callout type="info" title="Why three trees?">
+  Parameters are host-automatable; steps and cables must **not** be. Keeping them apart
+  avoids polluting the DAW automation with 192 steps and keeps `getStateInformation()`
+  readable.
+</Callout>
+
+## Where to go next
+
+<Cards>
+  <Card title="Parameter reference" href="/en/docs/architecture/parameters" />
+  <Card title="DSP chain" href="/en/docs/architecture/dsp" />
+  <Card title="Sequencer and state" href="/en/docs/architecture/sequencer-state" />
+  <Card title="UI and skinning" href="/en/docs/architecture/ui-skin" />
+  <Card title="Testing and QA" href="/en/docs/architecture/testing" />
+</Cards>

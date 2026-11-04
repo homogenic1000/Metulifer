@@ -1,0 +1,120 @@
+---
+title: Digital Signal Processing (DSP)
+description: Complete voice signal chain in Voice.cpp, phase accumulators, TPT filters, multi-FX and real-time audio safety.
+---
+
+Each sequence inside Metulifer hosts its own dedicated audio synthesis engine encapsulated within the `Voice` class (`Source/DSP/Voice.{h,cpp}`).
+All audio code strictly adheres to hard real-time audio constraints: **zero dynamic memory allocations**, **zero mutex locks**, and **zero blocking OS system calls**.
+
+## Voice Signal Architecture
+
+The audio signal traverses the following stages sequentially:
+
+```
+[VCO 1] ──▶ [ADSR 1] ──▶ [Mix Gain 1] ──┐
+                                         ├──▶ [Sum] ──▶ [VCF Filter] ──▶ [Volume Gain]
+[VCO 2] ──▶ [ADSR 2] ──▶ [Mix Gain 2] ──┘                                      │
+                                                                               ▼
+[Stereo Out] ◀── [Stereo Reverb] ◀── [Ping-Pong Delay] ◀── [Redux Bitcrusher] ◀─┘
+```
+
+---
+
+## 1. Generators (VCO 1 & VCO 2)
+
+Both oscillators evaluate waveforms via normalized phase accumulators running in `[0.0, 1.0[`:
+
+```
+delta_phase = frequency / sampleRate
+```
+
+Four selectable waveshapes:
+- **Sine**: `sin(2 * pi * phase)`
+- **Saw**: `2 * phase - 1` (linear upward ramp)
+- **Square**: `phase < 0.5 ? +1 : -1`
+- **Triangle**: `1 - 4 * abs(phase - 0.5)`
+
+### Pitch and Arpeggiator Tracking
+Fundamental frequency `f` is computed from standard MIDI notes and octave switches (−2 to +2):
+
+```
+f = 440.0 * pow(2.0, (midiNote - 69 + 12 * octave) / 12.0)
+```
+
+When the **Arpeggiator** is active for a sequence, each active gate trigger calls `advanceArp()`, injecting musical semitone offsets from a chosen chord scale while perfectly maintaining the harmonic interval between VCO1 and VCO2.
+
+---
+
+## 2. ADSR Envelopes
+
+Each oscillator features a discrete `juce::ADSR` envelope generator.
+- Exponential attack, decay, and release phases.
+- Time parameters employ a **0.3 skew factor** for high knob resolution under 100 ms while supporting long swells up to 2 seconds.
+
+---
+
+## 3. VCF Filtering (State Variable TPT)
+
+The filter uses `juce::dsp::StateVariableTPTFilter<float>`.
+This Topology-Preserving Transform topology ensures absolute stability even under rapid LFO cutoff frequency modulation:
+- **LPF (Low-Pass Filter)**: 12 dB/octave attenuation of high frequencies.
+- **HPF (High-Pass Filter)**: Low-end rumble cleaning and harmonic brightening.
+- Cutoff frequency spans from 20 Hz to 20,000 Hz logarithmically (skew 0.3).
+
+---
+
+## 4. Multi-FX: Redux (Bitcrusher & Decimator)
+
+The Redux stage applies two degradations:
+
+1. **Time Decimation (Downsampling)**:
+   A sample-counter modulo `rate` latches and holds output amplitude over `N` samples (1 to 32).
+2. **Amplitude Bit-Depth Truncation**:
+   ```
+   y = floor(x * 2^(bits - 1) + 0.5) / 2^(bits - 1)
+   ```
+   Resolution ranges from 2 bits (extreme digital fuzz) up to 16 bits (clean transparency).
+3. **Dry/Wet Crossfade**: Phase-aligned linear blend.
+
+---
+
+## 5. Multi-FX: Stereo Ping-Pong Delay
+
+The delay module utilizes circular audio ring buffers preallocated at `prepare()` to comfortably store up to 2.5 seconds of stereo audio at any host sample rate.
+
+- **Soft-Saturation in Feedback Loop**:
+  The feedback signal passes through an analog-modeled soft non-linearity:
+  ```
+  feedback_sample = tanh(sample * saturation_gain)
+  ```
+  This prevents runaway digital clipping beyond 0 dBFS even at maximum feedback settings (up to 90%).
+- **Stereo Ping-Pong Spreading**:
+  Left channel reads nominal delay time `T`, while right channel reads an offset delay time (`0.75 * T`), giving a lush stereo bouncing effect.
+
+---
+
+## 6. Multi-FX: Stereo Reverb
+
+Powered by `juce::dsp::Reverb`, spatial reverberation follows the delay stage:
+- **Room Mode**: Tight room response, dense reflections for drums and staccato synths.
+- **Hall Mode**: Expansive decay tail and wide stereo diffusion.
+- **Compensated Gain Staging**: The dry/wet mix curves are auto-adjusted to prevent energy buildup characteristic of Freeverb designs.
+
+---
+
+## 7. Master Output Safeguards & Soft Limiting
+
+At the end of `processBlock()`, before writing into the host DAW output bus:
+1. Headroom scale attenuation (−6 dB) allows 6 voices to sum safely.
+2. A **hyperbolic tangent (`tanh`) soft-clipper** ensures zero harsh digital wrap-around clipping:
+
+```cpp
+for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
+{
+    auto* samples = buffer.getWritePointer (ch);
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
+        samples[i] = std::tanh (samples[i] * 0.5f);
+}
+```
+
+3. A fast RMS envelope follower computes peak levels and stores them in a lock-free `std::atomic<float>` for the OLED display at 30 Hz.
