@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-11-04 — Phase 6 : Reverb par séquence + ReverbPanel UI
+- **Tâche** : Implémenter le module Reverb selon le design Figma (node 176:2 / 176:247) avec Reverb par séquence (paginée)
+- **Fichiers** : `Source/UI/ReverbPanel.{h,cpp}` (neufs), `Source/DSP/Voice.{h,cpp}`, `Source/PluginProcessor.{h,cpp}`, `Source/PluginEditor.{h,cpp}`, `Metulifer.jucer`, `AGENTS.md`
+- **Modifs** : (1) **DSP (`Voice`)** : intégration de `juce::dsp::Reverb` stéréo + buffer scratch stereo (0 alloc en temps réel) ; modes Room (roomSize 0.45, damp 0.55, width 0.8) et Hall (roomSize 0.85, damp 0.25, width 1.0) ; mix wet/dry (0..100 %) ; bypass propre si inactif/mix=0. (2) **Params (APVTS)** : ajout de `seqN_reverb_enabled` (bool), `seqN_reverb_mode` (choice Room/Hall), `seqN_reverb_mix` (float 0..100 %, defaut 30 %) par séquence ; binding dans `VoiceSources`. (3) **Modulation** : ajout du champ `fReverbMix` dans `DestField`, permettant de moduler le mix reverb par un câble LFO. (4) **UI (`ReverbPanel`)** : nouveau composant 105×224 px à x=1144, y=471 (titre "reverb", bouton On/Off 50×49, bouton Mode Room/Hall 50×49, gros knob rotary 86 px pour Mix) avec hook `Skin::drawPanel ("panel_reverb")`. (5) **Editor** : pagination complète de la reverb au clic de séquence (`bindSequence`), attachement `reverbAttachments`, écouteurs pour notification écran (`DisplayScreen`) et automation hôte. (6) **Projucer** : ajout des fichiers `ReverbPanel` dans le groupe `UI` du `.jucer` et resave réussi.
+- **Build** : ✅ OK (`** BUILD SUCCEEDED **`) + smoke test standalone 4 s : `SMOKE_TEST_OK`, zéro assertion
+- **Commit** : `cd57efc` — `feat: add per-sequence reverb with Room/Hall modes, mix knob and ReverbPanel UI`
+- **Next steps** : tester les réglages sonores en conditions réelles avec différents patterns de pas
+```
 ### 2026-10-07 — icône d'app (Icon Composer → compilation auto)
 - **Tâche** : intégrer le logo livré (export Icon Composer) pour qu'il soit **généré à chaque build Xcode**
 - **Fichiers** : `Resources/Metulifer.icon/` (neuf : `icon.json` + `Assets/Artboard 1.png`, `Assets/Artboard 2.png`), `Metulifer.jucer`, `AGENTS.md`
@@ -295,6 +303,7 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | 2026-10-07 | **LFO ×2 : Rate + Wave + Offset + Depth + on/off auto** (auto-off si aucun câble) ; panneau = 3 knobs (rate/offset/depth) + bouton wave — écart au wireframe (1 knob) à rattraper côté Figma | Validation dev : « Rate + Cycle wave + on off… il faut un knob offset et depth » | dev |
 | 2026-10-07 | **UI skinnable** : chaque composant vectoriel remplaçable par un asset image transparent (états : normal/hover/down/on/off), fallback vectoriel conservé si asset absent ; assets en `Resources/` (groupe `.jucer`, BinaryData) — formats JUCE natifs PNG/JPEG/GIF | Dev fournira des rendus 3D à substituer au vectoriel ; pas de `juce_svg` dans le `.jucer` | dev |
 | 2026-10-07 | **Phase 5 — câbles LFO→knob** : source = jack des panneaux LFO1/2 ; dest = knobs synthé de la **séquence sélectionnée au drop** (`a1,d1,s1,r1,a2,d2,s2,r2,mix1,mix2,cutoff` — exclus octave/note/wave/length/volume/tempo pour v1) ; modulation appliquée **en normalisé** (±50 % de la plage du param, par bloc audio) sur une copie des valeurs lues — **jamais** l'APVTS n'est écrit par l'audio ; un câble n'est **dessiné/selectable que pour sa séquence de dest** (pagination) ; un LFO **sans aucun câble est inactif** (auto-off) ; modTree (`"mod"`, enfants `cable{src,dest}`) sérialisé comme `stepsTree` | Réglages validables sans re-demande dev : pas de feedback sur params hôte, dests musicales, auto-off §7 ; undo via `undoManager` du processor | agent |
+| 2026-11-04 | **Phase 6 — Reverb par séquence avec pagination** : APVTS `seqN_reverb_{enabled,mode,mix}` ; UI `ReverbPanel` (105×224 à x=1144, y=471) conforme Figma node 176:2 / 176:247 avec bouton On/Off, bouton Mode (Room/Hall) et knob 86 px Mix (0..100 %) ; DSP Voice avec `juce::dsp::Reverb` stéréo (0 alloc en temps réel) ; cible de câble LFO `reverb_mix` ajoutée | Choix utilisateur : reverb par séquence, contrôles On/Off + Mode + Mix knob | dev / agent |
 
 ---
 
@@ -319,7 +328,8 @@ xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj \
 | ADSR ×2 | 2 ADSRs | titre unique « ADSR » ; par rangée : 4 knobs A/D/S/R (31 px) |
 | `Mix out DB` | niveaux VCO | 2 knobs (86 px) : mix VCO1 (rangée 1), mix VCO2 (rangée 2) |
 | `VCF` | filtre | 2 boutons exclusifs **LPF / HPF** + 1 gros knob (**cutoff**) |
-| `LFO` ×2 + `reverb` | **hors périmètre** | **apparus dans le wireframe 2026-10-07** (structure VCF) — implémentation reportée (sémantique à valider) |
+| `LFO` ×2 | LFOs de modulation | 2 panneaux (874, 1013) : rate, offset, depth + wave + on/off + jacks |
+| `reverb` | réverbération par séquence | panneau (1144) : bouton On/Off + bouton Mode (Room/Hall) + gros knob Mix (Dry/Wet) |
 
 ### Correspondance → classes JUCE
 
@@ -332,6 +342,16 @@ MetuliferAudioProcessorEditor (1280×720)
 │       ├── LengthKnob (0–32)               juce::RotarySlider + attachment
 │       └── VolumeKnob                      juce::RotarySlider + attachment
 ├── DisplayScreen (Rectangle 25)          Source/UI/DisplayScreen.* (paint custom)
+├── ClockPanel : TempoKnob + PlayStopButton
+├── SynthPanel (re-branché à la sélection)
+│   ├── colonnes : Octave (levier + Note) · Wave · ADSR · Mix out DB (titres en haut)
+│   ├── rangée 1 = « VCO1 » (label à gauche) : levier oct, note, wave, ADSR×4, mix
+│   └── rangée 2 = « VCO2 » (label à gauche) : levier oct, note, wave, ADSR×4, mix
+├── VCFPanel : LPF/HPF (exclusifs) + Cutoff
+├── LFOPanel (×2) : Rate, Offset, Depth + Wave, On/Off + Jack
+├── ReverbPanel : On/Off, Mode (Room/Hall) + Mix
+└── CableLayer : patch cables virtuels LFO→knob
+```
 ├── ClockPanel : TempoKnob + PlayStopButton
 ├── SynthPanel (re-branché à la sélection)
 │   ├── colonnes : Octave (levier + Note) · Wave · ADSR · Mix out DB (titres en haut)

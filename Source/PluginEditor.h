@@ -16,6 +16,7 @@
 #include "UI/SynthPanel.h"
 #include "UI/VCFPanel.h"
 #include "UI/LFOPanel.h"
+#include "UI/ReverbPanel.h"
 #include "UI/CableLayer.h"
 #include "UI/MetuliferLookAndFeel.h"
 
@@ -43,6 +44,9 @@ private:
     void clearParamDisplay();
     void setFilterTypeParam (bool useLpf);
     void updateFilterButtons();
+    void setReverbPowerParam (bool on);
+    void setReverbModeParam (int mode);
+    void updateReverbButtons();
     void setLfoWave (int lfoIndex, int waveIndex);
     void setLfoPower (int lfoIndex, bool on);
     void refreshCableTargets();
@@ -62,15 +66,18 @@ private:
     SynthPanel synthPanel;
     VCFPanel vcfPanel;
     LFOPanel lfoPanel1 { "LFO1" }, lfoPanel2 { "LFO2" };
+    ReverbPanel reverbPanel;
     CableLayer cableLayer;
 
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> synthAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> vcfAttachments;
+    std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> reverbAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> lfoAttachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tempoAttachment;
     std::map<juce::Slider*, juce::String> sliderParamIds;
 
     juce::String filterParamId;
+    juce::String reverbEnabledParamId, reverbModeParamId;
     int currentSeq = 0;
     bool updatingBindings = false;
     int lastPlayhead[MetuliferAudioProcessor::numSequences] { -1, -1, -1, -1, -1, -1 };

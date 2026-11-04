@@ -95,6 +95,9 @@ private:
         std::atomic<float>* mix1 = nullptr;    std::atomic<float>* mix2 = nullptr;
         std::atomic<float>* filter = nullptr;  std::atomic<float>* cutoff = nullptr;
         std::atomic<float>* volume = nullptr;
+        std::atomic<float>* reverbEnabled = nullptr;
+        std::atomic<float>* reverbMode = nullptr;
+        std::atomic<float>* reverbMix = nullptr;
 
         void bind (juce::AudioProcessorValueTreeState& apvts, int sequenceIndex);
         Voice::Params read() const;
@@ -108,7 +111,7 @@ private:
 
     enum DestField
     {
-        fA1, fD1, fS1, fR1, fA2, fD2, fS2, fR2, fMix1, fMix2, fCutoff, fInvalid
+        fA1, fD1, fS1, fR1, fA2, fD2, fS2, fR2, fMix1, fMix2, fCutoff, fReverbMix, fInvalid
     };
 
     static DestField fieldForDest (const juce::String& paramId);

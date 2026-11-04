@@ -95,6 +95,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
         layout.add (std::make_unique<juce::AudioParameterFloat> (
             juce::ParameterID { id + "volume", 1 }, nm + "Volume",
             juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 80.0f, pctAttr));
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "reverb_enabled", 1 }, nm + "Reverb Enabled", false));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (
+            juce::ParameterID { id + "reverb_mode", 1 }, nm + "Reverb Mode",
+            juce::StringArray { "Room", "Hall" }, 0));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            juce::ParameterID { id + "reverb_mix", 1 }, nm + "Reverb Mix",
+            juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 30.0f, pctAttr));
     }
 
     layout.add (std::make_unique<juce::AudioParameterInt> (
@@ -206,6 +214,9 @@ void MetuliferAudioProcessor::VoiceSources::bind (juce::AudioProcessorValueTreeS
     mix1   = raw ("mix1");    mix2   = raw ("mix2");
     filter = raw ("filter");  cutoff = raw ("cutoff");
     volume = raw ("volume");
+    reverbEnabled = raw ("reverb_enabled");
+    reverbMode    = raw ("reverb_mode");
+    reverbMix     = raw ("reverb_mix");
 }
 
 Voice::Params MetuliferAudioProcessor::VoiceSources::read() const
@@ -223,6 +234,9 @@ Voice::Params MetuliferAudioProcessor::VoiceSources::read() const
     p.useLpf    = v (filter) < 0.5f;
     p.cutoff    = v (cutoff);
     p.volumePct = v (volume);
+    p.reverbEnabled = v (reverbEnabled) > 0.5f;
+    p.reverbMode    = (int) v (reverbMode);
+    p.reverbMix     = v (reverbMix);
     return p;
 }
 
@@ -279,8 +293,9 @@ MetuliferAudioProcessor::DestField MetuliferAudioProcessor::fieldForDest (const 
     if (suffix == "s2")      return fS2;
     if (suffix == "r2")      return fR2;
     if (suffix == "mix1")    return fMix1;
-    if (suffix == "mix2")    return fMix2;
-    if (suffix == "cutoff")  return fCutoff;
+    if (suffix == "mix2")        return fMix2;
+    if (suffix == "cutoff")      return fCutoff;
+    if (suffix == "reverb_mix")  return fReverbMix;
 
     return fInvalid;
 }
@@ -289,18 +304,19 @@ void MetuliferAudioProcessor::setField (Voice::Params& p, DestField field, float
 {
     switch (field)
     {
-        case fA1:      p.attack1   = value; break;
-        case fD1:      p.decay1    = value; break;
-        case fS1:      p.sustain1  = value; break;
-        case fR1:      p.release1  = value; break;
-        case fA2:      p.attack2   = value; break;
-        case fD2:      p.decay2    = value; break;
-        case fS2:      p.sustain2  = value; break;
-        case fR2:      p.release2  = value; break;
-        case fMix1:    p.mixDb1    = value; break;
-        case fMix2:    p.mixDb2    = value; break;
-        case fCutoff:  p.cutoff    = value; break;
-        case fInvalid: break;
+        case fA1:        p.attack1   = value; break;
+        case fD1:        p.decay1    = value; break;
+        case fS1:        p.sustain1  = value; break;
+        case fR1:        p.release1  = value; break;
+        case fA2:        p.attack2   = value; break;
+        case fD2:        p.decay2    = value; break;
+        case fS2:        p.sustain2  = value; break;
+        case fR2:        p.release2  = value; break;
+        case fMix1:      p.mixDb1    = value; break;
+        case fMix2:      p.mixDb2    = value; break;
+        case fCutoff:    p.cutoff    = value; break;
+        case fReverbMix: p.reverbMix = juce::jlimit (0.0f, 100.0f, value); break;
+        case fInvalid:   break;
     }
 }
 

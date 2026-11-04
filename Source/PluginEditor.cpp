@@ -25,6 +25,7 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     addAndMakeVisible (vcfPanel);
     addAndMakeVisible (lfoPanel1);
     addAndMakeVisible (lfoPanel2);
+    addAndMakeVisible (reverbPanel);
     addAndMakeVisible (cableLayer); // au-dessus de tout (hitTest limité aux jacks/câbles)
 
     sequencerPanel.onSelectionChanged = [this] (int index)
@@ -35,6 +36,16 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     vcfPanel.onFilterToggled = [this] (bool useLpf)
     {
         setFilterTypeParam (useLpf);
+    };
+
+    reverbPanel.onPowerToggled = [this] (bool on)
+    {
+        setReverbPowerParam (on);
+    };
+
+    reverbPanel.onModeToggled = [this] (int mode)
+    {
+        setReverbModeParam (mode);
     };
 
     clockPanel.onPlayToggled = [this] (bool shouldPlay)
@@ -112,7 +123,8 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
                         &synthPanel.adsr2Attack, &synthPanel.adsr2Decay,
                         &synthPanel.adsr2Sustain, &synthPanel.adsr2Release,
                         &synthPanel.mixVco1, &synthPanel.mixVco2,
-                        &vcfPanel.cutoffKnob })
+                        &vcfPanel.cutoffKnob,
+                        &reverbPanel.mixKnob })
         knob->addListener (this);
 
     bindSequence (0);
@@ -130,6 +142,12 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 
     if (filterParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (filterParamId, this);
+
+    if (reverbEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (reverbEnabledParamId, this);
+
+    if (reverbModeParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (reverbModeParamId, this);
 }
 
 //==============================================================================
@@ -155,6 +173,7 @@ void MetuliferAudioProcessorEditor::resized()
     vcfPanel.setBounds (684, 471, 105, 224);
     lfoPanel1.setBounds (874, 471, 105, 224);
     lfoPanel2.setBounds (1013, 471, 105, 224);
+    reverbPanel.setBounds (1144, 471, 105, 224);
     cableLayer.setBounds (0, 0, getWidth(), getHeight());
 
     refreshCableTargets();
@@ -182,6 +201,7 @@ void MetuliferAudioProcessorEditor::refreshCableTargets()
         { &synthPanel.adsr2Sustain, "s2"   }, { &synthPanel.adsr2Release, "r2"   },
         { &synthPanel.mixVco1,      "mix1" }, { &synthPanel.mixVco2,      "mix2" },
         { &vcfPanel.cutoffKnob,     "cutoff" },
+        { &reverbPanel.mixKnob,     "reverb_mix" },
     };
 
     for (const auto& r : refs)
@@ -209,9 +229,14 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
 
     if (filterParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (filterParamId, this);
+    if (reverbEnabledParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (reverbEnabledParamId, this);
+    if (reverbModeParamId.isNotEmpty())
+        audioProcessor.apvts.removeParameterListener (reverbModeParamId, this);
 
     synthAttachments.clear();
     vcfAttachments.clear();
+    reverbAttachments.clear();
 
     auto addKnob = [this] (std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>>& target,
                            juce::Slider& knob, const juce::String& paramName, const juce::String& display)
@@ -251,10 +276,17 @@ void MetuliferAudioProcessorEditor::bindSequence (int index)
     addKnob (synthAttachments, synthPanel.mixVco2,      id ("mix2"),  "mix VCO2");
 
     addKnob (vcfAttachments,   vcfPanel.cutoffKnob,     id ("cutoff"), "cutoff");
+    addKnob (reverbAttachments, reverbPanel.mixKnob,   id ("reverb_mix"), "reverb mix");
 
     filterParamId = id ("filter");
     audioProcessor.apvts.addParameterListener (filterParamId, this);
     updateFilterButtons();
+
+    reverbEnabledParamId = id ("reverb_enabled");
+    reverbModeParamId    = id ("reverb_mode");
+    audioProcessor.apvts.addParameterListener (reverbEnabledParamId, this);
+    audioProcessor.apvts.addParameterListener (reverbModeParamId, this);
+    updateReverbButtons();
 
     updatingBindings = false;
 }
@@ -328,16 +360,57 @@ void MetuliferAudioProcessorEditor::updateFilterButtons()
     vcfPanel.setFilterType (param->getValue() < 0.5f);
 }
 
-void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parameterID, float)
+void MetuliferAudioProcessorEditor::setReverbPowerParam (bool on)
 {
-    if (parameterID != filterParamId)
+    auto* param = audioProcessor.apvts.getParameter (reverbEnabledParamId);
+    if (param == nullptr)
         return;
 
-    updateFilterButtons();
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (on ? 1.0f : 0.0f);
+    param->endChangeGesture();
 
-    auto* param = audioProcessor.apvts.getParameter (parameterID);
-    if (param != nullptr)
-        showText ("filter " + juce::String (param->getValue() < 0.5f ? "LPF" : "HPF"));
+    showText ("reverb " + juce::String (on ? "on" : "off"));
+}
+
+void MetuliferAudioProcessorEditor::setReverbModeParam (int mode)
+{
+    auto* param = audioProcessor.apvts.getParameter (reverbModeParamId);
+    if (param == nullptr)
+        return;
+
+    param->beginChangeGesture();
+    param->setValueNotifyingHost (mode == 0 ? 0.0f : 1.0f);
+    param->endChangeGesture();
+
+    showText ("reverb " + juce::String (mode == 0 ? "Room" : "Hall"));
+}
+
+void MetuliferAudioProcessorEditor::updateReverbButtons()
+{
+    auto* pEn = audioProcessor.apvts.getParameter (reverbEnabledParamId);
+    if (pEn != nullptr)
+        reverbPanel.setEnabledState (pEn->getValue() > 0.5f);
+
+    auto* pMode = audioProcessor.apvts.getParameter (reverbModeParamId);
+    if (pMode != nullptr)
+        reverbPanel.setModeIndex (pMode->getValue() > 0.5f ? 1 : 0);
+}
+
+void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parameterID, float)
+{
+    if (parameterID == filterParamId)
+    {
+        updateFilterButtons();
+
+        auto* param = audioProcessor.apvts.getParameter (parameterID);
+        if (param != nullptr)
+            showText ("filter " + juce::String (param->getValue() < 0.5f ? "LPF" : "HPF"));
+    }
+    else if (parameterID == reverbEnabledParamId || parameterID == reverbModeParamId)
+    {
+        updateReverbButtons();
+    }
 }
 
 //==============================================================================

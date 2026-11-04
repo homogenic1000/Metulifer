@@ -17,6 +17,9 @@ public:
         bool  useLpf   = true;
         float cutoff   = 1000.0f;
         float volumePct = 80.0f;
+        bool  reverbEnabled = false;
+        int   reverbMode    = 0; // 0: Room, 1: Hall
+        float reverbMix     = 30.0f; // 0..100%
     };
 
     void prepare (double sampleRate, int maxBlockSize);
@@ -111,9 +114,11 @@ private:
     WaveOsc osc1, osc2;
     juce::ADSR adsr1, adsr2;
     juce::dsp::StateVariableTPTFilter<float> filter;
-    juce::AudioBuffer<float> scratch1, scratch2;
+    juce::dsp::Reverb reverb;
+    juce::AudioBuffer<float> scratch1, scratch2, scratchStereo;
 
     float mixGain1 = 1.0f, mixGain2 = 1.0f, volumeGain = 0.8f;
+    bool reverbActive = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Voice)
 };

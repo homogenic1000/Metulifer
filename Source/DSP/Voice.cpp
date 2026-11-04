@@ -13,8 +13,10 @@ void Voice::prepare (double sr, int maxBlock)
 
     scratch1.setSize (1, maxBlockSize);
     scratch2.setSize (1, maxBlockSize);
+    scratchStereo.setSize (2, maxBlockSize);
     scratch1.clear();
     scratch2.clear();
+    scratchStereo.clear();
 
     adsr1.setSampleRate (sampleRate);
     adsr2.setSampleRate (sampleRate);
@@ -26,6 +28,9 @@ void Voice::prepare (double sr, int maxBlock)
     filter.setCutoffFrequency (1000.0f);
     filter.reset();
 
+    reverb.prepare ({ sampleRate, (juce::uint32) maxBlockSize, 2u });
+    reverb.reset();
+
     osc1 = WaveOsc();
     osc2 = WaveOsc();
 }
@@ -34,6 +39,7 @@ void Voice::reset()
 {
     adsr1.reset();
     adsr2.reset();
+    reverb.reset();
     osc1.phase = 0.0;
     osc2.phase = 0.0;
 }
@@ -60,6 +66,29 @@ void Voice::setParams (const Params& p)
     filter.setType (p.useLpf ? juce::dsp::StateVariableTPTFilterType::lowpass
                              : juce::dsp::StateVariableTPTFilterType::highpass);
     filter.setCutoffFrequency (juce::jlimit (20.0f, (float) (sampleRate * 0.49), p.cutoff));
+
+    reverbActive = p.reverbEnabled && p.reverbMix > 0.001f;
+    if (reverbActive)
+    {
+        juce::dsp::Reverb::Parameters rp;
+        const float wet = juce::jlimit (0.0f, 1.0f, p.reverbMix / 100.0f);
+        if (p.reverbMode == 0) // Room
+        {
+            rp.roomSize = 0.45f;
+            rp.damping  = 0.55f;
+            rp.width    = 0.8f;
+        }
+        else // Hall
+        {
+            rp.roomSize = 0.85f;
+            rp.damping  = 0.25f;
+            rp.width    = 1.0f;
+        }
+        rp.wetLevel = wet;
+        rp.dryLevel = 1.0f - (wet * 0.5f);
+        rp.freezeMode = 0.0f;
+        reverb.setParameters (rp);
+    }
 }
 
 void Voice::noteOn()
@@ -112,6 +141,49 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
     scratch1.applyGain (volumeGain, 0, numSamples);
 
     const int channels = juce::jmin (2, out.getNumChannels());
-    for (int ch = 0; ch < channels; ++ch)
-        out.addFrom (ch, startSample, scratch1, 0, 0, numSamples);
+
+    if (reverbActive && channels >= 2)
+    {
+        auto* st0 = scratchStereo.getWritePointer (0);
+        auto* st1 = scratchStereo.getWritePointer (1);
+        auto* mono = scratch1.getReadPointer (0);
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            st0[i] = mono[i];
+            st1[i] = mono[i];
+        }
+
+        juce::dsp::AudioBlock<float> stereoBlock (scratchStereo);
+        auto stereoSubBlock = stereoBlock.getSubBlock (0, (size_t) numSamples);
+        juce::dsp::ProcessContextReplacing<float> revContext (stereoSubBlock);
+        reverb.process (revContext);
+
+        out.addFrom (0, startSample, scratchStereo, 0, 0, numSamples);
+        out.addFrom (1, startSample, scratchStereo, 1, 0, numSamples);
+    }
+    else if (reverbActive && channels == 1)
+    {
+        auto* st0 = scratchStereo.getWritePointer (0);
+        auto* st1 = scratchStereo.getWritePointer (1);
+        auto* mono = scratch1.getReadPointer (0);
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            st0[i] = mono[i];
+            st1[i] = mono[i];
+        }
+
+        juce::dsp::AudioBlock<float> stereoBlock (scratchStereo);
+        auto stereoSubBlock = stereoBlock.getSubBlock (0, (size_t) numSamples);
+        juce::dsp::ProcessContextReplacing<float> revContext (stereoSubBlock);
+        reverb.process (revContext);
+
+        out.addFrom (0, startSample, scratchStereo, 0, 0, numSamples);
+    }
+    else
+    {
+        for (int ch = 0; ch < channels; ++ch)
+            out.addFrom (ch, startSample, scratch1, 0, 0, numSamples);
+    }
 }
