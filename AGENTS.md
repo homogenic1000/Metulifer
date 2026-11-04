@@ -114,7 +114,21 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
-```
+### 2026-11-04 — Mode Pinceau glissé (Click-and-Drag Step Paintbrush) sur le séquenceur
+- **Tâche** : Permettre d'activer ou désactiver une série continue de pas en maintenant le clic de la souris enfoncé et en balayant la rangée de 32 pas (click-and-drag paintbrush).
+- **Fichiers** : `Source/UI/SequenceRowComponent.{h,cpp}`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/UI/SequenceRowComponent.{h,cpp}` :
+     - Remplacement de l'inversion par défaut sur `mouseUp` de `juce::Button` (`setClickingTogglesState (false)`).
+     - Gestion centralisée des événements souris via `RowMouseListener` (`handleMouseDown`, `handleMouseDrag`, `handleMouseUp`) recevant tous les événements de la rangée et de ses enfants via `addMouseListener (..., true)`.
+     - `handleMouseDown` : Détecte le pas cliqué (`getStepIndexAt` avec tolérance de gap de 3 px), détermine le mode pinceau (`paintState = !clickedStep->getToggleState()`, ou `false` sur clic droit/effaceur), bascule instantanément l'état du pas et sauvegarde le pattern.
+     - `handleMouseDrag` : Suit le balayage de la souris avec interpolation continue entre le dernier pas peint et le pas sous le curseur (`getStepIndexForDrag` avec tolérance verticale généreuse de ±20 px et verrouillage horizontal 0..31 pour ne rater aucun pas lors d'un geste rapide), applique `paintState` à tous les pas intermédiaires et notifie `stepsTree` en temps réel.
+     - `handleMouseUp` : Réinitialise l'état de glissement (`isPaintingSteps = false`, `lastPaintedStep = -1`).
+     - Sécurité 32 bits : Bit shifts sécurisés via `(int) (1u << (unsigned int) i)` sur `getPattern`, `setPattern` et `loadPatternFromTree`.
+- **Validation** : ✅ Build Xcode réussi (`** BUILD SUCCEEDED **` sur VST3, AU et Standalone) + validation automatisée complète `pluginval` au niveau de rigueur 5 (`SUCCESS`, 0 erreur).
+- **Commit** : `47724e9` — `feat: add click-and-drag step painting in sequence rows`
+- **Next steps** : —
+
 ### 2026-11-04 — Modernisation de l'UI : potentiomètres hardware, états boutons et contraste
 - **Tâche** : Améliorer le contraste global de l'interface squelette, doter les potentiomètres rotatifs d'un rendu matériel analogique avec arcs de valeur dynamiques, concevoir tous les états interactifs des boutons (normal/survol/clic/actif) et clarifier les pas du séquenceur
 - **Fichiers** : `Source/UI/MetuliferLookAndFeel.{h,cpp}`, `Source/UI/Skin.cpp`, `Source/UI/SequenceRowComponent.{h,cpp}`, `Source/UI/Lever.cpp`, `Source/UI/DisplayScreen.cpp`, `Source/PluginEditor.cpp`, `AGENTS.md`

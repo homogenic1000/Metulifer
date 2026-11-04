@@ -25,8 +25,7 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
     for (int i = 0; i < numSteps; ++i)
     {
         auto step = std::make_unique<juce::TextButton> ("step " + juce::String (i + 1));
-        step->setClickingTogglesState (true);
-        step->onClick = [this] { savePattern(); };
+        step->setClickingTogglesState (false);
         addAndMakeVisible (*step);
         stepButtons.push_back (std::move (step));
     }
@@ -199,6 +198,134 @@ void SequenceRowComponent::rowClicked()
         onSelected();
 }
 
+void SequenceRowComponent::handleMouseDown (const juce::MouseEvent& e)
+{
+    rowClicked();
+
+    auto posInRow = e.getEventRelativeTo (this).getPosition();
+    const int stepIdx = getStepIndexAt (posInRow);
+
+    if (stepIdx >= 0 && stepIdx < (int) stepButtons.size())
+    {
+        isPaintingSteps = true;
+
+        // Right-click always acts as an eraser (paints OFF).
+        // Left-click inverts the clicked step and paints that state along the drag stroke.
+        if (e.mods.isPopupMenu() || e.mods.isRightButtonDown())
+            paintState = false;
+        else
+            paintState = ! stepButtons[(size_t) stepIdx]->getToggleState();
+
+        stepButtons[(size_t) stepIdx]->setToggleState (paintState, juce::dontSendNotification);
+        lastPaintedStep = stepIdx;
+        savePattern();
+    }
+    else
+    {
+        isPaintingSteps = false;
+        lastPaintedStep = -1;
+    }
+}
+
+void SequenceRowComponent::handleMouseDrag (const juce::MouseEvent& e)
+{
+    if (! isPaintingSteps)
+        return;
+
+    auto posInRow = e.getEventRelativeTo (this).getPosition();
+    const int stepIdx = getStepIndexForDrag (posInRow);
+
+    if (stepIdx >= 0 && stepIdx < (int) stepButtons.size())
+    {
+        if (lastPaintedStep != -1)
+        {
+            const int start = juce::jmin (lastPaintedStep, stepIdx);
+            const int end   = juce::jmax (lastPaintedStep, stepIdx);
+            bool anyChanged = false;
+
+            for (int s = start; s <= end; ++s)
+            {
+                if (stepButtons[(size_t) s]->getToggleState() != paintState)
+                {
+                    stepButtons[(size_t) s]->setToggleState (paintState, juce::dontSendNotification);
+                    anyChanged = true;
+                }
+            }
+
+            if (anyChanged)
+                savePattern();
+        }
+        else
+        {
+            if (stepButtons[(size_t) stepIdx]->getToggleState() != paintState)
+            {
+                stepButtons[(size_t) stepIdx]->setToggleState (paintState, juce::dontSendNotification);
+                savePattern();
+            }
+        }
+
+        lastPaintedStep = stepIdx;
+    }
+}
+
+void SequenceRowComponent::handleMouseUp (const juce::MouseEvent& /*e*/)
+{
+    isPaintingSteps = false;
+    lastPaintedStep = -1;
+}
+
+int SequenceRowComponent::getStepIndexAt (juce::Point<int> pos) const
+{
+    if (stepButtons.empty())
+        return -1;
+
+    const auto firstBounds = stepButtons.front()->getBounds();
+    const auto lastBounds  = stepButtons.back()->getBounds();
+
+    if (pos.y < firstBounds.getY() - 6 || pos.y > firstBounds.getBottom() + 6)
+        return -1;
+
+    if (pos.x < firstBounds.getX() - 4 || pos.x > lastBounds.getRight() + 4)
+        return -1;
+
+    for (int i = 0; i < (int) stepButtons.size(); ++i)
+    {
+        const auto b = stepButtons[(size_t) i]->getBounds().expanded (2, 4);
+        if (b.contains (pos))
+            return i;
+    }
+
+    return -1;
+}
+
+int SequenceRowComponent::getStepIndexForDrag (juce::Point<int> pos) const
+{
+    if (stepButtons.empty())
+        return -1;
+
+    // Generous vertical envelope so natural drag strokes don't break
+    if (pos.y < -20 || pos.y > getHeight() + 20)
+        return -1;
+
+    const auto firstBounds = stepButtons.front()->getBounds();
+    const auto lastBounds  = stepButtons.back()->getBounds();
+
+    if (pos.x <= firstBounds.getCentreX())
+        return 0;
+
+    if (pos.x >= lastBounds.getCentreX())
+        return (int) stepButtons.size() - 1;
+
+    for (int i = 0; i < (int) stepButtons.size(); ++i)
+    {
+        const auto b = stepButtons[(size_t) i]->getBounds();
+        if (pos.x >= b.getX() - 2 && pos.x <= b.getRight() + 2)
+            return i;
+    }
+
+    return -1;
+}
+
 void SequenceRowComponent::setStepsTree (juce::ValueTree tree)
 {
     stepsTree = tree;
@@ -211,7 +338,7 @@ int SequenceRowComponent::getPattern() const
 
     for (int i = 0; i < numSteps; ++i)
         if (stepButtons[(size_t) i]->getToggleState())
-            pattern |= (1 << i);
+            pattern |= (int) (1u << (unsigned int) i);
 
     return pattern;
 }
@@ -219,7 +346,7 @@ int SequenceRowComponent::getPattern() const
 void SequenceRowComponent::setPattern (int pattern)
 {
     for (int i = 0; i < numSteps; ++i)
-        stepButtons[(size_t) i]->setToggleState ((pattern & (1 << i)) != 0,
+        stepButtons[(size_t) i]->setToggleState ((pattern & (int) (1u << (unsigned int) i)) != 0,
                                                   juce::dontSendNotification);
 
     savePattern();
@@ -233,7 +360,7 @@ void SequenceRowComponent::loadPatternFromTree()
     const int pattern = (int) stepsTree.getProperty ("p" + juce::String (seqIndex), 0);
 
     for (int i = 0; i < numSteps; ++i)
-        stepButtons[(size_t) i]->setToggleState ((pattern & (1 << i)) != 0,
+        stepButtons[(size_t) i]->setToggleState ((pattern & (int) (1u << (unsigned int) i)) != 0,
                                                   juce::dontSendNotification);
 }
 

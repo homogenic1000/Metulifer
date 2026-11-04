@@ -36,9 +36,17 @@ private:
     struct RowMouseListener : juce::MouseListener
     {
         explicit RowMouseListener (SequenceRowComponent& o) : owner (o) {}
-        void mouseDown (const juce::MouseEvent&) override { owner.rowClicked(); }
+        void mouseDown (const juce::MouseEvent& e) override { owner.handleMouseDown (e); }
+        void mouseDrag (const juce::MouseEvent& e) override { owner.handleMouseDrag (e); }
+        void mouseUp   (const juce::MouseEvent& e) override { owner.handleMouseUp (e); }
         SequenceRowComponent& owner;
     };
+
+    void handleMouseDown (const juce::MouseEvent& e);
+    void handleMouseDrag (const juce::MouseEvent& e);
+    void handleMouseUp   (const juce::MouseEvent& e);
+    int  getStepIndexAt (juce::Point<int> pos) const;
+    int  getStepIndexForDrag (juce::Point<int> pos) const;
 
     void rowClicked();
     void savePattern();
@@ -47,6 +55,10 @@ private:
     int seqIndex = 0;
     bool selected = false;
     int playheadStep = -1;
+    bool isPaintingSteps = false;
+    bool paintState = false;
+    int lastPaintedStep = -1;
+
     RowMouseListener mouseListener { *this };
     juce::ValueTree stepsTree;
 
