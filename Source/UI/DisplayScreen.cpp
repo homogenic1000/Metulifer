@@ -53,24 +53,108 @@ void DisplayScreen::paint (juce::Graphics& g)
         g.drawText ("SCOPE", modeTagArea.removeFromRight (40.0f), juce::Justification::centredRight);
     }
 
-    // --- Bottom RMS Bar ---
-    auto meterArea = inner.removeFromBottom (10.0f);
-    g.setColour (juce::Colour (0xff1e2433));
-    g.fillRoundedRectangle (meterArea, 3.0f);
+    // --- Bottom Accurate dB Meter ---
+    auto meterArea = inner.removeFromBottom (20.0f);
 
-    const float level = juce::jlimit (0.0f, 1.0f, rms);
-    if (level > 0.001f)
+    // Right side: Exact numerical dB readout (54 px)
+    auto readoutArea = meterArea.removeFromRight (54.0f);
+    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
+    if (lastDbReadout >= -0.05f)
     {
-        auto fill = meterArea;
-        fill.setWidth (fill.getWidth() * level);
-        juce::ColourGradient grad (juce::Colour (0xff10b981), fill.getX(), fill.getY(),
-                                   level > 0.8f ? juce::Colour (0xffef4444) : juce::Colour (0xff38bdf8),
-                                   fill.getRight(), fill.getY(), false);
-        g.setGradientFill (grad);
-        g.fillRoundedRectangle (fill, 3.0f);
+        g.setColour (juce::Colour (0xffef4444));
+        g.drawText ("CLIP", readoutArea, juce::Justification::centredRight);
+    }
+    else if (lastDbReadout <= -48.0f)
+    {
+        g.setColour (juce::Colour (0xff64748b));
+        g.drawText ("-inf dB", readoutArea, juce::Justification::centredRight);
+    }
+    else
+    {
+        g.setColour (juce::Colour (0xffcbd5e1));
+        g.drawText (juce::String (lastDbReadout, 1) + " dB", readoutArea, juce::Justification::centredRight);
     }
 
-    inner.removeFromBottom (6.0f); // Spacing between scope/param and meter
+    meterArea.removeFromRight (8.0f); // gap between bars and readout
+
+    // Left side: L and R channels
+    const float labelWidth = 10.0f;
+    auto barsArea = meterArea;
+    barsArea.removeFromLeft (labelWidth);
+
+    auto barL = barsArea.removeFromTop (4.0f);
+    barsArea.removeFromTop (2.0f);
+    auto barR = barsArea.removeFromTop (4.0f);
+    barsArea.removeFromTop (2.0f);
+
+    // Labels "L" and "R"
+    g.setFont (juce::FontOptions (7.5f, juce::Font::bold));
+    g.setColour (juce::Colour (0xff64748b));
+    g.drawText ("L", meterArea.getX(), barL.getY() - 1.0f, labelWidth, 6.0f, juce::Justification::centredLeft);
+    g.drawText ("R", meterArea.getX(), barR.getY() - 1.0f, labelWidth, 6.0f, juce::Justification::centredLeft);
+
+    // Track background
+    g.setColour (juce::Colour (0xff141a24));
+    g.fillRoundedRectangle (barL, 1.5f);
+    g.fillRoundedRectangle (barR, 1.5f);
+
+    // Scale mapping helper: -48 dB to +3 dB
+    auto dbToNorm = [] (float db) -> float
+    {
+        const float clamped = juce::jlimit (-48.0f, 3.0f, db);
+        return (clamped + 48.0f) / 51.0f; // 0 dB is at 48/51 = 0.941
+    };
+
+    auto drawMeterBar = [&] (juce::Rectangle<float> barRect, float peakDb, float holdDb)
+    {
+        const float norm = dbToNorm (peakDb);
+        if (norm > 0.005f)
+        {
+            auto fill = barRect;
+            fill.setWidth (barRect.getWidth() * norm);
+
+            // Multistage gradient: green (-48 to -12) -> yellow (-12 to -3) -> orange (-3 to 0) -> red (>0)
+            juce::Colour endCol = juce::Colour (0xff10b981);
+            if (peakDb > 0.0f)
+                endCol = juce::Colour (0xffef4444);
+            else if (peakDb > -3.0f)
+                endCol = juce::Colour (0xfff97316);
+            else if (peakDb > -12.0f)
+                endCol = juce::Colour (0xffeab308);
+
+            juce::ColourGradient grad (juce::Colour (0xff10b981), fill.getX(), fill.getY(),
+                                       endCol, fill.getRight(), fill.getY(), false);
+            g.setGradientFill (grad);
+            g.fillRoundedRectangle (fill, 1.5f);
+        }
+
+        // Peak Hold indicator tick
+        const float holdNorm = dbToNorm (holdDb);
+        if (holdNorm > 0.01f)
+        {
+            const float tickX = barRect.getX() + barRect.getWidth() * holdNorm;
+            g.setColour (holdDb >= 0.0f ? juce::Colour (0xffef4444) : juce::Colours::white);
+            g.drawVerticalLine (juce::roundToInt (tickX), barRect.getY(), barRect.getBottom());
+        }
+    };
+
+    drawMeterBar (barL, meterPeakL, peakHoldL);
+    drawMeterBar (barR, meterPeakR, peakHoldR);
+
+    // Scale ticks and numbers: -48, -24, -12, -6, 0, +3
+    static const float scaleValues[] = { -48.0f, -24.0f, -12.0f, -6.0f, 0.0f, 3.0f };
+    static const char* const scaleLabels[] = { "-48", "-24", "-12", "-6", "0", "+3" };
+
+    g.setFont (juce::FontOptions (7.0f, juce::Font::plain));
+    for (int i = 0; i < 6; ++i)
+    {
+        const float tx = barL.getX() + barL.getWidth() * dbToNorm (scaleValues[i]);
+        g.setColour (scaleValues[i] >= 0.0f ? juce::Colour (0xffef4444) : juce::Colour (0xff475569));
+        g.drawVerticalLine (juce::roundToInt (tx), barR.getBottom() + 1.0f, barR.getBottom() + 3.0f);
+        g.drawText (scaleLabels[i], juce::roundToInt (tx) - 10, juce::roundToInt (barR.getBottom() + 2.0f), 20, 8, juce::Justification::centred);
+    }
+
+    inner.removeFromBottom (4.0f); // Spacing between scope/param and meter
 
     // --- Main Display Area (Parameter Edit vs Real-time Oscilloscope) ---
     auto mainArea = inner;
@@ -145,6 +229,50 @@ void DisplayScreen::setParamText (const juce::String& text)
 void DisplayScreen::setRmsLevel (float newRms)
 {
     rms = newRms;
+    repaint();
+}
+
+void DisplayScreen::updateMeterLevels (float inPeakL, float inPeakR, float /*inRmsL*/, float /*inRmsR*/)
+{
+    // Fast attack (instantaneous)
+    if (inPeakL > meterPeakL)
+        meterPeakL = inPeakL;
+    else
+        meterPeakL = juce::jmax (-80.0f, meterPeakL - 1.8f);
+
+    if (inPeakR > meterPeakR)
+        meterPeakR = inPeakR;
+    else
+        meterPeakR = juce::jmax (-80.0f, meterPeakR - 1.8f);
+
+    // Peak Hold with 1s hold time
+    if (meterPeakL >= peakHoldL)
+    {
+        peakHoldL = meterPeakL;
+        peakHoldTimerL = 30; // 30 frames @ 30 Hz = 1.0 s
+    }
+    else
+    {
+        if (peakHoldTimerL > 0)
+            --peakHoldTimerL;
+        else
+            peakHoldL = juce::jmax (-80.0f, peakHoldL - 1.2f);
+    }
+
+    if (meterPeakR >= peakHoldR)
+    {
+        peakHoldR = meterPeakR;
+        peakHoldTimerR = 30;
+    }
+    else
+    {
+        if (peakHoldTimerR > 0)
+            --peakHoldTimerR;
+        else
+            peakHoldR = juce::jmax (-80.0f, peakHoldR - 1.2f);
+    }
+
+    lastDbReadout = juce::jmax (meterPeakL, meterPeakR);
     repaint();
 }
 

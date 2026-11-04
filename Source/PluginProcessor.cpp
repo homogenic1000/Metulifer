@@ -637,21 +637,54 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             data[i] = std::tanh (data[i]);
     }
 
-    // Output RMS for the display screen (lock-free, realtime safe).
+    // Accurate dB meter calculation (Peak and RMS in dBFS per channel)
     {
-        float sumSquares = 0.0f;
-        int count = 0;
+        float maxL = 0.0f;
+        float maxR = 0.0f;
+        float sumSqL = 0.0f;
+        float sumSqR = 0.0f;
 
-        for (int channel = 0; channel < numChannels; ++channel)
+        if (numChannels > 0)
         {
-            const auto* data = buffer.getReadPointer (channel);
+            const auto* l = buffer.getReadPointer (0);
             for (int i = 0; i < numSamples; ++i)
-                sumSquares += data[i] * data[i];
-            count += numSamples;
+            {
+                const float s = std::abs (l[i]);
+                if (s > maxL) maxL = s;
+                sumSqL += s * s;
+            }
+        }
+        if (numChannels > 1)
+        {
+            const auto* r = buffer.getReadPointer (1);
+            for (int i = 0; i < numSamples; ++i)
+            {
+                const float s = std::abs (r[i]);
+                if (s > maxR) maxR = s;
+                sumSqR += s * s;
+            }
+        }
+        else
+        {
+            maxR = maxL;
+            sumSqR = sumSqL;
         }
 
-        rms.store (count > 0 ? std::sqrt (sumSquares / (float) count) : 0.0f,
-                   std::memory_order_relaxed);
+        const float rmsLVal = numSamples > 0 ? std::sqrt (sumSqL / (float) numSamples) : 0.0f;
+        const float rmsRVal = numSamples > 0 ? std::sqrt (sumSqR / (float) numSamples) : 0.0f;
+
+        const float dbPeakL = maxL > 1e-5f ? 20.0f * std::log10 (maxL) : -80.0f;
+        const float dbPeakR = maxR > 1e-5f ? 20.0f * std::log10 (maxR) : -80.0f;
+        const float dbRmsL  = rmsLVal > 1e-5f ? 20.0f * std::log10 (rmsLVal) : -80.0f;
+        const float dbRmsR  = rmsRVal > 1e-5f ? 20.0f * std::log10 (rmsRVal) : -80.0f;
+
+        peakDbL.store (dbPeakL, std::memory_order_relaxed);
+        peakDbR.store (dbPeakR, std::memory_order_relaxed);
+        rmsDbL.store (dbRmsL, std::memory_order_relaxed);
+        rmsDbR.store (dbRmsR, std::memory_order_relaxed);
+
+        const float combinedRms = (rmsLVal + rmsRVal) * 0.5f;
+        rms.store (combinedRms, std::memory_order_relaxed);
     }
 
     // Oscilloscope ring buffer (lock-free, realtime safe).

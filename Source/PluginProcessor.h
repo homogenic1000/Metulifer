@@ -75,6 +75,11 @@ public:
 
     float getCurrentRms() const noexcept { return rms.load (std::memory_order_relaxed); }
 
+    float getPeakDbL() const noexcept { return peakDbL.load (std::memory_order_relaxed); }
+    float getPeakDbR() const noexcept { return peakDbR.load (std::memory_order_relaxed); }
+    float getRmsDbL()  const noexcept { return rmsDbL.load  (std::memory_order_relaxed); }
+    float getRmsDbR()  const noexcept { return rmsDbR.load  (std::memory_order_relaxed); }
+
     static constexpr int scopeBufferSize = 512;
     void getScopeBuffer (float* dest, int numSamplesToRead) const;
 
@@ -155,6 +160,10 @@ private:
     juce::ValueTree stepsTree { "steps" };
     juce::ValueTree modTree { "mod" };
     std::atomic<float> rms { 0.0f };
+    std::atomic<float> peakDbL { -80.0f };
+    std::atomic<float> peakDbR { -80.0f };
+    std::atomic<float> rmsDbL  { -80.0f };
+    std::atomic<float> rmsDbR  { -80.0f };
     float scopeBuffer[scopeBufferSize] {};
     std::atomic<int> scopeWriteIndex { 0 };
 

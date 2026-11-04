@@ -151,10 +151,11 @@ Metulifer/
   2. Implémenter l'arpégiateur par séquence (11 modes : Up, Down, Up&Down, Down&Up, Pinky Up, Pinky Down, Thumb-Pinky, Converge, Diverge, Random, Order ; 10 gammes/accords ; 1 à 3 octaves) avec boutons `ARP` sur chaque rangée et contrôles dédiés dans SynthPanel.
   3. Résoudre la désynchronisation des séquences lors du changement de longueur : horloge master unique et calcul de pas `globalStep % length` pour maintenir un verrouillage de phase perpétuel sur la grille de double-croches.
   4. Intégrer un oscilloscope temps réel sur l'écran OLED avec buffer circulaire lock-free, affichant le signal joué en direct lorsqu'aucun paramètre n'est manipulé.
-  5. Réaligner rigoureusement toute l'interface 1280×720 (marges symétriques de 32 px, espacements réguliers de 14 px, suppression du chevauchement VCF/SynthPanel, alignement vertical parfait DisplayScreen + ClockPanel).
-  6. Intégrer l'inspecteur visuel Melatonin Inspector (`⌘I` et bouton « Inspect »).
-  7. Valider le plugin avec `pluginval` aux niveaux de rigueur 5 et 8 (100 % pass).
-  8. Rédiger et structurer la documentation bilingue FR/EN complète avec Fumadocs (Next.js 16 / Turbopack), 38 pages statiques générées sans erreur.
+  5. Intégrer un dB-mètre stéréo de studio calibré en dBFS (-48 dB à +3 dB) avec balistique de crête instantanée, retombée logarithmique (54 dB/s), indicateurs de crête maintenue (Peak-Hold 1 s), graduations chiffrées (-48, -24, -12, -6, 0, +3), indicateur CLIP rouge et lecture numérique précise au dixième de dB.
+  6. Réaligner rigoureusement toute l'interface 1280×720 (marges symétriques de 32 px, espacements réguliers de 14 px, suppression du chevauchement VCF/SynthPanel, alignement vertical parfait DisplayScreen + ClockPanel).
+  7. Intégrer l'inspecteur visuel Melatonin Inspector (`⌘I` et bouton « Inspect »).
+  8. Valider le plugin avec `pluginval` aux niveaux de rigueur 5 et 8 (100 % pass).
+  9. Rédiger et structurer la documentation bilingue FR/EN complète avec Fumadocs (Next.js 16 / Turbopack), 38 pages statiques générées sans erreur.
 - **Fichiers** :
   - DSP/Engine : `Source/DSP/Voice.{h,cpp}`, `Source/PluginProcessor.{h,cpp}`, `Source/Sequencer/SequencerEngine.{h,cpp}`
   - UI : `Source/PluginEditor.{h,cpp}`, `Source/UI/DisplayScreen.{h,cpp}`, `Source/UI/ReverbPanel.{h,cpp}`, `Source/UI/SynthPanel.{h,cpp}`, `Source/UI/SequenceRowComponent.{h,cpp}`, `Source/UI/MetuliferLookAndFeel.cpp`

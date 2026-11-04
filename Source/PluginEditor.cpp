@@ -708,6 +708,12 @@ void MetuliferAudioProcessorEditor::timerCallback()
 {
     displayScreen.setRmsLevel (audioProcessor.getCurrentRms());
 
+    // Update studio-grade accurate stereo dB meter with ballistics
+    displayScreen.updateMeterLevels (audioProcessor.getPeakDbL(),
+                                     audioProcessor.getPeakDbR(),
+                                     audioProcessor.getRmsDbL(),
+                                     audioProcessor.getRmsDbR());
+
     // Push real-time oscilloscope samples to the OLED display
     float scopeData[128];
     audioProcessor.getScopeBuffer (scopeData, 128);
