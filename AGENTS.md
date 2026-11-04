@@ -114,6 +114,21 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-04 — Synchronisation temps réel 60 Hz & zéro-latence du dB-mètre et de l'oscilloscope
+- **Tâche** : Résoudre la latence perçue et le décalage rythmique entre les notes jouées par le séquenceur et la réaction du dB-mètre / oscilloscope.
+- **Causes racines identifiées** :
+  1. **Écrasement des crêtes inter-trames** : `peakDbL/R` stockait uniquement la valeur du bloc audio courant. Les blocs audio contenant les transitoires étaient écrasés par les blocs silencieux suivants avant que le timer UI (cadencé à 30 Hz = 33 ms) n'ait le temps de les lire.
+  2. **Fréquence de rafraîchissement à 30 Hz** : Le délai de 33 ms introduisait une latence visible par rapport au playhead de séquence.
+  3. **Lissage inter-trames artificiel** : Le mélange 20/80 % sur `scopePoints` retardait l'apparition des transitoires d'une ou deux trames.
+- **Fichiers** : `Source/PluginProcessor.cpp`, `Source/PluginEditor.cpp`, `Source/UI/DisplayScreen.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/PluginProcessor.cpp` : Accumulateur de crête inter-trames dans `processBlock` (`peakDbL/R` monte instantanément sur tout transitoire et décroît progressivement de 0.6 dB par bloc en l'absence de signal, garantissant que chaque note est captée à 100 % par l'UI).
+  2. `Source/PluginEditor.cpp` : Fréquence de rafraîchissement du timer doublée à **60 Hz** (16,6 ms) pour une réponse visuelle fluide à 60 fps synchrone avec l'audio.
+  3. `Source/UI/DisplayScreen.cpp` : Réactivité instantanée de l'oscilloscope (assignation directe `scopePoints[i] = rawSample` sans délai d'atténuation) et balistique du dB-mètre calibrée à 60 Hz.
+- **Validation** : ✅ Build Xcode réussi (`** BUILD SUCCEEDED **` sur VST3, AU et Standalone) + validation automatisée complète `pluginval` au niveau de rigueur 5 (`SUCCESS`, 0 erreur).
+- **Commit** : `bc2067a` — `fix: sync db meter and oscilloscope to 60Hz with zero-latency peak hold`
+- **Next steps** : —
+
 ### 2026-11-04 — Fix affichage onde carrée sur l'oscilloscope & Cutoff par défaut
 - **Tâche** : Résoudre le problème où une onde carrée isolée apparaît comme une sinusoïde sur l'oscilloscope.
 - **Causes racines identifiées** :

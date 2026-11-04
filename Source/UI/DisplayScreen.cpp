@@ -238,38 +238,38 @@ void DisplayScreen::updateMeterLevels (float inPeakL, float inPeakR, float /*inR
     if (inPeakL > meterPeakL)
         meterPeakL = inPeakL;
     else
-        meterPeakL = juce::jmax (-80.0f, meterPeakL - 1.8f);
+        meterPeakL = juce::jmax (-80.0f, meterPeakL - 0.9f); // ~54 dB/s decay at 60 Hz
 
     if (inPeakR > meterPeakR)
         meterPeakR = inPeakR;
     else
-        meterPeakR = juce::jmax (-80.0f, meterPeakR - 1.8f);
+        meterPeakR = juce::jmax (-80.0f, meterPeakR - 0.9f);
 
-    // Peak Hold with 1s hold time
+    // Peak Hold with 1s hold time (60 frames @ 60 Hz = 1.0 s)
     if (meterPeakL >= peakHoldL)
     {
         peakHoldL = meterPeakL;
-        peakHoldTimerL = 30; // 30 frames @ 30 Hz = 1.0 s
+        peakHoldTimerL = 60;
     }
     else
     {
         if (peakHoldTimerL > 0)
             --peakHoldTimerL;
         else
-            peakHoldL = juce::jmax (-80.0f, peakHoldL - 1.2f);
+            peakHoldL = juce::jmax (-80.0f, peakHoldL - 0.7f);
     }
 
     if (meterPeakR >= peakHoldR)
     {
         peakHoldR = meterPeakR;
-        peakHoldTimerR = 30;
+        peakHoldTimerR = 60;
     }
     else
     {
         if (peakHoldTimerR > 0)
             --peakHoldTimerR;
         else
-            peakHoldR = juce::jmax (-80.0f, peakHoldR - 1.2f);
+            peakHoldR = juce::jmax (-80.0f, peakHoldR - 0.7f);
     }
 
     lastDbReadout = juce::jmax (meterPeakL, meterPeakR);
@@ -352,8 +352,8 @@ void DisplayScreen::pushScopeSamples (const float* samples, int numSamples)
         const float frac = srcPos - (float) i0;
         const float rawSample = (samples[i0] + frac * (samples[i1] - samples[i0])) * autoGain;
 
-        // Smooth frame blending for silky, jitter-free visual stability
-        scopePoints[i] = scopePoints[i] * 0.2f + rawSample * 0.8f;
+        // Immediate zero-latency sample update for instantaneous rhythmic response
+        scopePoints[i] = rawSample;
     }
 
     repaint();

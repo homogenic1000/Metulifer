@@ -678,8 +678,19 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         const float dbRmsL  = rmsLVal > 1e-5f ? 20.0f * std::log10 (rmsLVal) : -80.0f;
         const float dbRmsR  = rmsRVal > 1e-5f ? 20.0f * std::log10 (rmsRVal) : -80.0f;
 
-        peakDbL.store (dbPeakL, std::memory_order_relaxed);
-        peakDbR.store (dbPeakR, std::memory_order_relaxed);
+        // Hold peak between UI timer frames so transient notes are never missed or delayed
+        const float prevPeakL = peakDbL.load (std::memory_order_relaxed);
+        if (dbPeakL > prevPeakL)
+            peakDbL.store (dbPeakL, std::memory_order_relaxed);
+        else
+            peakDbL.store (juce::jmax (dbPeakL, prevPeakL - 0.6f), std::memory_order_relaxed);
+
+        const float prevPeakR = peakDbR.load (std::memory_order_relaxed);
+        if (dbPeakR > prevPeakR)
+            peakDbR.store (dbPeakR, std::memory_order_relaxed);
+        else
+            peakDbR.store (juce::jmax (dbPeakR, prevPeakR - 0.6f), std::memory_order_relaxed);
+
         rmsDbL.store (dbRmsL, std::memory_order_relaxed);
         rmsDbR.store (dbRmsR, std::memory_order_relaxed);
 

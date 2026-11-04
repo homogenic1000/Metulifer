@@ -187,7 +187,7 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
 
     sequencerPanel.setStepsTree (audioProcessor.getStepsTree());
 
-    startTimerHz (30);
+    startTimerHz (60);
     setSize (1280, 720);
 }
 
