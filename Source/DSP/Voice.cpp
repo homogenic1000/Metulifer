@@ -123,23 +123,21 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         s1[i] = osc1.next();
 
     adsr1.applyEnvelopeToBuffer (scratch1, 0, numSamples);
-    scratch1.applyGain (mixGain1, 0, numSamples);
+    scratch1.applyGain (0, numSamples, mixGain1);
 
     for (int i = 0; i < numSamples; ++i)
         s2[i] = osc2.next();
 
     adsr2.applyEnvelopeToBuffer (scratch2, 0, numSamples);
-    scratch2.applyGain (mixGain2, 0, numSamples);
+    scratch2.applyGain (0, numSamples, mixGain2);
 
     scratch1.addFrom (0, 0, scratch2, 0, 0, numSamples);
-    scratch1.applyGain (0.5f, 0, numSamples);
+    scratch1.applyGain (0, numSamples, 0.5f);
 
     juce::dsp::AudioBlock<float> block (scratch1);
     auto subBlock = block.getSubBlock (0, (size_t) numSamples);
     juce::dsp::ProcessContextReplacing<float> context (subBlock);
     filter.process (context);
-
-    scratch1.applyGain (volumeGain, 0, numSamples);
 
     if (volumeGain <= 0.0001f)
     {
@@ -147,6 +145,8 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
             reverb.reset();
         return;
     }
+
+    scratch1.applyGain (0, numSamples, volumeGain);
 
     const int channels = juce::jmin (2, out.getNumChannels());
 

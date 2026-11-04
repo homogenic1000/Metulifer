@@ -115,6 +115,14 @@ Metulifer/
 ### Journal (nouvelles entrées en haut)
 
 ```
+### 2026-11-04 — Fix inversion des arguments applyGain dans Voice (volume et mix inopérants)
+- **Tâche** : Corriger l'ordre des arguments de `juce::AudioBuffer::applyGain` dans `Voice::renderChunk`
+- **Fichiers** : `Source/DSP/Voice.cpp`, `AGENTS.md`
+- **Modifs** : **Cause racine fondamentale** : la signature JUCE de `AudioBuffer::applyGain` est `applyGain (int startSample, int numSamples, Type gain)`. Dans `Voice::renderChunk`, les 4 appels passaient `(gain, 0, numSamples)` au lieu de `(0, numSamples, gain)`. Par conséquent, le paramètre `numSamples` de la fonction recevait `0` : JUCE appliquait le gain sur exactement zéro échantillon (boucle vide) ! Les gains `mixGain1`, `mixGain2`, le facteur `0.5f` et `volumeGain` n'étaient ainsi jamais appliqués au buffer. Seul le test `if (volumeGain <= 0.0001f) return;` coupait le buffer à 0 %, tandis que de 1 % à 100 %, le buffer sortait à 100 % brut. Correction des 4 appels en `applyGain (0, numSamples, gain)` : volume et mix VCO1/VCO2 parfaitement graduels et linéaires.
+- **Build** : ✅ OK (Metulifer - All : VST3, AU, Standalone construits et signés avec succès)
+- **Commit** : `d591d8c` — `fix: correct inverted arguments in AudioBuffer applyGain calls in Voice`
+- **Next steps** : —
+
 ### 2026-11-04 — Fix clipping audio & réactivité des potentiomètres Mix et Volume
 - **Tâche** : Résoudre l'écrêtage/clipping excessif de la reverb et corriger le comportement des potentiomètres « Mix out DB » et des volumes de séquence
 - **Fichiers** : `Source/DSP/Voice.cpp`, `Source/PluginProcessor.cpp`, `Source/PluginEditor.cpp`, `Source/UI/SequenceRowComponent.cpp`, `AGENTS.md`
