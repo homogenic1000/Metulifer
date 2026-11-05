@@ -116,6 +116,24 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Élimination du heap-use-after-free sur l'automatisation d'interface (SafePointer & cycle de vie UI)
+- **Tâche** : Résoudre le plantage `malloc: pointer being freed was not allocated` / `Abort trap: 6` survenu sous `pluginval` lors du test d'automatisation d'interface (`Editor Automation`) sur le format Audio Unit (AU).
+- **Causes racines identifiées** :
+  1. **Capture brute de `this` dans `callAsync`** : La méthode `parameterChanged` appelait `juce::MessageManager::callAsync ([this] { updateLfoButtons(); });`. Lors de la fermeture ou destruction de l'éditeur par l'hôte sous rafale d'automatisation, la lambda différée s'exécutait sur le Message Thread alors que l'éditeur avait déjà été libéré, provoquant un `heap-use-after-free` direct (confirmé via AddressSanitizer).
+  2. **Modifications de composants hors Message Thread** : Les notifications de paramètres APVTS pouvant survenir depuis des threads arbitraires, les mises à jour directes de l'UI (`updateFilterButtons`, `updateFxButtons`, `updateArpButtons`, `showText`) devaient être postées de manière asynchrone sécurisée.
+  3. **Ordre de destruction des listeners & attachments** : `setLookAndFeel(nullptr)` était invoqué avant le détachement des listeners de potentiomètres et des attachments APVTS.
+- **Fichiers** : `Source/PluginEditor.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `parameterChanged` : Encapsulation systématique de toutes les mises à jour UI dans un `juce::Component::SafePointer<MetuliferAudioProcessorEditor>` dispatché sur le Message Thread (`juce::MessageManager::callAsync`). Si l'éditeur est détruit avant l'exécution du callback, le pointeur est nul et l'exécution s'interrompt sans risque.
+  2. `~MetuliferAudioProcessorEditor` : Arrêt explicite du timer (`stopTimer()`), désinscription de tous les écouteurs de potentiomètres (`knob->removeListener(this)`), réinitialisation ordonnée des attachments (`clear()` / `reset()`), retrait des écouteurs APVTS, et enfin remise à zéro du LookAndFeel (`setLookAndFeel(nullptr)`).
+- **Validation** :
+  - ✅ Diagnostic AddressSanitizer (ASan) confirmé et résolu.
+  - ✅ Validation `pluginval` niveau 5 réussie (SUCCESS) sur toutes les graines aléatoires précédemment en échec (`0x13a98d2`, `0x3a46a48`, `0xa169fd`).
+  - ✅ Tests unitaires 100% verts (`TEST SUMMARY: ALL PASSED`).
+  - ✅ Builds Debug et Release synchronisés sans avertissement.
+- **Commit** : `124b85f` — `fix: prevent heap use-after-free in editor parameter automation via SafePointer`
+- **Next steps** : —
+
 ### 2026-11-05 — Documentation Bilingue & Publication GitHub Pages (Phase 6)
 - **Tâche** : Documenter exhaustivement l'ensemble des nouveautés v2 (Host Sync, MIDI In/Out, Presets d'Usine, Outils Créatifs, CI/CD) dans le site Fumadocs (FR/EN) et synchroniser la branche `gh-pages`.
 - **Fichiers** : `README.md`, `docs/content/docs/fr/guide/sequencer.mdx`, `docs/content/docs/en/guide/sequencer.mdx`, `docs/content/docs/fr/guide/interface.mdx`, `docs/content/docs/en/guide/interface.mdx`, `docs/content/docs/fr/architecture/dsp.mdx`, `docs/content/docs/en/architecture/dsp.mdx`, `docs/content/docs/fr/architecture/testing.mdx`, `docs/content/docs/en/architecture/testing.mdx`, `AGENTS.md`

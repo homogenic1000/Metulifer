@@ -224,7 +224,29 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
 
 MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
 {
-    setLookAndFeel (nullptr);
+    stopTimer();
+
+    for (auto* knob : { &synthPanel.vco1Note, &synthPanel.vco1Wave,
+                        &synthPanel.vco2Note, &synthPanel.vco2Wave,
+                        &synthPanel.adsr1Attack, &synthPanel.adsr1Decay,
+                        &synthPanel.adsr1Sustain, &synthPanel.adsr1Release,
+                        &synthPanel.adsr2Attack, &synthPanel.adsr2Decay,
+                        &synthPanel.adsr2Sustain, &synthPanel.adsr2Release,
+                        &synthPanel.mixVco1, &synthPanel.mixVco2,
+                        &synthPanel.arpOctavesKnob,
+                        &vcfPanel.cutoffKnob,
+                        &reverbPanel.revMixKnob,
+                        &reverbPanel.dlyTimeKnob, &reverbPanel.dlyFeedbackKnob, &reverbPanel.dlyMixKnob,
+                        &reverbPanel.rdxBitsKnob, &reverbPanel.rdxRateKnob, &reverbPanel.rdxMixKnob })
+        knob->removeListener (this);
+
+    synthAttachments.clear();
+    vcfAttachments.clear();
+    fxAttachments.clear();
+    lfoAttachments.clear();
+    arpAttachments.clear();
+    tempoAttachment.reset();
+    hostSyncAttachment.reset();
 
     if (filterParamId.isNotEmpty())
         audioProcessor.apvts.removeParameterListener (filterParamId, this);
@@ -255,6 +277,8 @@ MetuliferAudioProcessorEditor::~MetuliferAudioProcessorEditor()
         audioProcessor.apvts.removeParameterListener (prefix + "wave", this);
         audioProcessor.apvts.removeParameterListener (prefix + "enabled", this);
     }
+
+    setLookAndFeel (nullptr);
 }
 
 //==============================================================================
@@ -709,29 +733,36 @@ void MetuliferAudioProcessorEditor::updateArpButtons()
 
 void MetuliferAudioProcessorEditor::parameterChanged (const juce::String& parameterID, float)
 {
-    if (parameterID == filterParamId)
+    juce::Component::SafePointer<MetuliferAudioProcessorEditor> safeThis (this);
+    juce::MessageManager::callAsync ([safeThis, parameterID]
     {
-        updateFilterButtons();
+        if (safeThis == nullptr)
+            return;
 
-        auto* param = audioProcessor.apvts.getParameter (parameterID);
-        if (param != nullptr)
-            showText ("filter " + juce::String (param->getValue() < 0.5f ? "LPF" : "HPF"));
-    }
-    else if (parameterID == reverbEnabledParamId || parameterID == reverbModeParamId
-          || parameterID == delayEnabledParamId || parameterID == delayPingpongParamId
-          || parameterID == reduxEnabledParamId)
-    {
-        updateFxButtons();
-    }
-    else if (parameterID == arpEnabledParamId || parameterID == arpModeParamId
-          || parameterID == arpChordParamId)
-    {
-        updateArpButtons();
-    }
-    else if (parameterID.startsWith ("lfo"))
-    {
-        juce::MessageManager::callAsync ([this] { updateLfoButtons(); });
-    }
+        if (parameterID == safeThis->filterParamId)
+        {
+            safeThis->updateFilterButtons();
+
+            auto* param = safeThis->audioProcessor.apvts.getParameter (parameterID);
+            if (param != nullptr)
+                safeThis->showText ("filter " + juce::String (param->getValue() < 0.5f ? "LPF" : "HPF"));
+        }
+        else if (parameterID == safeThis->reverbEnabledParamId || parameterID == safeThis->reverbModeParamId
+              || parameterID == safeThis->delayEnabledParamId || parameterID == safeThis->delayPingpongParamId
+              || parameterID == safeThis->reduxEnabledParamId)
+        {
+            safeThis->updateFxButtons();
+        }
+        else if (parameterID == safeThis->arpEnabledParamId || parameterID == safeThis->arpModeParamId
+              || parameterID == safeThis->arpChordParamId)
+        {
+            safeThis->updateArpButtons();
+        }
+        else if (parameterID.startsWith ("lfo"))
+        {
+            safeThis->updateLfoButtons();
+        }
+    });
 }
 
 //==============================================================================
