@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Standalone (Debug)",
+      "type": "shell",
+      "command": "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj -scheme 'Metulifer - Standalone Plugin' -configuration Debug build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$xcode"
+    },
+    {
+      "label": "Build All Targets (Release)",
+      "type": "shell",
+      "command": "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj -scheme 'Metulifer - All' -configuration Release build",
+      "group": "build",
+      "problemMatcher": "$xcode"
+    },
+    {
+      "label": "Projucer Resave",
+      "type": "shell",
+      "command": "/Applications/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run pluginval (VST3 & AU)",
+      "type": "shell",
+      "command": "pluginval --strictness-level 5 --validate-in-process --validate 'Builds/MacOSX/build/Release/Metulifer.vst3' && pluginval --strictness-level 5 --validate-in-process --validate 'Builds/MacOSX/build/Release/Metulifer.component'",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Documentation (Fumadocs)",
+      "type": "shell",
+      "options": {
+        "cwd": "${workspaceFolder}/docs"
+      },
+      "command": "NEXT_PUBLIC_BASE_PATH=/Metulifer pnpm build",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -116,6 +116,18 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Configuration Workspace Antigravity & Intégration IDE
+- **Tâche** : Structurer le dépôt comme un Workspace complet pour Google Antigravity et l'IDE Antigravity / VS Code.
+- **Fichiers** : `.agents/skills/metulifer-dev/SKILL.md`, `.vscode/tasks.json`, `.vscode/settings.json`, `AGENTS.md`
+- **Modifs** :
+  1. `.agents/skills/metulifer-dev/SKILL.md` : Définition d'une compétence de workspace native pour Antigravity (`metulifer-dev`) fournissant les procédures de build Xcode (Debug et Release), de resave Projucer, de validation `pluginval` niveau 5, de contraintes temps-réel DSP et de déploiement de la documentation Next.js.
+  2. `.vscode/tasks.json` : Tâches d'intégration pour l'éditeur (compilation Standalone Debug par défaut, All Targets Release, Projucer resave, test automatisé pluginval VST3/AU, build de la documentation).
+  3. `.vscode/settings.json` : Association de fichiers (`*.jucer` en XML) et exclusion des dossiers générés (`Builds/`, `JuceLibraryCode/`, `docs/.next`, `docs/out`) de la recherche et du file-watcher.
+- **Validation** :
+  - ✅ Découverte automatique validée sous le répertoire racine `.agents/`.
+- **Commit** : `3e80466` — `feat: configure Antigravity workspace integration and IDE tasks`
+- **Next steps** : —
+
 ### 2026-11-05 — Déploiement et publication de la documentation sur GitHub Pages
 - **Tâche** : Déployer et publier le site de documentation Fumadocs / Next.js sur GitHub Pages (`https://homogenic1000.github.io/Metulifer/`).
 - **Fichiers** : `.github/workflows/deploy-docs.yml`, `AGENTS.md`

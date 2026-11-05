@@ -1,0 +1,19 @@
+{
+  "files.associations": {
+    "*.jucer": "xml"
+  },
+  "search.exclude": {
+    "**/Builds": true,
+    "**/JuceLibraryCode": true,
+    "**/docs/.next": true,
+    "**/docs/out": true,
+    "**/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/Builds/**": true,
+    "**/JuceLibraryCode/**": true,
+    "**/docs/.next/**": true,
+    "**/docs/out/**": true,
+    "**/node_modules/**": true
+  }
+}
