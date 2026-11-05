@@ -8,10 +8,17 @@ Plugin audio professionnel JUCE (VST3 / AU / Standalone) — Fabricant **Saumure
 
 ## Fonctionnalités principales
 
-- **Séquenceur 6 pistes indépendantes** :
+- **Séquenceur 6 pistes indépendantes & Outils Créatifs** :
   - Polyrythmie intégrale : chaque piste dispose de sa propre longueur (1 à 32 pas) et de son volume.
   - **Mode Pinceau glissé (Click-and-Drag Paintbrush)** : activation/désactivation continue de pas en balayant la rangée à la souris.
+  - **Outils algorithmiques** : décalage circulaire de pas (*Step Shift*), répartition euclidienne optimale (*Bjorklund*) et générateur stochastique par densité (*Randomizer*).
   - Presse-papiers de motifs rapide avec copie (`C`) et collage (`P`) inter-séquences et alertes à l'écran.
+- **Intégration DAW, Transport Sync & MIDI Polyphonique** :
+  - **Synchronisation Hôte (Host Sync)** : asservissement sample-accurate au transport et au tempo du DAW via bouton **Sync** avec verrouillage de phase sur la grille PPQ en doubles-croches.
+  - **MIDI In (Transposition temps réel)** : décalage de hauteur polyphonique instantané de l'ensemble des séquences à partir de la note centrale C3 (60).
+  - **MIDI Out (Multi-canal)** : transmission polyphonique sample-accurate des événements `noteOn` et `noteOff` sur 6 canaux MIDI dédiés (piste 1 -> canal 1 ... piste 6 -> canal 6).
+- **Banque de 8 Presets d'Usine (Factory Presets)** :
+  - Huit programmes complets intégrés (`Default/Init`, `Berlin Minimal`, `Acid 303`, `Ambient Glass`, `Lo-Fi Nostalgia`, `Industrial Crunch`, `Melodic Arps`, `Cyberpunk Drive`) avec support des messages MIDI *Program Change*.
 - **Moteur de Synthèse Double VCO par voix** :
   - Formes d'onde Sine, Saw, Square et Triangle avec anti-repliement **polyBLEP (Polynomial Bandlimited Step)**.
   - Deux générateurs d'enveloppe `juce::ADSR` à décroissance exponentielle naturelle.
@@ -92,8 +99,16 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Bui
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project Builds/MacOSX/Metulifer.xcodeproj -scheme "Metulifer - All" -configuration Release build
 ```
 
+### Exécution des tests unitaires (Headless)
+```bash
+METULIFER_RUN_TESTS=1 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer
+```
+
 ### Validation automatisée pluginval
 ```bash
 /Applications/pluginval.app/Contents/MacOS/pluginval --strictness-level 5 --validate-in-process --validate "~/Library/Audio/Plug-Ins/VST3/Metulifer.vst3"
 /Applications/pluginval.app/Contents/MacOS/pluginval --strictness-level 5 --validate-in-process --validate "~/Library/Audio/Plug-Ins/Components/Metulifer.component"
 ```
+
+### Intégration Continue (CI)
+Le dépôt inclut un pipeline GitHub Actions automatisé (`.github/workflows/ci.yml`) testant et validant chaque commit sur macOS 14 avec JUCE 9.0.2 et `pluginval`.

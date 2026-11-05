@@ -49,6 +49,33 @@ Lorsqu'un potentiomètre ou un bouton est manipulé, l'écran bascule instantan�
 
 ---
 
+## Le Panneau CLOCK et Gestion du Transport
+
+Situé sous l'écran OLED, le panneau **CLOCK** (961, 164) regroupe les commandes temporelles maîtresses :
+
+- **Potentiomètre de Tempo** : Réglage du tempo de 20.0 à 300.0 BPM.
+- **Bouton Play/Stop** : Lance ou interrompt manuellement la lecture du séquenceur en mode interne.
+- **Bouton Sync** : Active la synchronisation temps réel avec la station de travail hôte (DAW). Lorsqu'il est engagé, le potentiomètre de tempo et le bouton Play/Stop sont asservis automatiquement au transport du projet hôte.
+
+---
+
+## Banque de Presets d'Usine (Factory Presets)
+
+Metulifer intègre **8 presets d'usine complets** couvrant un large spectre stylistique (techno, acid, ambient, lo-fi, synthwave). Ces programmes sont nativement reconnus par le DAW via l'interface standard de sélection de programmes (avec support des messages MIDI *Program Change*) :
+
+| N° | Nom du Preset | Caractère sonore et utilisation recommandée |
+|---|---|---|
+| **1** | `Default / Init` | Patch initial neutre et épuré. Idéal pour débuter une composition ou un sound-design personnalisé à partir de zéro. |
+| **2** | `Berlin Minimal` | Techno club berlinoise. Basse sub percutante, delay ping-pong syncopé et groove minimaliste sombre. |
+| **3** | `Acid 303` | Lignes de basse acides incisives inspirées de la TB-303, résonance acérée et enveloppes percussives courtes. |
+| **4** | `Ambient Glass` | Nappes cristallines éthérées, réverbération cathédrale profonde (Hall) et polyrythmies contemplatives lentes. |
+| **5** | `Lo-Fi Nostalgia` | Chaleur analogique feutrée, dégradation de texture subtile via Redux (décimation) et modulations lentes. |
+| **6** | `Industrial Crunch` | Percussions métalliques et distorsions numériques abrasives, filtrage HPF mordant et polyrythmie agressive. |
+| **7** | `Melodic Arps` | Arpèges étincelants en quintes et octaves, résonances aériennes et timbres brillants. |
+| **8** | `Cyberpunk Drive` | Synthwave agressive et cinématographique, basses tranchantes et filtres modulés par LFO rapide. |
+
+---
+
 ## Animation visuelle des modulations (LFO)
 
 Metulifer propose une boucle de rétroaction visuelle temps réel complète entre les LFO et les commandes de synthèse :

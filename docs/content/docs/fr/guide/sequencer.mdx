@@ -84,6 +84,54 @@ Cliquer sur une rangée la **sélectionne** (barre d'accent bleue à gauche) et 
 
 La sélection est purement visuelle : elle ne change pas le son des autres séquences.
 
+## Synchronisation Hôte & Transport DAW (Host Sync)
+
+Metulifer propose deux modes d'horloge complémentaires :
+
+1. **Horloge Interne (Free Run)** : Le moteur de transport est piloté par le bouton **Play/Stop** et le potentiomètre de tempo du plugin (20 à 300 BPM).
+2. **Synchronisation Hôte (Host Sync)** : Lorsque le bouton **Sync** du panneau Clock est actif, le séquenceur s'asservit intégralement à la station de travail hôte (DAW) :
+   - **Démarrage & Arrêt automatiques** : Le transport démarre et s'arrête instantanément selon la timeline du DAW.
+   - **Suivi de tempo continu** : Toute variation ou rampe de tempo de la piste d'automation du DAW est répercutée à l'échantillon près.
+   - **Verrouillage de phase (PPQ)** : La tête de lecture se recale sur la position musicale absolue (`ppqPosition`) en double-croches (1/16 de mesure), garantissant que les pas tombent exactement sur la grille rythmique du projet même après des sauts de curseur dans le séquenceur hôte.
+
+---
+
+## Outils Créatifs Algorithmiques
+
+En plus de l'édition manuelle au pas à pas et du mode Pinceau, le séquenceur intègre trois moteurs d'altération algorithmique par piste :
+
+### 1. Décalage Circulaire (Step Shift)
+Fait glisser l'ensemble des pas actifs d'une piste vers la gauche ou vers la droite tout en préservant la longueur active de la séquence.
+- Un décalage vers la droite fait réapparaître les pas qui sortent de la fin au tout début de la piste (rotation circulaire modulo la longueur active).
+- Idéal pour créer des variations rythmiques syncopées et décaler le groove par rapport aux autres pistes.
+
+### 2. Répartition Euclidienne (Algorithme de Bjorklund)
+Génère une distribution mathématiquement optimale de `k` impulsions réparties sur `n` pas de manière aussi équidistante que possible.
+- Inspiré de l'algorithme d'accélérateur de particules de Bjorklund et des rythmes traditionnels mondiaux (bossa nova, tresillo, rumba, cloche afrocubaine).
+- Transforme instantanément une rangée en motif polyrythmique hypnotique.
+
+### 3. Générateur Aléatoire (Density Randomizer)
+Génère un motif stochastique selon un pourcentage de densité cible (0 % = séquence vide, 100 % = tous les pas actifs).
+- Permet de générer instantanément de l'inspiration rythmique ou d'enrichir une piste de percussions numériques.
+
+---
+
+## Sortie MIDI Polyphonique (MIDI Out)
+
+Chaque séquence de Metulifer agit comme une source d'événements MIDI polyphonique :
+- Les pas actifs génèrent des événements `noteOn` et `noteOff` échantillon-précis acheminés vers le bus de sortie MIDI du plugin.
+- **Routage multi-canal dédié** :
+  - Séquence 1 ➔ Canal MIDI 1
+  - Séquence 2 ➔ Canal MIDI 2
+  - Séquence 3 ➔ Canal MIDI 3
+  - Séquence 4 ➔ Canal MIDI 4
+  - Séquence 5 ➔ Canal MIDI 5
+  - Séquence 6 ➔ Canal MIDI 6
+- Permet d'enregistrer les notes du séquenceur directement dans le piano-roll du DAW ou de piloter des synthétiseurs matériels ou instruments virtuels tiers.
+- À l'arrêt du transport, un message `allNotesOff` est automatiquement émis sur les 16 canaux MIDI pour prévenir toute note suspendue (*hanging notes*).
+
+---
+
 ## Câblage interne
 
 ```

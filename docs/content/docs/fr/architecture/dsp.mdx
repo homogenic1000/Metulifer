@@ -133,3 +133,59 @@ En sortie de `processBlock()` :
    ```
 3. **Double mesure Studio Peak & RMS à 60 Hz** :
    Le processor calcule en direct les crêtes réelles et l'énergie RMS par canal, enregistrées dans des atomiques thread-safe (`peakDbL/R`, `rmsDbL/R`) avec maintien de crête pour alimenter le dB-mètre et l'oscilloscope de l'interface.
+
+---
+
+## 9. Synchronisation Hôte & Suivi de Phase DAW (Host Transport & BPM Sync)
+
+La synchronisation au DAW s'appuie sur l'interface `juce::AudioPlayHead` interrogée à chaque appel de `processBlock()` :
+
+```cpp
+if (hostSyncParam != nullptr && hostSyncParam->load() > 0.5f)
+{
+    if (auto* playHead = getPlayHead())
+    {
+        if (auto posOpt = playHead->getPosition())
+        {
+            const double hostBpm = posOpt->getBpm().orFallback (120.0);
+            const double ppqPos  = posOpt->getPpqPosition().orFallback (0.0);
+            const bool isPlaying = posOpt->getIsPlaying();
+
+            sequencer.syncToHost (ppqPos, hostBpm, isPlaying);
+        }
+    }
+}
+```
+
+### Mécanisme de verrouillage de phase (PPQ)
+- `ppqPosition` exprime la position temporelle en noires (1.0 = 1 noire).
+- Les pas du séquenceur étant des doubles-croches (1/4 de noire), la position en pas absolue correspond à :
+  `stepTotal = std::floor(ppqPos * 4.0)`
+- La phase fractionnaire intra-pas permet de caler le compteur d'échantillons `sampleCounter` à la valeur exacte :
+  `stepPhase = (ppqPos * 4.0) - std::floor(ppqPos * 4.0)`
+  `sampleCounter = std::floor(stepPhase * stepLengthInSamples)`
+- Chaque séquence `i` calcule son pas courant modulo sa propre longueur active :
+  `currentStep[i] = stepTotal % length[i]`
+Ce recalage garantit un alignement rythmique parfait même en cas de déplacement arbitraire de la tête de lecture ou de signature rythmique inhabituelle dans le projet hôte.
+
+---
+
+## 10. Transposition en Temps Réel (MIDI In)
+
+Metulifer écoute les événements MIDI entrants acheminés par la station de travail :
+- Toute note MIDI reçue applique un décalage de hauteur (transposition) relatif à la note de référence **C3 (note MIDI 60)** :
+  `deltaSemitones = midiNoteNumber - 60`
+- Ce décalage est transmis directement à la structure `Voice::Params::transpose`.
+- Les fréquences des oscillateurs 1 et 2 sont immédiatement recalculées selon :
+  `f = 130.81 * std::exp2((double) octave + (double) (note + arpOffset + transpose) / 12.0)`
+- Permet de transposer à la volée une séquence polyrythmique complète depuis un clavier maître ou une piste d'automation MIDI.
+
+---
+
+## 11. Génération Polyphonique Multi-Canal (MIDI Out)
+
+Lors de chaque cycle de calcul audio, le `SequencerEngine` identifie les pas actifs franchis et génère une liste d'événements `StepEvent` :
+- Chaque événement actif génère un message MIDI `noteOn` échantillon-précis sur le canal correspondant :
+  `midiChannel = trackIndex + 1` (canaux 1 à 6)
+- Le pitch émis correspond à la fondamentale de la séquence combinée aux décalages d'octave, de note et d'arpégiateur.
+- À l'arrêt du séquenceur ou lors d'une désactivation de piste, des événements `noteOff` et `allNotesOff` sont émis pour libérer proprement les notes en cours.

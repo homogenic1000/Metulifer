@@ -83,6 +83,54 @@ Clicking a row **selects** it (blue accent bar on the left) and:
 
 Selection is purely visual: it does not change how the other sequences sound.
 
+## DAW Host Synchronization (Host Sync)
+
+Metulifer provides two complementary clock modes:
+
+1. **Internal Clock (Free Run)**: The transport engine is controlled via the plugin's **Play/Stop** button and tempo rotary knob (20 to 300 BPM).
+2. **Host Synchronization (Host Sync)**: When the **Sync** button in the Clock panel is engaged, the sequencer slave-locks completely to the host Digital Audio Workstation (DAW):
+   - **Automatic Start & Stop**: The transport starts and halts in direct synchrony with the DAW timeline playback.
+   - **Continuous Tempo Tracking**: Any dynamic tempo changes or automation curves on the DAW tempo track are tracked sample-accurately.
+   - **Phase Locking (PPQ)** : The playhead synchronizes to absolute musical time (`ppqPosition`) on sixteenth-note (1/16) boundaries, ensuring that every step aligns perfectly with the DAW project grid even after scrubbing or jumping around the timeline.
+
+---
+
+## Creative Algorithmic Tools
+
+In addition to manual step toggling and the Drag-and-Paintbrush mode, the sequencer includes three algorithmic pattern engines per track:
+
+### 1. Circular Step Shift
+Rotates the active steps of a track to the left or to the right while preserving the sequence's loop length.
+- Shifting right causes steps that exit the end of the active loop to re-emerge at step 0 (circular rotation modulo active loop length).
+- Perfect for creating syncopated variations and shifting the rhythmic pocket against other sequences.
+
+### 2. Euclidean Distribution (Bjorklund's Algorithm)
+Generates a mathematically optimal distribution of `k` pulses across `n` steps as evenly as possible.
+- Based on Bjorklund's particle accelerator timing algorithm and found throughout traditional world rhythms (bossa nova, tresillo, rumba, Afro-Cuban bell patterns).
+- Instantly turns any row into an hypnotic polyrhythmic groove.
+
+### 3. Density Randomizer
+Generates a stochastic pattern based on a target density percentage (0% = all steps off, 100% = all steps active).
+- Ideal for fast rhythmic brainstorming and dynamic percussion synthesis.
+
+---
+
+## Polyphonic MIDI Output (MIDI Out)
+
+Every sequence in Metulifer can transmit sample-accurate MIDI events to external destinations:
+- Active steps trigger sample-accurate `noteOn` and `noteOff` events routed to the plugin's MIDI output bus.
+- **Dedicated multi-channel routing**:
+  - Sequence 1 ➔ MIDI Channel 1
+  - Sequence 2 ➔ MIDI Channel 2
+  - Sequence 3 ➔ MIDI Channel 3
+  - Sequence 4 ➔ MIDI Channel 4
+  - Sequence 5 ➔ MIDI Channel 5
+  - Sequence 6 ➔ MIDI Channel 6
+- Allows capturing the sequencer patterns directly into the DAW piano roll or driving external hardware synthesizers and software instruments.
+- When playback stops, an `allNotesOff` message is dispatched across all 16 MIDI channels to eliminate hanging notes.
+
+---
+
 ## Internal wiring
 
 ```

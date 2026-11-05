@@ -133,3 +133,59 @@ At the conclusion of `processBlock()`:
    ```
 3. **Studio Peak & RMS Monitoring at 60 Hz**:
    Real-time per-channel peak and RMS measurements are stored into thread-safe atomic floats (`peakDbL/R`, `rmsDbL/R`) with peak hold to drive the UI's calibrated dBFS meter and phase-locked oscilloscope.
+
+---
+
+## 9. Host Transport & BPM Sync
+
+DAW timeline synchronization leverages JUCE's `juce::AudioPlayHead` interface queried on every `processBlock()` call:
+
+```cpp
+if (hostSyncParam != nullptr && hostSyncParam->load() > 0.5f)
+{
+    if (auto* playHead = getPlayHead())
+    {
+        if (auto posOpt = playHead->getPosition())
+        {
+            const double hostBpm = posOpt->getBpm().orFallback (120.0);
+            const double ppqPos  = posOpt->getPpqPosition().orFallback (0.0);
+            const bool isPlaying = posOpt->getIsPlaying();
+
+            sequencer.syncToHost (ppqPos, hostBpm, isPlaying);
+        }
+    }
+}
+```
+
+### Phase Locking Mechanism (PPQ)
+- `ppqPosition` represents time in quarter notes (1.0 = 1 quarter note).
+- Since Metulifer steps are sixteenth notes (1/4 of a quarter note), the absolute total step index is:
+  `stepTotal = std::floor(ppqPos * 4.0)`
+- Intra-step phase fraction aligns `sampleCounter` to the precise sample offset:
+  `stepPhase = (ppqPos * 4.0) - std::floor(ppqPos * 4.0)`
+  `sampleCounter = std::floor(stepPhase * stepLengthInSamples)`
+- Each sequence `i` sets its current step modulo its active loop length:
+  `currentStep[i] = stepTotal % length[i]`
+This guarantees rock-solid rhythmic alignment even after jumping to arbitrary positions or when working with odd time signatures in the host DAW.
+
+---
+
+## 10. Real-Time Pitch Transposition (MIDI In)
+
+Metulifer processes incoming MIDI note events arriving on the plugin's MIDI input:
+- Incoming MIDI notes apply a global pitch transposition relative to middle **C3 (MIDI note 60)**:
+  `deltaSemitones = midiNoteNumber - 60`
+- This transposition offset is stored in `Voice::Params::transpose`.
+- Both oscillators update their fundamental frequency instantaneously without memory allocation:
+  `f = 130.81 * std::exp2((double) octave + (double) (note + arpOffset + transpose) / 12.0)`
+- Enables real-time key changes and melodic transposition of running polyrhythms via external MIDI controllers or DAW piano-roll clips.
+
+---
+
+## 11. Multi-Channel Polyphonic Output (MIDI Out)
+
+During every audio block, `SequencerEngine` collects active step gates into sample-accurate events `StepEvent`:
+- Each active step emits a sample-accurate `noteOn` message on its designated MIDI channel:
+  `midiChannel = trackIndex + 1` (channels 1 to 6)
+- The pitch emitted reflects the track's root note combined with octave, note knob, and arpeggiator offsets.
+- When playback is stopped or a track gate releases, corresponding `noteOff` and `allNotesOff` messages are dispatched to prevent stuck notes.

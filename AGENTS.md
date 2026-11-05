@@ -116,6 +116,21 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Documentation Bilingue & Publication GitHub Pages (Phase 6)
+- **Tâche** : Documenter exhaustivement l'ensemble des nouveautés v2 (Host Sync, MIDI In/Out, Presets d'Usine, Outils Créatifs, CI/CD) dans le site Fumadocs (FR/EN) et synchroniser la branche `gh-pages`.
+- **Fichiers** : `README.md`, `docs/content/docs/fr/guide/sequencer.mdx`, `docs/content/docs/en/guide/sequencer.mdx`, `docs/content/docs/fr/guide/interface.mdx`, `docs/content/docs/en/guide/interface.mdx`, `docs/content/docs/fr/architecture/dsp.mdx`, `docs/content/docs/en/architecture/dsp.mdx`, `docs/content/docs/fr/architecture/testing.mdx`, `docs/content/docs/en/architecture/testing.mdx`, `AGENTS.md`
+- **Modifs** :
+  1. `guide/sequencer.mdx` (FR & EN) : Documentation du mode Host Sync (asservissement au transport DAW et verrouillage de phase PPQ 16th-note), des 3 outils algorithmiques (décalage circulaire, répartition euclidienne de Bjorklund, randomizer de densité) et de la sortie polyphonique MIDI Out sur 6 canaux.
+  2. `guide/interface.mdx` (FR & EN) : Documentation du panneau CLOCK (potentiomètre Tempo, bouton Play/Stop et bouton Sync) et table détaillée des 8 Presets d'Usine avec caractérisation sonore et cas d'usage.
+  3. `architecture/dsp.mdx` (FR & EN) : Documentation de l'interrogation `juce::AudioPlayHead`, du calcul de recalage de phase PPQ fractionnaire, du moteur de transposition MIDI In relative à C3 (60) et du dispatch sample-accurate des événements `StepEvent` en MIDI Out.
+  4. `architecture/testing.mdx` (FR & EN) : Documentation de la suite de 7 tests unitaires JUCE intégrée, du runner console headless (`METULIFER_RUN_TESTS=1`), du pipeline GitHub Actions `.github/workflows/ci.yml` et de la validation `pluginval` niveau 5.
+  5. `README.md` : Mise à jour des fonctionnalités principales et des commandes de validation / test.
+  6. Recompilation du site statique Next.js (`pnpm build`, 38 pages générées sans erreur) et mise à jour de la branche `gh-pages`.
+- **Validation** :
+  - ✅ Build Next.js / Fumadocs 100% réussi en 5.5s (38 pages générées, zéro erreur TypeScript ou MDX).
+- **Commit** : `842c3bb` — `docs: update bilingual documentation with host sync, midi routing, factory presets, and ci testing`
+- **Next steps** : —
+
 ### 2026-11-05 — Intégration DAW (Sync), MIDI In/Out, Presets d'Usine & Outils Créatifs (Phases 2 à 5)
 - **Tâche** : Implémenter l'ensemble de la roadmap v2 : synchronisation DAW (Host Transport & BPM Sync), entrée MIDI (transposition) et sortie MIDI (séquenceur polyphonique 6 canaux), banque de 8 presets d'usine et algorithmes créatifs de séquençage (Euclidien, Shift circulaire, Randomizer).
 - **Fichiers** : `Metulifer.jucer`, `Source/DSP/Voice.h`, `Source/DSP/Voice.cpp`, `Source/Sequencer/SequencerEngine.h`, `Source/Sequencer/SequencerEngine.cpp`, `Source/PluginProcessor.h`, `Source/PluginProcessor.cpp`, `Source/UI/ClockPanel.h`, `Source/UI/ClockPanel.cpp`, `Source/UI/PluginEditor.h`, `Source/UI/PluginEditor.cpp`, `Source/Tests/UnitTests.cpp`, `AGENTS.md`

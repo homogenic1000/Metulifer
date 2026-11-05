@@ -1,11 +1,52 @@
 ---
 title: Tests et Validation
-description: Validation automatisée pluginval (niveaux 5 et 8), inspecteur visuel Melatonin et protocole de test.
+description: Suite de tests unitaires C++ intégrée, pipeline CI GitHub Actions, validation pluginval (niveaux 5 et 8) et inspecteur Melatonin.
 ---
 
-La fiabilité et la stabilité de Metulifer reposent sur une suite d'outils de test professionnels pour plugins audio : **pluginval** pour les bancs d'essai DSP/Host et **Melatonin Inspector** pour le débogage de l'interface graphique.
+La fiabilité et la stabilité de Metulifer reposent sur une pyramide de tests automatisés et professionnels : une **suite de tests unitaires JUCE native** (`Source/Tests/UnitTests.cpp`), un **pipeline d'intégration continue GitHub Actions** sur macOS, **pluginval** pour les bancs d'essai DSP/Host et **Melatonin Inspector** pour l'interface graphique.
 
-## 1. Validation automatisée avec `pluginval`
+## 1. Suite de Tests Unitaires Intégrée
+
+Metulifer inclut une suite de tests unitaires complète compilée directement avec le plugin (`Source/Tests/UnitTests.cpp`), basée sur `juce::UnitTest` et exécutable en mode headless (sans interface graphique).
+
+### Exécuter les tests en ligne de commande
+
+```bash
+# Via variable d'environnement sur le binaire Standalone
+METULIFER_RUN_TESTS=1 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer
+
+# Ou via argument de ligne de commande
+Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer --run-tests
+```
+
+### Les 7 suites de tests intégrées
+
+| Suite de Test | Portée et validations effectuées |
+|---|---|
+| **SequencerUnitTest** | Précision temporelle des pas, calcul d'échantillons selon la fréquence et le BPM, bouclage polyrythmique des 6 pistes et déclenchement d'événements gate. |
+| **HostSyncUnitTest** | Verrouillage de phase sur la grille PPQ hôte ($1/16$), suivi sample-accurate des variations de tempo et réactivité immédiate start/stop. |
+| **MidiInOutUnitTest** | Transposition temps réel relative à C3 (note 60) via MIDI In, émission polyphonique sample-accurate sur 6 canaux MIDI dédiés et émission de `allNotesOff`. |
+| **FactoryPresetsUnitTest** | Intégrité des 8 banques d'usine (`Default/Init` à `Cyberpunk Drive`), vérification de la cohérence des paramètres et rappels de programmes. |
+| **CreativeToolsUnitTest** | Algorithmes créatifs : décalage circulaire (`shiftSequence`), générateur stochastique (`randomizeSequence`) et distribution euclidienne optimale de Bjorklund (`euclideanSequence`). |
+| **DSPSafetyUnitTest** | Robustesse numérique absolue : injection de valeurs extrêmes de cutoff (20 Hz - 20 kHz), de résonance et de modulation sans génération de NaN, d'infinis ni de dénormalisés. |
+| **StateSerializationUnitTest** | Sauvegarde et restauration complète de l'état XML : persistance de l'APVTS, des bitfields de pas (`stepsTree`) et des câbles virtuels de modulation (`modTree`). |
+
+---
+
+## 2. Intégration Continue (GitHub Actions)
+
+Chaque modification poussée sur le dépôt déclenche automatiquement le workflow CI (`.github/workflows/ci.yml`) sur un runner **macOS 14 (Apple Silicon)** :
+
+1. **Environnement & Dépendances** : Téléchargement et installation automatisés de **JUCE 9.0.2** et de **Projucer**.
+2. **Génération de Projet** : Exécution de `Projucer --resave Metulifer.jucer` pour garantir l'alignement des configurations Xcode.
+3. **Compilation Optimisée (Release)** : Construction complète de l'ensemble des cibles (`VST3`, `AU`, `Standalone`) via `xcodebuild` sans aucun avertissement.
+4. **Exécution des Tests Unitaires** : Exécution automatique de la suite de 7 tests headless avec validation stricte du code de sortie.
+5. **Validation `pluginval` Niveau 5** : Téléchargement de `pluginval` v1.0.4 et passage du banc d'essai complet sur les formats VST3 et AU (bus, états, crash-tests, automation).
+6. **Publication d'Artéfacts** : Archivage et téléversement automatique des binaires de release compilés.
+
+---
+
+## 3. Validation automatisée avec `pluginval`
 
 [pluginval](https://github.com/Tracktion/pluginval) est l'outil standard de l'industrie audio pour tester la conformité VST3 et AU vis-à-vis des spécifications des hôtes (DAW).
 
@@ -32,7 +73,7 @@ La fiabilité et la stabilité de Metulifer reposent sur une suite d'outils de t
 
 ---
 
-## 2. Débogage visuel avec Melatonin Inspector
+## 4. Débogage visuel avec Melatonin Inspector
 
 Metulifer intègre la bibliothèque open-source [Melatonin Inspector](https://github.com/sudara/melatonin_inspector) pour inspecter l'arbre des composants JUCE directement dans l'application en cours d'exécution.
 
@@ -51,7 +92,7 @@ Metulifer intègre la bibliothèque open-source [Melatonin Inspector](https://gi
 
 ---
 
-## 3. Protocole de test manuel avant livraison
+## 5. Protocole de test manuel avant livraison
 
 Avant chaque validation de version :
 
