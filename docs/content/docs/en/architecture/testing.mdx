@@ -19,17 +19,19 @@ METULIFER_RUN_TESTS=1 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/M
 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer --run-tests
 ```
 
-### The 7 Integrated Test Suites
+### The 9 Integrated Test Suites
 
 | Test Suite | Scope & Verification Highlights |
 |---|---|
 | **SequencerUnitTest** | Verifies step timing calculations, sample lengths across sample rates and BPMs, 6-track polyrhythmic loop wrapping, and gate trigger accuracy. |
-| **HostSyncUnitTest** | Validates sixteenth-note ($1/16$) phase alignment against host PPQ, sample-accurate tracking of tempo changes, and immediate start/stop transport reaction. |
+| **HostSyncUnitTest** | Validates sixteenth-note (1/16) phase alignment against host PPQ, sample-accurate tracking of tempo changes, and immediate start/stop transport reaction. |
 | **MidiInOutUnitTest** | Tests MIDI In real-time note transposition relative to C3 (note 60), sample-accurate polyphonic MIDI Out dispatch on channels 1–6, and `allNotesOff` generation. |
 | **FactoryPresetsUnitTest** | Ensures all 8 factory preset programs (`Default/Init` through `Cyberpunk Drive`) load properly with full parameter integrity. |
 | **CreativeToolsUnitTest** | Validates algorithmic pattern manipulation: circular step rotation (`shiftSequence`), stochastic generation (`randomizeSequence`), and Bjorklund's Euclidean pulse distribution (`euclideanSequence`). |
 | **DSPSafetyUnitTest** | Enforces numerical safety under extreme modulation depths, rapid filter cutoff sweeps (20 Hz – 20 kHz), and high resonance without NaN, Inf, or denormal values. |
 | **StateSerializationUnitTest** | Tests full XML state preservation: roundtrip persistence of APVTS parameters, step bitfields (`stepsTree`), and virtual patch cables (`modTree`). |
+| **MuteSoloUnitTest** | Tests Korg Electribe EMX/ESX mute/solo workflow: gate suppression with natural reverb/delay tail preservation, exclusive soloing, and mute memory recovery. |
+| **ModMatrixUnitTest** | Tests Ableton-style modulation matrix: 6 sources x 15 destinations, bipolar [-1.0, 1.0] clamping, LFO cross-modulation, and roundtrip serialization. |
 
 ---
 
@@ -43,6 +45,32 @@ Every commit pushed to the repository automatically triggers the automated CI wo
 4. **Automated Unit Testing**: Executes the headless unit test runner and validates exit status codes.
 5. **pluginval Level 5 Validation**: Downloads `pluginval` v1.0.4 and runs exhaustive host compliance checks across VST3 and AU formats.
 6. **Artifact Release Packaging**: Archives and uploads verified plugin binaries for immediate download.
+
+---
+
+## 3. Automated GitHub Releases (`release.yml`)
+
+Metulifer includes a dedicated GitHub Actions workflow (`.github/workflows/release.yml`) to automatically build, package, and publish official releases:
+
+### Triggering a Release via Git Tag
+Pushing any semantic version tag matching `v*` triggers the complete pipeline:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Generated Release Assets
+1. **Production Binaries**: Standalone (`.app`), VST3 (`.vst3`), and AudioUnit (`.component`).
+2. **Strict Quality Assurance**: Automated execution of all 9 unit tests and `pluginval` level 5 host compliance tests before creating the release.
+3. **Distribution ZIP Archives**: Built with symlink preservation (`zip -r -y`):
+   - `Metulifer-v1.0.0-macOS-Standalone.zip`
+   - `Metulifer-v1.0.0-macOS-VST3.zip`
+   - `Metulifer-v1.0.0-macOS-AU.zip`
+   - `Metulifer-v1.0.0-macOS-Universal-Bundle.zip` (complete pack including `README_INSTALL.txt`).
+4. **Cryptographic Checksums**: `SHA256SUMS.txt` file for download verification.
+5. **Automatic GitHub Release**: Auto-generated changelog release notes, asset attachment, and prerelease detection (`alpha`, `beta`, `rc`).
+6. **Manual Dispatch**: Can also be triggered anytime from GitHub's **Actions** tab with custom version inputs.
 
 ---
 

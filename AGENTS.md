@@ -116,6 +116,23 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Automatisation des Releases GitHub (CI/CD Pipeline & Packaging)
+- **Tâche** : Automatiser la génération, la validation et la publication des versions officielles de Metulifer sur GitHub Releases.
+- **Réalisations** :
+  1. **Workflow GitHub Actions (`.github/workflows/release.yml`)** :
+     - Déclenchement automatique par push de tags git `v*` (ex: `v1.0.0`) ou déclenchement manuel (`workflow_dispatch`).
+     - Runner macOS 14 (Apple Silicon), installation de JUCE 9.0.2 / Projucer, régénération et compilation Release de toutes les cibles (`Standalone`, `VST3`, `AU`).
+     - Exécution des 9 tests unitaires (`METULIFER_RUN_TESTS=1`) et validation stricte `pluginval` niveau 5 sur les formats VST3 et AU.
+     - Packaging automatique des archives ZIP avec préservation des liens symboliques macOS (`zip -r -y`) : Standalone, VST3, AU et bundle tout-en-un avec fichier d'instructions `README_INSTALL.txt`.
+     - Génération des sommes de contrôle SHA-256 (`SHA256SUMS.txt`).
+     - Publication automatique de la release via `softprops/action-gh-release@v2` avec notes de version générées et détection des pré-versions (`beta`, `rc`, `alpha`).
+  2. **Documentation & Validation** :
+     - Documentation du workflow et de la commande `git tag v1.0.0 && git push origin v1.0.0` dans les pages d'architecture (`testing.mdx` FR/EN).
+     - Déploiement du site de documentation mis à jour sur `gh-pages`.
+- **Fichiers** : `.github/workflows/release.yml`, `docs/content/docs/{fr,en}/architecture/testing.mdx`, `AGENTS.md`
+- **Build** : ✅ Next.js 40/40 pages statiques générées sans erreur
+- **Next steps** : —
+
 ### 2026-11-05 — Boutons Mute/Solo (Electribe EMX/ESX) & Matrice de Modulation Bipolaire (Ableton Style)
 - **Tâche** : Implémenter les boutons Mute et Solo par séquence inspirés des groovebox Korg Electribe EMX-1/ESX-1, ainsi qu'une matrice de modulation interconnectée (6 sources x 15 destinations, profondeurs bipolaires -100% à +100%) inspirée d'Ableton Wavetable et Drift.
 - **Détails des réalisations** :

@@ -1,0 +1,147 @@
+name: Release Metulifer
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag or Version for release (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build, Validate & Publish Release
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            VER="${{ inputs.tag_name }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VER="${GITHUB_REF#refs/tags/}"
+          else
+            VER="v1.0.0"
+          fi
+          echo "tag=${VER}" >> "$GITHUB_OUTPUT"
+          echo "Releasing version: ${VER}"
+
+      - name: Setup JUCE & Projucer
+        run: |
+          mkdir -p "$HOME/JUCE"
+          curl -L -o /tmp/juce.zip https://github.com/juce-framework/JUCE/releases/download/9.0.2/juce-9.0.2-osx.zip
+          unzip -q /tmp/juce.zip -d /tmp/juce_extracted
+          cp -R /tmp/juce_extracted/JUCE/* "$HOME/JUCE/"
+          chmod +x "$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer"
+          rm -rf /tmp/juce.zip /tmp/juce_extracted
+
+      - name: Resave Projucer project
+        run: |
+          "$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer" --resave Metulifer.jucer
+
+      - name: Build All Targets (Release)
+        run: |
+          DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+            -project Builds/MacOSX/Metulifer.xcodeproj \
+            -scheme "Metulifer - All" \
+            -configuration Release build
+
+      - name: Run Unit Tests
+        run: |
+          METULIFER_RUN_TESTS=1 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer
+
+      - name: Setup pluginval
+        run: |
+          curl -L -o /tmp/pluginval.zip https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip
+          unzip -q /tmp/pluginval.zip -d /tmp/pluginval_extracted
+          sudo mv /tmp/pluginval_extracted/pluginval.app /Applications/
+          sudo ln -s /Applications/pluginval.app/Contents/MacOS/pluginval /usr/local/bin/pluginval
+          pluginval --version
+          rm -rf /tmp/pluginval.zip /tmp/pluginval_extracted
+
+      - name: Validate VST3 Plugin (Strictness Level 5)
+        run: |
+          pluginval --strictness-level 5 --validate-in-process --validate "Builds/MacOSX/build/Release/Metulifer.vst3"
+
+      - name: Validate AU Plugin (Strictness Level 5)
+        run: |
+          pluginval --strictness-level 5 --validate-in-process --validate "Builds/MacOSX/build/Release/Metulifer.component"
+
+      - name: Package Release Assets
+        run: |
+          VER="${{ steps.version.outputs.tag }}"
+          mkdir -p dist
+
+          cat << 'EOF' > dist/README_INSTALL.txt
+          ==================================================
+          METULIFER - INSTALLATION INSTRUCTIONS (macOS)
+          ==================================================
+
+          1. Audio Unit (AU) (.component):
+             Copy 'Metulifer.component' to:
+             /Library/Audio/Plug-Ins/Components/
+             (or ~/Library/Audio/Plug-Ins/Components/)
+
+          2. VST3 (.vst3):
+             Copy 'Metulifer.vst3' to:
+             /Library/Audio/Plug-Ins/VST3/
+             (or ~/Library/Audio/Plug-Ins/VST3/)
+
+          3. Standalone Application:
+             Copy 'Metulifer.app' to:
+             /Applications/
+
+          Tip for macOS Gatekeeper:
+          If macOS displays a security prompt on first launch:
+          Open System Settings -> Privacy & Security -> Click "Open Anyway",
+          or run in Terminal:
+          xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/VST3/Metulifer.vst3
+          xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/Components/Metulifer.component
+          ==================================================
+          EOF
+
+          cd Builds/MacOSX/build/Release
+
+          # Individual archives
+          zip -r -y "../../../../dist/Metulifer-${VER}-macOS-Standalone.zip" Metulifer.app
+          zip -r -y "../../../../dist/Metulifer-${VER}-macOS-VST3.zip" Metulifer.vst3
+          zip -r -y "../../../../dist/Metulifer-${VER}-macOS-AU.zip" Metulifer.component
+
+          # Complete bundle
+          zip -r -y "../../../../dist/Metulifer-${VER}-macOS-Universal-Bundle.zip" \
+            Metulifer.app Metulifer.vst3 Metulifer.component ../../../../dist/README_INSTALL.txt
+
+          cd ../../../../dist
+          shasum -a 256 *.zip > SHA256SUMS.txt
+          ls -la
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Metulifer ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, 'beta') || contains(steps.version.outputs.tag, 'rc') || contains(steps.version.outputs.tag, 'alpha') }}
+          files: |
+            dist/Metulifer-*-macOS-*.zip
+            dist/SHA256SUMS.txt
+            dist/README_INSTALL.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,17 +19,19 @@ METULIFER_RUN_TESTS=1 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/M
 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer --run-tests
 ```
 
-### Les 7 suites de tests intégrées
+### Les 9 suites de tests intégrées
 
 | Suite de Test | Portée et validations effectuées |
 |---|---|
 | **SequencerUnitTest** | Précision temporelle des pas, calcul d'échantillons selon la fréquence et le BPM, bouclage polyrythmique des 6 pistes et déclenchement d'événements gate. |
-| **HostSyncUnitTest** | Verrouillage de phase sur la grille PPQ hôte ($1/16$), suivi sample-accurate des variations de tempo et réactivité immédiate start/stop. |
+| **HostSyncUnitTest** | Verrouillage de phase sur la grille PPQ hôte (1/16), suivi sample-accurate des variations de tempo et réactivité immédiate start/stop. |
 | **MidiInOutUnitTest** | Transposition temps réel relative à C3 (note 60) via MIDI In, émission polyphonique sample-accurate sur 6 canaux MIDI dédiés et émission de `allNotesOff`. |
 | **FactoryPresetsUnitTest** | Intégrité des 8 banques d'usine (`Default/Init` à `Cyberpunk Drive`), vérification de la cohérence des paramètres et rappels de programmes. |
 | **CreativeToolsUnitTest** | Algorithmes créatifs : décalage circulaire (`shiftSequence`), générateur stochastique (`randomizeSequence`) et distribution euclidienne optimale de Bjorklund (`euclideanSequence`). |
 | **DSPSafetyUnitTest** | Robustesse numérique absolue : injection de valeurs extrêmes de cutoff (20 Hz - 20 kHz), de résonance et de modulation sans génération de NaN, d'infinis ni de dénormalisés. |
 | **StateSerializationUnitTest** | Sauvegarde et restauration complète de l'état XML : persistance de l'APVTS, des bitfields de pas (`stepsTree`) et des câbles virtuels de modulation (`modTree`). |
+| **MuteSoloUnitTest** | Workflow Mute / Solo Electribe EMX/ESX : suppression des gates sans coupure des queues de réverbe/delay, solo exclusif et restauration de la mémoire de mutes. |
+| **ModMatrixUnitTest** | Matrice de modulation : routages 6 sources x 15 destinations, bornage bipolaire [-1.0, 1.0], cross-modulation LFO et sérialisation/désérialisation roundtrip. |
 
 ---
 
@@ -40,9 +42,35 @@ Chaque modification poussée sur le dépôt déclenche automatiquement le workfl
 1. **Environnement & Dépendances** : Téléchargement et installation automatisés de **JUCE 9.0.2** et de **Projucer**.
 2. **Génération de Projet** : Exécution de `Projucer --resave Metulifer.jucer` pour garantir l'alignement des configurations Xcode.
 3. **Compilation Optimisée (Release)** : Construction complète de l'ensemble des cibles (`VST3`, `AU`, `Standalone`) via `xcodebuild` sans aucun avertissement.
-4. **Exécution des Tests Unitaires** : Exécution automatique de la suite de 7 tests headless avec validation stricte du code de sortie.
+4. **Exécution des Tests Unitaires** : Exécution automatique de la suite de 9 tests headless avec validation stricte du code de sortie.
 5. **Validation `pluginval` Niveau 5** : Téléchargement de `pluginval` v1.0.4 et passage du banc d'essai complet sur les formats VST3 et AU (bus, états, crash-tests, automation).
 6. **Publication d'Artéfacts** : Archivage et téléversement automatique des binaires de release compilés.
+
+---
+
+## 3. Publication Automatisée des Releases GitHub (`release.yml`)
+
+Metulifer dispose d'un workflow dédié à la création automatisée de versions (`.github/workflows/release.yml`) :
+
+### Déclenchement automatique par tag Git
+Pousser un tag de version sur le dépôt déclenche la fabrication et la publication immédiate d'une release :
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Ce que le workflow produit automatiquement
+1. **Compilation certifiée Release** : Cibles Standalone (`.app`), VST3 (`.vst3`) et AudioUnit (`.component`).
+2. **Tests et Validation** : Passage à 100% de la suite de tests unitaires et de `pluginval` niveau 5.
+3. **Packaging avec préservation des liens symboliques macOS (`zip -r -y`)** :
+   - `Metulifer-v1.0.0-macOS-Standalone.zip`
+   - `Metulifer-v1.0.0-macOS-VST3.zip`
+   - `Metulifer-v1.0.0-macOS-AU.zip`
+   - `Metulifer-v1.0.0-macOS-Universal-Bundle.zip` (pack complet tout-en-un avec guide d'installation `README_INSTALL.txt`).
+4. **Calcul d'empreintes cryptographiques** : Fichier `SHA256SUMS.txt` pour vérifier l'intégrité des téléchargements.
+5. **Publication sur GitHub Releases** : Création automatique de la release avec notes de version générées, assets attachés et détection des versions préliminaires (`beta`, `rc`).
+6. **Déclenchement manuel (`workflow_dispatch`)** : Possibilité de générer une release à tout moment depuis l'onglet **Actions** de GitHub sans pousser de tag manuellement.
 
 ---
 
