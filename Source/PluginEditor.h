@@ -73,6 +73,7 @@ private:
     MetuliferAudioProcessor& audioProcessor;
 
     MetuliferLookAndFeel lookAndFeel;
+    juce::TooltipWindow tooltipWindow { this, 400 };
 
     SequencerPanel sequencerPanel;
     DisplayScreen displayScreen;

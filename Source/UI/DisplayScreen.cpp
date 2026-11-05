@@ -1,5 +1,6 @@
 #include "DisplayScreen.h"
 #include "Skin.h"
+#include "Typography.h"
 
 DisplayScreen::DisplayScreen()
 {
@@ -34,12 +35,12 @@ void DisplayScreen::paint (juce::Graphics& g)
     g.fillRoundedRectangle (badgeArea, 4.0f);
     g.setColour (juce::Colour (0xff22c55e));
     g.drawRoundedRectangle (badgeArea, 4.0f, 1.0f);
-    g.setFont (juce::FontOptions (12.0f, juce::Font::bold));
+    g.setFont (Typography::getBold (12.0f));
     g.drawText ("SEQ " + juce::String (sequenceNumber), badgeArea, juce::Justification::centred);
 
     // Mode Tag (Right)
     auto modeTagArea = headerArea.removeFromRight (74.0f);
-    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+    g.setFont (Typography::getBold (10.0f));
     if (paramText.isNotEmpty())
     {
         g.setColour (juce::Colour (0xfff59e0b));
@@ -59,7 +60,7 @@ void DisplayScreen::paint (juce::Graphics& g)
 
     // Right side: Exact numerical dB readout (54 px)
     auto readoutArea = meterArea.removeFromRight (54.0f);
-    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
+    g.setFont (Typography::getNumeric (8.5f));
     if (lastDbReadout >= -0.05f)
     {
         g.setColour (juce::Colour (0xffef4444));
@@ -89,7 +90,7 @@ void DisplayScreen::paint (juce::Graphics& g)
     barsArea.removeFromTop (2.0f);
 
     // Labels "L" and "R"
-    g.setFont (juce::FontOptions (7.5f, juce::Font::bold));
+    g.setFont (Typography::getBold (7.5f));
     g.setColour (juce::Colour (0xff64748b));
     g.drawText ("L", meterArea.getX(), barL.getY() - 1.0f, labelWidth, 6.0f, juce::Justification::centredLeft);
     g.drawText ("R", meterArea.getX(), barR.getY() - 1.0f, labelWidth, 6.0f, juce::Justification::centredLeft);
@@ -146,7 +147,7 @@ void DisplayScreen::paint (juce::Graphics& g)
     static const float scaleValues[] = { -48.0f, -24.0f, -12.0f, -6.0f, 0.0f, 3.0f };
     static const char* const scaleLabels[] = { "-48", "-24", "-12", "-6", "0", "+3" };
 
-    g.setFont (juce::FontOptions (7.0f, juce::Font::plain));
+    g.setFont (Typography::getNumeric (7.0f));
     for (int i = 0; i < 6; ++i)
     {
         const float tx = barL.getX() + barL.getWidth() * dbToNorm (scaleValues[i]);
@@ -169,7 +170,7 @@ void DisplayScreen::paint (juce::Graphics& g)
         g.drawRoundedRectangle (mainArea, 5.0f, 1.0f);
 
         g.setColour (juce::Colour (0xffe2e8f0));
-        g.setFont (juce::FontOptions (17.0f, juce::Font::bold));
+        g.setFont (Typography::getBold (17.0f));
         g.drawText (paramText, mainArea.reduced (8.0f), juce::Justification::centred, true);
     }
     else

@@ -116,6 +116,32 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Refonte UX & Système Typographique Neo-Grotesque Studio
+- **Tâche** : Améliorer significativement l'expérience utilisateur (UX) globale et intégrer une typographie suisse moderniste / Neo-Grotesque premium adaptée au hardware virtuel studio.
+- **Réalisations** :
+  1. **Système typographique Neo-Grotesque (`Source/UI/Typography.h` & `.cpp`)** :
+     - Cascade de détection intelligente sans dépendance externe lourde : `Inter` (référence mondiale UI numérique & hardware) ➔ `SF Pro Text` / `SF Pro` / `.AppleSystemUIFont` (macOS haute précision) ➔ `Helvetica Neue` ➔ `Helvetica` ➔ sans-serif système.
+     - Helpers typographiques dédiés : `getHeading()`, `getSubheading()`, `getLabel()`, `getBoldLabel()`, `getNumeric()`, `getButton()`.
+     - Intégration globale transparente dans JUCE via `MetuliferLookAndFeel::getTypefaceForFont(const juce::Font& font)` assurant la propagation immédiate de la police Neo-Grotesque sur tous les labels, boutons, menus et sliders.
+  2. **Info-bulles modernes Dark Glass (`TooltipWindow`)** :
+     - Ajout d'une instance `juce::TooltipWindow` réactive (400 ms) dans `PluginEditor`.
+     - Rendu LookAndFeel `drawTooltip` et `getTooltipBounds` style verre fumé translucide (`#151720`) avec contour cyan cybernétique (`#38bdf8`) et ombre portée diffuse.
+  3. **Menus contextuels modernisés (`drawPopupMenuBackground` & `drawPopupMenuItem`)** :
+     - Menu de réglages Audio/MIDI et listes déroulantes stylisés en dark glass avec sélection bleutée (`#2563eb`), séparateurs nets et raccourcis clavier alignés.
+  4. **Boutons Hardware Mute / Solo & En-tête Pill** :
+     - Boutons Mute `M` : rétro-éclairage rouge studio (`#ef4444`), lueur néon active et texte blanc net.
+     - Boutons Solo `S` : rétro-éclairage ambre/or (`#eab308`), texte noir contrasté.
+     - Boutons `[MATRIX]` et `[AUDIO]` : style pilule compacte avec retour d'état actif/inactif sans ambiguïté.
+  5. **Typographie d'écran OLED & Chiffres tabulaires (`DisplayScreen`)** :
+     - Badge séquence `SEQ 1..6`, mode `EDIT`/`SCOPE`, afficheur de valeur de paramètre et vumètres dB stéréo calibrés avec chiffres nets et sans jitter.
+  6. **Validation et conformité** :
+     - Cibles Debug et Release compilées avec succès (`xcodebuild`).
+     - 9 tests unitaires passés (`ALL PASSED`).
+     - Validation stricte niveau 5 `pluginval` sur `Metulifer.vst3` et `Metulifer.component` (AU) : 100% `SUCCESS`.
+- **Fichiers** : `Source/UI/Typography.h`, `Source/UI/Typography.cpp`, `Source/UI/MetuliferLookAndFeel.h`, `Source/UI/MetuliferLookAndFeel.cpp`, `Source/PluginEditor.h`, `Source/PluginEditor.cpp`, `Source/UI/DisplayScreen.cpp`, `Source/UI/SequenceRowComponent.cpp`, `Source/UI/ClockPanel.cpp`, `Source/UI/VCFPanel.cpp`, `Source/UI/ReverbPanel.cpp`, `Source/UI/LFOPanel.cpp`, `Source/UI/CableLayer.cpp`, `Source/UI/ModMatrixPanel.cpp`, `Source/UI/SynthPanel.cpp`, `Metulifer.jucer`, `AGENTS.md`
+- **Build** : ✅ Debug et Release réussis sans erreur
+- **Next steps** : —
+
 ### 2026-11-05 — Verrouillage taille fixe (1280x720) pour assets et rendus graphiques
 - **Tâche** : Figer strictement les dimensions à 1280x720 (format pixel-perfect non-responsive) pour garantir la fidélité des composants issus de rendus 3D/graphiques, tout en conservant les traffic lights macOS natifs Dark Aqua (fermer 🔴, réduire 🟡).
 - **Réalisations** :

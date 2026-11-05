@@ -1,4 +1,5 @@
 #include "CableLayer.h"
+#include "Typography.h"
 
 CableLayer::~CableLayer()
 {
@@ -365,7 +366,7 @@ void CableLayer::paint (juce::Graphics& g)
                     g.setColour (cableCol);
                     g.fillRoundedRectangle (badge, 3.0f);
                     g.setColour (juce::Colours::black);
-                    g.setFont (juce::FontOptions (8.5f, juce::Font::bold));
+                    g.setFont (Typography::getBold (8.5f));
                     g.drawText (c.lfo == 0 ? "L1" : "L2", badge, juce::Justification::centred, false);
                 }
             }

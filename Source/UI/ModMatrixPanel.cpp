@@ -1,5 +1,6 @@
 #include "ModMatrixPanel.h"
 #include "../PluginProcessor.h"
+#include "Typography.h"
 
 //==============================================================================
 MatrixCell::MatrixCell (MetuliferAudioProcessor& p, int seqIndex, int dest, int src)
@@ -81,7 +82,7 @@ void MatrixCell::paint (juce::Graphics& g)
     }
 
     // Text display
-    g.setFont (juce::FontOptions (10.5f).withStyle ("Bold"));
+    g.setFont (Typography::getNumeric (10.5f));
 
     if (std::abs (currentAmount) <= 0.005f)
     {
@@ -179,7 +180,7 @@ ModMatrixPanel::ModMatrixPanel (MetuliferAudioProcessor& p)
     : processor (p)
 {
     // Title
-    titleLabel.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
+    titleLabel.setFont (Typography::getHeading (12.0f));
     titleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffe4e4e7));
     titleLabel.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (titleLabel);
@@ -399,7 +400,7 @@ void ModMatrixPanel::GridContent::paint (juce::Graphics& g)
     g.fillRect (0, 0, getWidth(), colHeaderH);
 
     // Column headers
-    g.setFont (juce::FontOptions (10.0f).withStyle ("Bold"));
+    g.setFont (Typography::getHeading (10.0f));
     g.setColour (juce::Colour (0xff71717a));
     g.drawText ("DESTINATION", 8, 0, labelColW - 8, colHeaderH, juce::Justification::centredLeft, false);
 
@@ -426,7 +427,7 @@ void ModMatrixPanel::GridContent::paint (juce::Graphics& g)
             g.fillRect (0, currentY, getWidth(), rowH);
         }
 
-        g.setFont (juce::FontOptions (10.5f));
+        g.setFont (Typography::getLabel (10.5f));
         g.setColour (juce::Colour (0xffe4e4e7));
         g.drawText (ModMatrix::getDestName (d), 8, currentY, labelColW - 8, rowH, juce::Justification::centredLeft, false);
 

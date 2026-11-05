@@ -2,7 +2,36 @@
 #include "Skin.h"
 #include <cmath>
 
-MetuliferLookAndFeel::MetuliferLookAndFeel() = default;
+MetuliferLookAndFeel::MetuliferLookAndFeel()
+{
+    setDefaultSansSerifTypefaceName (Typography::getNeoGrotesqueName());
+
+    setColour (juce::TooltipWindow::backgroundColourId, juce::Colour (0xf0161820));
+    setColour (juce::TooltipWindow::textColourId, juce::Colour (0xfff1f5f9));
+    setColour (juce::TooltipWindow::outlineColourId, juce::Colour (0x3560a5fa));
+
+    setColour (juce::PopupMenu::backgroundColourId, juce::Colour (0xff181822));
+    setColour (juce::PopupMenu::textColourId, juce::Colour (0xfff1f5f9));
+    setColour (juce::PopupMenu::headerTextColourId, juce::Colour (0xff94a3b8));
+    setColour (juce::PopupMenu::highlightedBackgroundColourId, juce::Colour (0xff2563eb));
+    setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
+}
+
+juce::Typeface::Ptr MetuliferLookAndFeel::getTypefaceForFont (const juce::Font& font)
+{
+    const auto name = font.getTypefaceName();
+
+    if (name.isNotEmpty()
+        && name != "<Sans-Serif>"
+        && name != juce::Font::getDefaultSansSerifFontName()
+        && name != Typography::getNeoGrotesqueName())
+    {
+        return LookAndFeel_V4::getTypefaceForFont (font);
+    }
+
+    juce::Font neoFont (Typography::getOptions (font.getHeight(), font.getStyleFlags()));
+    return LookAndFeel_V4::getTypefaceForFont (neoFont);
+}
 
 void MetuliferLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y,
                                              int width, int height, float sliderPos,
@@ -251,12 +280,12 @@ void MetuliferLookAndFeel::drawStepButtonText (juce::Graphics& g, juce::TextButt
     const bool isDownbeat = ((stepNum - 1) % 4 == 0);
 
     const float fontH = button.getWidth() > 22 ? 10.5f : 9.5f;
-    g.setFont (juce::FontOptions (fontH, juce::Font::bold));
+    g.setFont (Typography::getFont (fontH, juce::Font::bold));
 
     if (isOn)
         g.setColour (juce::Colours::white);
     else if (isDownbeat)
-        g.setColour (juce::Colour (0xffcbd5e1));
+        g.setColour (juce::Colour (0xffe2e8f0));
     else
         g.setColour (juce::Colour (0xff828c9b));
 
@@ -361,6 +390,57 @@ void MetuliferLookAndFeel::drawStandardButtonBackground (juce::Graphics& g, juce
         botCol = isHighlighted ? juce::Colour (0xff262a34) : isDown ? juce::Colour (0xff121418) : juce::Colour (0xff1d2028);
         borderCol = isHighlighted ? juce::Colour (0xff60a5fa) : juce::Colour (0xff475569);
     }
+    else if (text == "M")
+    {
+        cr = 3.5f;
+        const bool isActive = button.getToggleState();
+        if (isActive)
+        {
+            topCol = isHighlighted ? juce::Colour (0xfff87171) : isDown ? juce::Colour (0xffb91c1c) : juce::Colour (0xffef4444);
+            botCol = isHighlighted ? juce::Colour (0xffef4444) : isDown ? juce::Colour (0xff7f1d1d) : juce::Colour (0xffb91c1c);
+            borderCol = isHighlighted ? juce::Colour (0xfffca5a5) : juce::Colour (0xffef4444);
+        }
+        else
+        {
+            topCol = isHighlighted ? juce::Colour (0xff373c47) : isDown ? juce::Colour (0xff1c1e24) : juce::Colour (0xff252932);
+            botCol = isHighlighted ? juce::Colour (0xff2d313a) : isDown ? juce::Colour (0xff14161b) : juce::Colour (0xff1b1e25);
+            borderCol = isHighlighted ? juce::Colour (0xffef4444).withAlpha (0.6f) : juce::Colour (0xff3f4450);
+        }
+    }
+    else if (text == "S")
+    {
+        cr = 3.5f;
+        const bool isActive = button.getToggleState();
+        if (isActive)
+        {
+            topCol = isHighlighted ? juce::Colour (0xfffacc15) : isDown ? juce::Colour (0xffa16207) : juce::Colour (0xffeab308);
+            botCol = isHighlighted ? juce::Colour (0xffeab308) : isDown ? juce::Colour (0xff713f12) : juce::Colour (0xffca8a04);
+            borderCol = isHighlighted ? juce::Colour (0xfffef08a) : juce::Colour (0xffeab308);
+        }
+        else
+        {
+            topCol = isHighlighted ? juce::Colour (0xff373c47) : isDown ? juce::Colour (0xff1c1e24) : juce::Colour (0xff252932);
+            botCol = isHighlighted ? juce::Colour (0xff2d313a) : isDown ? juce::Colour (0xff14161b) : juce::Colour (0xff1b1e25);
+            borderCol = isHighlighted ? juce::Colour (0xffeab308).withAlpha (0.6f) : juce::Colour (0xff3f4450);
+        }
+    }
+    else if (text == "MATRIX" || text == "AUDIO")
+    {
+        cr = 4.0f;
+        const bool isActive = button.getToggleState();
+        if (isActive)
+        {
+            topCol = isHighlighted ? juce::Colour (0xff0284c7) : isDown ? juce::Colour (0xff0369a1) : juce::Colour (0xff0ea5e9);
+            botCol = isHighlighted ? juce::Colour (0xff0369a1) : isDown ? juce::Colour (0xff075985) : juce::Colour (0xff0284c7);
+            borderCol = isHighlighted ? juce::Colour (0xff7dd3fc) : juce::Colour (0xff38bdf8);
+        }
+        else
+        {
+            topCol = isHighlighted ? juce::Colour (0xff2f3440) : isDown ? juce::Colour (0xff181a20) : juce::Colour (0xff242730);
+            botCol = isHighlighted ? juce::Colour (0xff242730) : isDown ? juce::Colour (0xff121418) : juce::Colour (0xff1c1e24);
+            borderCol = isHighlighted ? juce::Colour (0xff60a5fa) : juce::Colour (0xff3b4252);
+        }
+    }
     else
     {
         // Mode ("Room"/"Hall", "PingPong"/"Stereo"), Wave ("Sin"/"Saw"...), Arp modes/chords, Inspect ("Inspect")
@@ -443,6 +523,21 @@ void MetuliferLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& 
         fontStyle = juce::Font::plain;
         textCol = shouldDrawButtonAsHighlighted ? juce::Colours::white : juce::Colour (0xffcbd5e1);
     }
+    else if (text == "M" || text == "S")
+    {
+        fontH = 11.0f;
+        fontStyle = juce::Font::bold;
+        if (text == "M")
+            textCol = isOn ? juce::Colours::white : (shouldDrawButtonAsHighlighted ? juce::Colour (0xfffca5a5) : juce::Colour (0xfff87171));
+        else
+            textCol = isOn ? juce::Colours::black : (shouldDrawButtonAsHighlighted ? juce::Colour (0xfffef08a) : juce::Colour (0xfffacc15));
+    }
+    else if (text == "MATRIX" || text == "AUDIO")
+    {
+        fontH = 9.5f;
+        fontStyle = juce::Font::bold;
+        textCol = isOn ? juce::Colours::white : (shouldDrawButtonAsHighlighted ? juce::Colours::white : juce::Colour (0xffcbd5e1));
+    }
     else
     {
         // Mode ("Room"/"Hall"), Wave ("Sin"/"Saw"...)
@@ -450,7 +545,104 @@ void MetuliferLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& 
         textCol = shouldDrawButtonAsHighlighted ? juce::Colour (0xffe0f2fe) : juce::Colour (0xfff1f5f9);
     }
 
-    g.setFont (juce::FontOptions (fontH, fontStyle));
+    g.setFont (Typography::getFont (fontH, fontStyle));
     g.setColour (textCol);
     g.drawText (text, button.getLocalBounds(), juce::Justification::centred, false);
+}
+
+void MetuliferLookAndFeel::drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height)
+{
+    auto bounds = juce::Rectangle<float> (0.0f, 0.0f, (float) width, (float) height);
+
+    // Drop shadow
+    g.setColour (juce::Colour (0x35000000));
+    g.fillRoundedRectangle (bounds.translated (0.0f, 1.5f), 5.0f);
+
+    // Dark glass body
+    g.setColour (juce::Colour (0xf4151720));
+    g.fillRoundedRectangle (bounds, 5.0f);
+
+    // Subtle cyan/blue accent border
+    g.setColour (juce::Colour (0x4538bdf8));
+    g.drawRoundedRectangle (bounds.reduced (0.5f), 5.0f, 1.0f);
+
+    // Crisp Neo-Grotesque text
+    g.setFont (Typography::getFont (10.5f, juce::Font::plain));
+    g.setColour (juce::Colour (0xfff1f5f9));
+    g.drawText (text, bounds.reduced (8.0f, 2.0f), juce::Justification::centred, false);
+}
+
+juce::Rectangle<int> MetuliferLookAndFeel::getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos, juce::Rectangle<int> parentArea)
+{
+    const auto font = Typography::getFont (10.5f, juce::Font::plain);
+    const int textW = juce::GlyphArrangement::getStringWidthInt (font, tipText);
+    const int w = textW + 20;
+    const int h = 24;
+
+    auto r = juce::Rectangle<int> (screenPos.x, screenPos.y + 16, w, h);
+    return r.constrainedWithin (parentArea);
+}
+
+void MetuliferLookAndFeel::drawPopupMenuBackground (juce::Graphics& g, int width, int height)
+{
+    auto bounds = juce::Rectangle<float> (0.0f, 0.0f, (float) width, (float) height);
+
+    // Drop shadow
+    g.setColour (juce::Colour (0x40000000));
+    g.fillRoundedRectangle (bounds.translated (0.0f, 2.0f), 6.0f);
+
+    // Dark sleek background
+    g.setColour (juce::Colour (0xf8181922));
+    g.fillRoundedRectangle (bounds, 6.0f);
+
+    // Outer border
+    g.setColour (juce::Colour (0xff2e323d));
+    g.drawRoundedRectangle (bounds.reduced (0.5f), 6.0f, 1.0f);
+}
+
+void MetuliferLookAndFeel::drawPopupMenuItem (juce::Graphics& g, const juce::Rectangle<int>& area,
+                                              bool isSeparator, bool isActive, bool isHighlighted, bool isTicked,
+                                              bool /*hasSubMenu*/, const juce::String& text, const juce::String& shortcutKeyText,
+                                              const juce::Drawable* /*icon*/, const juce::Colour* textColour)
+{
+    if (isSeparator)
+    {
+        auto r = area.reduced (6, 0);
+        g.setColour (juce::Colour (0xff2b2f3a));
+        g.fillRect (r.getX(), r.getCentreY(), r.getWidth(), 1);
+        return;
+    }
+
+    auto r = area.toFloat().reduced (3.0f, 1.0f);
+
+    if (isHighlighted && isActive)
+    {
+        g.setColour (juce::Colour (0xff2563eb));
+        g.fillRoundedRectangle (r, 4.0f);
+    }
+
+    juce::Colour textCol = isActive ? (isHighlighted ? juce::Colours::white : juce::Colour (0xffe2e8f0))
+                                    : juce::Colour (0xff64748b);
+    if (textColour != nullptr)
+        textCol = *textColour;
+
+    g.setColour (textCol);
+    g.setFont (Typography::getFont (11.5f, isHighlighted ? juce::Font::bold : juce::Font::plain));
+
+    auto textArea = area.reduced (12, 0);
+
+    if (isTicked)
+    {
+        auto tickArea = area;
+        g.drawText (juce::String::charToString ((juce::juce_wchar) 0x2713),
+                    tickArea.removeFromLeft (20), juce::Justification::centred, false);
+    }
+
+    g.drawText (text, textArea, juce::Justification::centredLeft, true);
+
+    if (shortcutKeyText.isNotEmpty())
+    {
+        g.setColour (juce::Colour (0xff94a3b8));
+        g.drawText (shortcutKeyText, textArea, juce::Justification::centredRight, false);
+    }
 }

@@ -1,5 +1,6 @@
 #include "SynthPanel.h"
 #include "Skin.h"
+#include "Typography.h"
 
 static const char* arpModeName (int index)
 {
@@ -183,7 +184,7 @@ void SynthPanel::setupKnob (juce::Slider& knob, const juce::String& name,
 juce::Label* SynthPanel::makeLabel (juce::Component& parent, const juce::String& text, float fontHeight)
 {
     auto label = std::make_unique<juce::Label> ("", text);
-    label->setFont (juce::FontOptions (fontHeight));
+    label->setFont (Typography::getLabel (fontHeight));
     label->setJustificationType (juce::Justification::centred);
     label->setColour (juce::Label::textColourId, juce::Colour (0xff1e293b));
     auto* ptr = label.get();

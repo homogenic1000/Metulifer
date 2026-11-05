@@ -10,6 +10,7 @@
 #include "PluginEditor.h"
 #include "UI/Skin.h"
 #include "UI/NativeTitleBar_mac.h"
+#include "UI/Typography.h"
 
 //==============================================================================
 MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProcessor& p)
@@ -323,11 +324,11 @@ void MetuliferAudioProcessorEditor::paint (juce::Graphics& g)
     }
 
     g.setColour (juce::Colour (0xff1e293b));
-    g.setFont (juce::FontOptions (15.0f, juce::Font::bold));
+    g.setFont (Typography::getBold (15.0f));
     g.drawText ("METULIFER", 32, 7, 120, 20, juce::Justification::centredLeft);
 
     g.setColour (juce::Colour (0xff64748b));
-    g.setFont (juce::FontOptions (10.0f, juce::Font::plain));
+    g.setFont (Typography::getHeading (10.0f));
     g.drawText ("MODULAR STEP SEQUENCER & DUAL SYNTH", 145, 9, 320, 18, juce::Justification::centredLeft);
 }
 
@@ -461,6 +462,7 @@ void MetuliferAudioProcessorEditor::setMatrixViewOpen (bool open)
         modMatrixPanel.toFront (true);
     }
 
+    matrixButton.setToggleState (open, juce::dontSendNotification);
     matrixButton.setColour (juce::TextButton::buttonColourId,
                             open ? juce::Colour (0xff0284c7) : juce::Colour (0xff1f1f26));
     matrixButton.setColour (juce::TextButton::textColourOffId,

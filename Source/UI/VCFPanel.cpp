@@ -1,9 +1,10 @@
 #include "VCFPanel.h"
 #include "Skin.h"
+#include "Typography.h"
 
 VCFPanel::VCFPanel()
 {
-    titleLabel.setFont (juce::FontOptions (13.0f, juce::Font::bold));
+    titleLabel.setFont (Typography::getSubheading (13.0f));
     titleLabel.setJustificationType (juce::Justification::centred);
     titleLabel.setColour (juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible (titleLabel);
@@ -30,7 +31,7 @@ VCFPanel::VCFPanel()
     addAndMakeVisible (lpfButton);
     addAndMakeVisible (hpfButton);
 
-    cutoffLabel.setFont (juce::FontOptions (11.0f));
+    cutoffLabel.setFont (Typography::getLabel (11.0f));
     cutoffLabel.setJustificationType (juce::Justification::centred);
     cutoffLabel.setColour (juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible (cutoffLabel);

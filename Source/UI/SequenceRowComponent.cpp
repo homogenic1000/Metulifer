@@ -1,6 +1,7 @@
 #include "SequenceRowComponent.h"
 #include "../PluginProcessor.h"
 #include "Skin.h"
+#include "Typography.h"
 
 SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProcessorValueTreeState& apvts)
     : seqIndex (sequenceIndex)
@@ -112,7 +113,7 @@ void SequenceRowComponent::paint (juce::Graphics& g)
     g.fillRoundedRectangle (badgeArea, 4.0f);
 
     g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
+    g.setFont (Typography::getBold (10.5f));
     g.drawText ("S" + juce::String (seqIndex + 1), badgeArea, juce::Justification::centred);
 
     if (muteButton.getToggleState())

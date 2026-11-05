@@ -1,9 +1,10 @@
 #include "ClockPanel.h"
 #include "Skin.h"
+#include "Typography.h"
 
 ClockPanel::ClockPanel()
 {
-    titleLabel.setFont (juce::FontOptions (15.0f, juce::Font::bold));
+    titleLabel.setFont (Typography::getHeading (15.0f));
     titleLabel.setJustificationType (juce::Justification::centred);
     titleLabel.setColour (juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible (titleLabel);

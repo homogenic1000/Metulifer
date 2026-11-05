@@ -1,11 +1,14 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Typography.h"
 
 class MetuliferLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     MetuliferLookAndFeel();
+
+    juce::Typeface::Ptr getTypefaceForFont (const juce::Font& font) override;
 
     void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
                            float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
@@ -19,6 +22,15 @@ public:
     void drawButtonText (juce::Graphics& g, juce::TextButton& button,
                          bool shouldDrawButtonAsHighlighted,
                          bool shouldDrawButtonAsDown) override;
+
+    void drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height) override;
+    juce::Rectangle<int> getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos, juce::Rectangle<int> parentArea) override;
+
+    void drawPopupMenuBackground (juce::Graphics& g, int width, int height) override;
+    void drawPopupMenuItem (juce::Graphics& g, const juce::Rectangle<int>& area,
+                            bool isSeparator, bool isActive, bool isHighlighted, bool isTicked,
+                            bool hasSubMenu, const juce::String& text, const juce::String& shortcutKeyText,
+                            const juce::Drawable* icon, const juce::Colour* textColour) override;
 
 private:
     static juce::Image findButtonImage (const juce::Button& button);

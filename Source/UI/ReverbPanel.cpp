@@ -1,9 +1,10 @@
 #include "ReverbPanel.h"
 #include "Skin.h"
+#include "Typography.h"
 
 ReverbPanel::ReverbPanel()
 {
-    titleLabel.setFont (juce::FontOptions (13.0f, juce::Font::bold));
+    titleLabel.setFont (Typography::getSubheading (13.0f));
     titleLabel.setJustificationType (juce::Justification::centred);
     titleLabel.setColour (juce::Label::textColourId, juce::Colour (0xff1e293b));
     addAndMakeVisible (titleLabel);
@@ -32,7 +33,7 @@ ReverbPanel::ReverbPanel()
     auto setupLabel = [this] (juce::Label& lbl, const juce::String& text)
     {
         lbl.setText (text, juce::dontSendNotification);
-        lbl.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+        lbl.setFont (Typography::getBoldLabel (10.0f));
         lbl.setJustificationType (juce::Justification::centred);
         lbl.setColour (juce::Label::textColourId, juce::Colour (0xff475569));
         addAndMakeVisible (lbl);

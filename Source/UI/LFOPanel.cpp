@@ -1,5 +1,6 @@
 #include "LFOPanel.h"
 #include "Skin.h"
+#include "Typography.h"
 
 static const char* waveName (int index)
 {
@@ -16,7 +17,7 @@ LFOPanel::LFOPanel (const juce::String& name)
     : panelName (name)
 {
     titleLabel.setText (name, juce::dontSendNotification);
-    titleLabel.setFont (juce::FontOptions (13.0f, juce::Font::bold));
+    titleLabel.setFont (Typography::getSubheading (13.0f));
     titleLabel.setJustificationType (juce::Justification::centred);
     titleLabel.setColour (juce::Label::textColourId, juce::Colours::black);
     addAndMakeVisible (titleLabel);
@@ -62,7 +63,7 @@ LFOPanel::LFOPanel (const juce::String& name)
 
     for (auto* l : { &rateLabel, &offsetLabel, &depthLabel })
     {
-        l->setFont (juce::FontOptions (11.0f));
+        l->setFont (Typography::getLabel (11.0f));
         l->setJustificationType (juce::Justification::centredLeft);
         l->setColour (juce::Label::textColourId, juce::Colours::black);
         addAndMakeVisible (l);
@@ -92,7 +93,7 @@ void LFOPanel::paint (juce::Graphics& g)
     const bool hasTarget = (destinationText.isNotEmpty() && destinationText != "NO TARGET");
 
     // Line 1: Header / Rate
-    g.setFont (juce::FontOptions (8.0f, juce::Font::bold));
+    g.setFont (Typography::getNumeric (8.0f));
     g.setColour (juce::Colour (0xff64748b));
     g.drawText ("TARGET", oled.getX() + 5.0f, oled.getY() + 3.0f, 40.0f, 11.0f,
                 juce::Justification::centredLeft, false);
@@ -103,7 +104,7 @@ void LFOPanel::paint (juce::Graphics& g)
                 juce::Justification::centredRight, false);
 
     // Line 2: Target Value (Backlit OLED style)
-    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+    g.setFont (Typography::getBold (10.0f));
     if (hasTarget)
     {
         g.setColour (themeColor.withAlpha (0.35f));
@@ -168,7 +169,7 @@ void LFOPanel::paint (juce::Graphics& g)
     }
 
     // OUT label
-    g.setFont (juce::FontOptions (10.0f, juce::Font::bold));
+    g.setFont (Typography::getBold (10.0f));
     g.setColour (juce::Colour (0xff1e293b));
     g.drawText ("OUT", ledX + 11.0f, jack.getY(), 26.0f, jack.getHeight(),
                 juce::Justification::centredLeft, false);
