@@ -92,6 +92,19 @@ public:
     bool isPlaying() const;
     int  getPlayheadStep (int sequenceIndex) const;
 
+    //==============================================================================
+    // Host transport sync & MIDI
+    bool isHostSyncEnabled() const;
+    void setHostSyncEnabled (bool enabled);
+    int  getMidiTranspose() const noexcept { return midiTranspose.load (std::memory_order_relaxed); }
+    void setMidiTranspose (int semitones) noexcept { midiTranspose.store (semitones, std::memory_order_relaxed); }
+
+    //==============================================================================
+    // Creative Sequencer Tools
+    void shiftSequence (int seqIndex, int deltaSteps);
+    void randomizeSequence (int seqIndex, float density);
+    void euclideanSequence (int seqIndex, int hits, int length);
+
 private:
     //==============================================================================
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
@@ -186,6 +199,11 @@ private:
     double lfoPhase[2] {};
     std::atomic<float> lfoValue[2];
     double sampleRate = 44100.0;
+
+    std::atomic<float>* hostSyncParam = nullptr;
+    std::atomic<int> midiTranspose { 0 };
+    int activeMidiNotes[numSequences] { -1, -1, -1, -1, -1, -1 };
+    int currentProgram { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MetuliferAudioProcessor)
 };

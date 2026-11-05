@@ -25,6 +25,10 @@ ClockPanel::ClockPanel()
             onPlayToggled (playing);
     };
     addAndMakeVisible (playStopButton);
+
+    syncButton.setClickingTogglesState (true);
+    syncButton.setTooltip ("Sync playback and tempo with DAW host");
+    addAndMakeVisible (syncButton);
 }
 
 void ClockPanel::paint (juce::Graphics& g)
@@ -45,6 +49,8 @@ void ClockPanel::resized()
                          knobArea.getY(), 175, 175);
 
     area.removeFromTop (12);
-    playStopButton.setBounds (area.getX() + (area.getWidth() - 90) / 2,
-                              area.getY(), 90, 40);
+    const int totalBtnWidth = 90 + 10 + 90;
+    const int startX = area.getX() + (area.getWidth() - totalBtnWidth) / 2;
+    playStopButton.setBounds (startX, area.getY(), 90, 36);
+    syncButton.setBounds (startX + 100, area.getY(), 90, 36);
 }

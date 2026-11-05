@@ -171,6 +171,9 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     tempoAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         audioProcessor.apvts, "tempo", clockPanel.tempoKnob);
 
+    hostSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        audioProcessor.apvts, "host_sync", clockPanel.syncButton);
+
     cableLayer.setModTree (audioProcessor.getModTree(), &audioProcessor.undoManager);
     cableLayer.onCablesChanged = [this]
     {

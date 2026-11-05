@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="kMa8Lm" name="Metulifer" pluginName="Metulifer" pluginDesc="Metulifer"
-              companyName="Saumure" pluginManufacturer="Saumure"
-              projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              companyName="Saumure" pluginManufacturer="Saumure" projectType="audioplug"
+              useAppConfig="0" pluginWantsMidiIn="1" pluginProducesMidiOut="1"
+              pluginIsMidiEffectPlugin="0" addUsingNamespaceToJuceHeader="0"
+              jucerFormatVersion="1" pluginCharacteristicsValue="pluginWantsMidiIn,pluginProducesMidiOut">
   <MAINGROUP id="NUJ2dn" name="Metulifer">
     <GROUP id="{F8E48046-1DE7-2052-852A-347DBC8F9C3A}" name="Source">
       <FILE id="p8c8HG" name="PluginProcessor.cpp" compile="1" resource="0"
@@ -14,11 +15,16 @@
             file="Source/PluginEditor.cpp"/>
       <FILE id="VWb30n" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
       <GROUP id="{2A1B4C5D-6E7F-8A9B-0C1D-2E3F4A5B6C7D}" name="UI">
-        <FILE id="uiSq1a" name="SequenceRowComponent.cpp" compile="1" resource="0" file="Source/UI/SequenceRowComponent.cpp"/>
-        <FILE id="uiSq1b" name="SequenceRowComponent.h" compile="0" resource="0" file="Source/UI/SequenceRowComponent.h"/>
-        <FILE id="uiSp2a" name="SequencerPanel.cpp" compile="1" resource="0" file="Source/UI/SequencerPanel.cpp"/>
-        <FILE id="uiSp2b" name="SequencerPanel.h" compile="0" resource="0" file="Source/UI/SequencerPanel.h"/>
-        <FILE id="uiDs3a" name="DisplayScreen.cpp" compile="1" resource="0" file="Source/UI/DisplayScreen.cpp"/>
+        <FILE id="uiSq1a" name="SequenceRowComponent.cpp" compile="1" resource="0"
+              file="Source/UI/SequenceRowComponent.cpp"/>
+        <FILE id="uiSq1b" name="SequenceRowComponent.h" compile="0" resource="0"
+              file="Source/UI/SequenceRowComponent.h"/>
+        <FILE id="uiSp2a" name="SequencerPanel.cpp" compile="1" resource="0"
+              file="Source/UI/SequencerPanel.cpp"/>
+        <FILE id="uiSp2b" name="SequencerPanel.h" compile="0" resource="0"
+              file="Source/UI/SequencerPanel.h"/>
+        <FILE id="uiDs3a" name="DisplayScreen.cpp" compile="1" resource="0"
+              file="Source/UI/DisplayScreen.cpp"/>
         <FILE id="uiDs3b" name="DisplayScreen.h" compile="0" resource="0" file="Source/UI/DisplayScreen.h"/>
         <FILE id="uiSy4a" name="SynthPanel.cpp" compile="1" resource="0" file="Source/UI/SynthPanel.cpp"/>
         <FILE id="uiSy4b" name="SynthPanel.h" compile="0" resource="0" file="Source/UI/SynthPanel.h"/>
@@ -28,15 +34,18 @@
         <FILE id="uiCl6b" name="ClockPanel.h" compile="0" resource="0" file="Source/UI/ClockPanel.h"/>
         <FILE id="uiSn7a" name="Skin.cpp" compile="1" resource="0" file="Source/UI/Skin.cpp"/>
         <FILE id="uiSn7b" name="Skin.h" compile="0" resource="0" file="Source/UI/Skin.h"/>
-        <FILE id="uiLf8a" name="MetuliferLookAndFeel.cpp" compile="1" resource="0" file="Source/UI/MetuliferLookAndFeel.cpp"/>
-        <FILE id="uiLf8b" name="MetuliferLookAndFeel.h" compile="0" resource="0" file="Source/UI/MetuliferLookAndFeel.h"/>
+        <FILE id="uiLf8a" name="MetuliferLookAndFeel.cpp" compile="1" resource="0"
+              file="Source/UI/MetuliferLookAndFeel.cpp"/>
+        <FILE id="uiLf8b" name="MetuliferLookAndFeel.h" compile="0" resource="0"
+              file="Source/UI/MetuliferLookAndFeel.h"/>
         <FILE id="uiLv9a" name="Lever.cpp" compile="1" resource="0" file="Source/UI/Lever.cpp"/>
         <FILE id="uiLv9b" name="Lever.h" compile="0" resource="0" file="Source/UI/Lever.h"/>
         <FILE id="uiLp10a" name="LFOPanel.cpp" compile="1" resource="0" file="Source/UI/LFOPanel.cpp"/>
         <FILE id="uiLp10b" name="LFOPanel.h" compile="0" resource="0" file="Source/UI/LFOPanel.h"/>
         <FILE id="uiCb11a" name="CableLayer.cpp" compile="1" resource="0" file="Source/UI/CableLayer.cpp"/>
         <FILE id="uiCb11b" name="CableLayer.h" compile="0" resource="0" file="Source/UI/CableLayer.h"/>
-        <FILE id="uiRv12a" name="ReverbPanel.cpp" compile="1" resource="0" file="Source/UI/ReverbPanel.cpp"/>
+        <FILE id="uiRv12a" name="ReverbPanel.cpp" compile="1" resource="0"
+              file="Source/UI/ReverbPanel.cpp"/>
         <FILE id="uiRv12b" name="ReverbPanel.h" compile="0" resource="0" file="Source/UI/ReverbPanel.h"/>
       </GROUP>
       <GROUP id="{B1C2D3E4-5F6A-4B7C-9D0E-1F2A3B4C5D6E}" name="DSP">
@@ -44,16 +53,17 @@
         <FILE id="dspVo1b" name="Voice.h" compile="0" resource="0" file="Source/DSP/Voice.h"/>
       </GROUP>
       <GROUP id="{C2D3E4F5-6A7B-4C8D-9E0F-2A3B4C5D6E7F}" name="Sequencer">
-        <FILE id="sqEn1a" name="SequencerEngine.cpp" compile="1" resource="0" file="Source/Sequencer/SequencerEngine.cpp"/>
-        <FILE id="sqEn1b" name="SequencerEngine.h" compile="0" resource="0" file="Source/Sequencer/SequencerEngine.h"/>
+        <FILE id="sqEn1a" name="SequencerEngine.cpp" compile="1" resource="0"
+              file="Source/Sequencer/SequencerEngine.cpp"/>
+        <FILE id="sqEn1b" name="SequencerEngine.h" compile="0" resource="0"
+              file="Source/Sequencer/SequencerEngine.h"/>
       </GROUP>
       <GROUP id="{D3E4F5A6-7B8C-9D0E-1F2A-3B4C5D6E7F8A}" name="Tests">
         <FILE id="tstUn1a" name="UnitTests.cpp" compile="1" resource="0" file="Source/Tests/UnitTests.cpp"/>
       </GROUP>
     </GROUP>
     <GROUP id="{7A3B9C1D-4E5F-4A6B-8C7D-9E0F1A2B3C4D}" name="Resources">
-      <FILE id="icMt1a" name="icon.json" compile="0" resource="0"
-            file="Resources/Metulifer.icon/icon.json"/>
+      <FILE id="icMt1a" name="icon.json" compile="0" resource="0" file="Resources/Metulifer.icon/icon.json"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>

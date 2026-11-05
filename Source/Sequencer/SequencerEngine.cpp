@@ -33,12 +33,53 @@ void SequencerEngine::setSources (const Sources& s)
 
 double SequencerEngine::samplesPerStep() const
 {
-    const float bpm = sources.tempo != nullptr
-                        ? juce::jlimit (20.0f, 300.0f, sources.tempo->load (std::memory_order_relaxed))
-                        : 120.0f;
+    float bpm = hostBpm.load (std::memory_order_relaxed);
+    if (bpm <= 0.0f)
+    {
+        bpm = sources.tempo != nullptr
+                ? juce::jlimit (20.0f, 300.0f, sources.tempo->load (std::memory_order_relaxed))
+                : 120.0f;
+    }
 
     // One step = one 1/16 note.
     return sampleRate * 60.0 / ((double) bpm * 4.0);
+}
+
+void SequencerEngine::syncToHost (double ppqPosition, double bpmIn, bool isHostPlaying)
+{
+    if (bpmIn > 0.0)
+        hostBpm.store ((float) bpmIn, std::memory_order_relaxed);
+    else
+        hostBpm.store (0.0f, std::memory_order_relaxed);
+
+    if (isHostPlaying)
+    {
+        if (! isPlaying())
+            setPlaying (true);
+
+        const double ppq16th = ppqPosition * 4.0;
+        const int64_t targetStep = (int64_t) std::floor (ppq16th);
+        const double phaseInStep = ppq16th - (double) targetStep;
+
+        if (std::abs (globalStep - targetStep) > 1)
+        {
+            globalStep = targetStep;
+            masterAccumulator = phaseInStep * samplesPerStep();
+
+            for (int s = 0; s < numSequences; ++s)
+            {
+                const int len = lengthOf (s);
+                const int step = (int) (globalStep % (int64_t) len);
+                steps[s] = step;
+                currentSteps[s].store (step, std::memory_order_relaxed);
+            }
+        }
+    }
+    else
+    {
+        if (isPlaying())
+            setPlaying (false);
+    }
 }
 
 int SequencerEngine::lengthOf (int sequence) const

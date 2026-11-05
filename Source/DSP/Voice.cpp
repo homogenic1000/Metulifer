@@ -167,8 +167,8 @@ void Voice::setParams (const Params& p)
 
 void Voice::updateFrequencies()
 {
-    osc1.setFrequency (frequencyFor (currentParams.octave1, currentParams.note1 + currentArpOffset), sampleRate);
-    osc2.setFrequency (frequencyFor (currentParams.octave2, currentParams.note2 + currentArpOffset), sampleRate);
+    osc1.setFrequency (frequencyFor (currentParams.octave1, currentParams.note1 + currentArpOffset + currentParams.transpose), sampleRate);
+    osc2.setFrequency (frequencyFor (currentParams.octave2, currentParams.note2 + currentArpOffset + currentParams.transpose), sampleRate);
 }
 
 void Voice::advanceArp()

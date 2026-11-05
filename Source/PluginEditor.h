@@ -88,6 +88,7 @@ private:
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> lfoAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> arpAttachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tempoAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> hostSyncAttachment;
     std::map<juce::Slider*, juce::String> sliderParamIds;
 
     struct TargetKnob { juce::Slider* knob = nullptr; juce::String suffix; };

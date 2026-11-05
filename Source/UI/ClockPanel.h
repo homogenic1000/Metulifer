@@ -11,6 +11,7 @@ public:
     void resized() override;
 
     juce::Slider tempoKnob;
+    juce::TextButton syncButton { "Sync" };
 
     std::function<void (bool shouldPlay)> onPlayToggled;
 

@@ -148,6 +148,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
     layout.add (std::make_unique<juce::AudioParameterInt> (
         juce::ParameterID { "tempo", 1 }, "Tempo", 20, 300, 120, bpmAttr));
 
+    layout.add (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { "host_sync", 1 }, "Host Sync", true));
+
     {
         juce::NormalisableRange<float> rateRange (0.1f, 20.0f, 0.01f);
         rateRange.setSkewForCentre (1.0f);
@@ -217,6 +220,8 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
         lfoEnabled[i]  = apvts.getRawParameterValue (lid + "enabled");
         lfoValue[i].store (0.0f, std::memory_order_relaxed);
     }
+
+    hostSyncParam = apvts.getRawParameterValue ("host_sync");
 
     stepsTree.addListener (this);
     modTree.addListener (this);
@@ -472,28 +477,293 @@ double MetuliferAudioProcessor::getTailLengthSeconds() const
     return 6.0;
 }
 
+//==============================================================================
+struct FactoryPreset
+{
+    const char* name;
+    float tempo;
+    int patterns[6];
+    int lengths[6];
+    float cutoff[6];
+    int wave1[6];
+    int wave2[6];
+    int oct1[6];
+    int note1[6];
+    bool delayEnabled[6];
+    float delayTime[6];
+    float delayFeedback[6];
+    float delayMix[6];
+    bool delayPingpong[6];
+    bool reverbEnabled[6];
+    int reverbMode[6];
+    float reverbMix[6];
+    bool reduxEnabled[6];
+    int reduxBits[6];
+    int reduxRate[6];
+    float reduxMix[6];
+    bool arpEnabled[6];
+    int arpChord[6];
+};
+
+static const FactoryPreset factoryPresets[8] =
+{
+    // 0: Init Patch
+    {
+        "01: Init Patch", 120.0f,
+        { 0x55555555, 0, 0, 0, 0, 0 },
+        { 16, 16, 16, 16, 16, 16 },
+        { 20000.0f, 20000.0f, 20000.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 1, 1, 1, 1, 1, 1 }, { 1, 1, 1, 1, 1, 1 },
+        { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+        { false, false, false, false, false, false }, { 250, 250, 250, 250, 250, 250 },
+        { 40, 40, 40, 40, 40, 40 }, { 30, 30, 30, 30, 30, 30 }, { true, true, true, true, true, true },
+        { false, false, false, false, false, false }, { 0, 0, 0, 0, 0, 0 }, { 30, 30, 30, 30, 30, 30 },
+        { false, false, false, false, false, false }, { 8, 8, 8, 8, 8, 8 }, { 4, 4, 4, 4, 4, 4 }, { 50, 50, 50, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    },
+    // 1: Berlin Minimal
+    {
+        "02: Berlin Minimal", 128.0f,
+        { 0b1000100010001000, 0b00100010001000, 0b000100010001, 0, 0, 0 },
+        { 16, 14, 12, 16, 16, 16 },
+        { 800.0f, 3200.0f, 7500.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 0, 1, 2, 1, 1, 1 }, { 0, 1, 2, 1, 1, 1 },
+        { -2, 0, 1, 0, 0, 0 }, { 0, 7, 3, 0, 0, 0 },
+        { false, true, true, false, false, false }, { 250, 375, 187, 250, 250, 250 },
+        { 40, 55, 60, 40, 40, 40 }, { 0, 45, 50, 0, 0, 0 }, { true, true, true, true, true, true },
+        { false, true, true, false, false, false }, { 0, 0, 1, 0, 0, 0 }, { 0, 25, 40, 0, 0, 0 },
+        { false, false, false, false, false, false }, { 8, 8, 8, 8, 8, 8 }, { 4, 4, 4, 4, 4, 4 }, { 50, 50, 50, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    },
+    // 2: Acid 303 Modular
+    {
+        "03: Acid 303 Modular", 134.0f,
+        { 0b1011010110110101, 0b0000100000001000, 0, 0, 0, 0 },
+        { 16, 16, 16, 16, 16, 16 },
+        { 1400.0f, 900.0f, 20000.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 1, 2, 1, 1, 1, 1 }, { 2, 2, 1, 1, 1, 1 },
+        { -1, -2, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+        { true, false, false, false, false, false }, { 224, 250, 250, 250, 250, 250 },
+        { 65, 40, 40, 40, 40, 40 }, { 40, 0, 0, 0, 0, 0 }, { true, true, true, true, true, true },
+        { false, false, false, false, false, false }, { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+        { false, false, false, false, false, false }, { 8, 8, 8, 8, 8, 8 }, { 4, 4, 4, 4, 4, 4 }, { 50, 50, 50, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    },
+    // 3: Ambient Glass Cloud
+    {
+        "04: Ambient Glass Cloud", 90.0f,
+        { 0b1000000010000000, 0b0000100000000010, 0b0010000000100000, 0, 0, 0 },
+        { 16, 16, 16, 16, 16, 16 },
+        { 3500.0f, 4200.0f, 2800.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 3, 0, 3, 1, 1, 1 }, { 0, 3, 0, 1, 1, 1 },
+        { 0, 1, 2, 0, 0, 0 }, { 0, 7, 4, 0, 0, 0 },
+        { true, true, true, false, false, false }, { 500, 333, 666, 250, 250, 250 },
+        { 70, 75, 80, 40, 40, 40 }, { 55, 60, 50, 0, 0, 0 }, { true, true, true, true, true, true },
+        { true, true, true, false, false, false }, { 1, 1, 1, 0, 0, 0 }, { 75, 80, 70, 0, 0, 0 },
+        { false, false, false, false, false, false }, { 8, 8, 8, 8, 8, 8 }, { 4, 4, 4, 4, 4, 4 }, { 50, 50, 50, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    },
+    // 4: Lo-Fi Polyrhythm
+    {
+        "05: Lo-Fi Polyrhythm", 112.0f,
+        { 0b1001001001001001, 0b100010001000100, 0b1000010000100, 0, 0, 0 },
+        { 16, 15, 13, 16, 16, 16 },
+        { 2200.0f, 1800.0f, 3000.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 2, 1, 2, 1, 1, 1 }, { 1, 2, 1, 1, 1, 1 },
+        { -1, 0, 1, 0, 0, 0 }, { 0, 5, 9, 0, 0, 0 },
+        { true, true, false, false, false, false }, { 268, 402, 250, 250, 250, 250 },
+        { 50, 45, 40, 40, 40, 40 }, { 40, 35, 0, 0, 0, 0 }, { true, true, true, true, true, true },
+        { true, false, false, false, false, false }, { 0, 0, 0, 0, 0, 0 }, { 30, 0, 0, 0, 0, 0 },
+        { true, true, true, false, false, false }, { 8, 7, 6, 8, 8, 8 }, { 4, 6, 8, 4, 4, 4 }, { 60, 50, 55, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    },
+    // 5: Industrial Machine
+    {
+        "06: Industrial Machine", 140.0f,
+        { 0b1100110011001100, 0b0011001100110011, 0b1010101010101010, 0, 0, 0 },
+        { 16, 16, 16, 16, 16, 16 },
+        { 900.0f, 1500.0f, 2400.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 2, 1, 2, 1, 1, 1 }, { 2, 2, 1, 1, 1, 1 },
+        { -2, -1, 0, 0, 0, 0 }, { 0, 0, 6, 0, 0, 0 },
+        { false, true, true, false, false, false }, { 214, 107, 107, 250, 250, 250 },
+        { 40, 70, 75, 40, 40, 40 }, { 0, 45, 50, 0, 0, 0 }, { true, true, true, true, true, true },
+        { false, false, false, false, false, false }, { 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+        { true, true, true, false, false, false }, { 6, 8, 6, 8, 8, 8 }, { 8, 4, 6, 4, 4, 4 }, { 70, 60, 65, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    },
+    // 6: Melodic Arps
+    {
+        "07: Melodic Arps", 124.0f,
+        { 0b1000100010001000, 0b0010001000100010, 0b0001000100010001, 0, 0, 0 },
+        { 16, 16, 16, 16, 16, 16 },
+        { 5000.0f, 6000.0f, 4500.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 1, 1, 3, 1, 1, 1 }, { 3, 3, 1, 1, 1, 1 },
+        { 0, 0, 1, 0, 0, 0 }, { 0, 4, 7, 0, 0, 0 },
+        { true, true, true, false, false, false }, { 242, 363, 181, 250, 250, 250 },
+        { 55, 60, 65, 40, 40, 40 }, { 45, 50, 50, 0, 0, 0 }, { true, true, true, true, true, true },
+        { true, true, true, false, false, false }, { 0, 1, 0, 0, 0, 0 }, { 35, 40, 30, 0, 0, 0 },
+        { false, false, false, false, false, false }, { 8, 8, 8, 8, 8, 8 }, { 4, 4, 4, 4, 4, 4 }, { 50, 50, 50, 50, 50, 50 },
+        { true, true, true, false, false, false }, { 1, 0, 4, 1, 1, 1 }
+    },
+    // 7: Cyberpunk Drive
+    {
+        "08: Cyberpunk Drive", 132.0f,
+        { 0b1010110010101100, 0b0010001000100010, 0b1100110011001100, 0, 0, 0 },
+        { 16, 16, 16, 16, 16, 16 },
+        { 2800.0f, 4000.0f, 1600.0f, 20000.0f, 20000.0f, 20000.0f },
+        { 1, 2, 1, 1, 1, 1 }, { 2, 1, 2, 1, 1, 1 },
+        { -1, 0, -2, 0, 0, 0 }, { 0, 7, 0, 0, 0, 0 },
+        { true, true, false, false, false, false }, { 227, 340, 250, 250, 250, 250 },
+        { 60, 65, 40, 40, 40, 40 }, { 45, 50, 0, 0, 0, 0 }, { true, true, true, true, true, true },
+        { true, true, false, false, false, false }, { 1, 0, 0, 0, 0, 0 }, { 40, 30, 0, 0, 0, 0 },
+        { true, false, true, false, false, false }, { 7, 8, 6, 8, 8, 8 }, { 4, 4, 6, 4, 4, 4 }, { 55, 50, 60, 50, 50, 50 },
+        { false, false, false, false, false, false }, { 1, 1, 1, 1, 1, 1 }
+    }
+};
+
 int MetuliferAudioProcessor::getNumPrograms()
 {
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
+    return 8;
 }
 
 int MetuliferAudioProcessor::getCurrentProgram()
 {
-    return 0;
+    return currentProgram;
 }
 
 void MetuliferAudioProcessor::setCurrentProgram (int index)
 {
+    if (! juce::isPositiveAndBelow (index, 8))
+        return;
+
+    currentProgram = index;
+    const auto& pr = factoryPresets[index];
+
+    if (auto* p = apvts.getParameter ("tempo"))
+        p->setValueNotifyingHost (p->convertTo0to1 (pr.tempo));
+
+    for (int s = 0; s < numSequences; ++s)
+    {
+        setStepPattern (s, pr.patterns[s]);
+
+        const auto setP = [this, s] (const char* name, float val)
+        {
+            if (auto* p = apvts.getParameter (seqParamId (s, name)))
+                p->setValueNotifyingHost (p->convertTo0to1 (val));
+        };
+
+        setP ("length", (float) pr.lengths[s]);
+        setP ("cutoff", pr.cutoff[s]);
+        setP ("wave1", (float) pr.wave1[s]);
+        setP ("wave2", (float) pr.wave2[s]);
+        setP ("octave1", (float) pr.oct1[s]);
+        setP ("note1", (float) pr.note1[s]);
+        setP ("delay_enabled", pr.delayEnabled[s] ? 1.0f : 0.0f);
+        setP ("delay_time", pr.delayTime[s]);
+        setP ("delay_feedback", pr.delayFeedback[s]);
+        setP ("delay_mix", pr.delayMix[s]);
+        setP ("delay_pingpong", pr.delayPingpong[s] ? 1.0f : 0.0f);
+        setP ("reverb_enabled", pr.reverbEnabled[s] ? 1.0f : 0.0f);
+        setP ("reverb_mode", (float) pr.reverbMode[s]);
+        setP ("reverb_mix", pr.reverbMix[s]);
+        setP ("redux_enabled", pr.reduxEnabled[s] ? 1.0f : 0.0f);
+        setP ("redux_bits", (float) pr.reduxBits[s]);
+        setP ("redux_rate", (float) pr.reduxRate[s]);
+        setP ("redux_mix", pr.reduxMix[s]);
+        setP ("arp_enabled", pr.arpEnabled[s] ? 1.0f : 0.0f);
+        setP ("arp_chord", (float) pr.arpChord[s]);
+    }
 }
 
 const juce::String MetuliferAudioProcessor::getProgramName (int index)
 {
-    return {};
+    return juce::isPositiveAndBelow (index, 8) ? factoryPresets[index].name : juce::String();
 }
 
-void MetuliferAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void MetuliferAudioProcessor::changeProgramName (int, const juce::String&)
 {
+}
+
+bool MetuliferAudioProcessor::isHostSyncEnabled() const
+{
+    return hostSyncParam != nullptr && hostSyncParam->load (std::memory_order_relaxed) > 0.5f;
+}
+
+void MetuliferAudioProcessor::setHostSyncEnabled (bool enabled)
+{
+    if (auto* p = apvts.getParameter ("host_sync"))
+        p->setValueNotifyingHost (enabled ? 1.0f : 0.0f);
+}
+
+void MetuliferAudioProcessor::shiftSequence (int seqIndex, int delta)
+{
+    if (! juce::isPositiveAndBelow (seqIndex, numSequences))
+        return;
+
+    const int pat = getStepPattern (seqIndex);
+    int len = 32;
+    if (auto* raw = apvts.getRawParameterValue (seqParamId (seqIndex, "length")))
+        len = juce::jlimit (1, 32, juce::roundToInt (raw->load (std::memory_order_relaxed)));
+
+    int newPat = 0;
+    for (int i = 0; i < len; ++i)
+    {
+        if ((pat & (1 << i)) != 0)
+        {
+            int target = (i + delta) % len;
+            if (target < 0)
+                target += len;
+            newPat |= (1 << target);
+        }
+    }
+
+    setStepPattern (seqIndex, newPat);
+}
+
+void MetuliferAudioProcessor::randomizeSequence (int seqIndex, float density)
+{
+    if (! juce::isPositiveAndBelow (seqIndex, numSequences))
+        return;
+
+    int len = 32;
+    if (auto* raw = apvts.getRawParameterValue (seqParamId (seqIndex, "length")))
+        len = juce::jlimit (1, 32, juce::roundToInt (raw->load (std::memory_order_relaxed)));
+
+    const float d = juce::jlimit (0.05f, 0.95f, density);
+    int newPat = 0;
+    juce::Random rng;
+
+    for (int i = 0; i < len; ++i)
+    {
+        if (rng.nextFloat() < d)
+            newPat |= (1 << i);
+    }
+
+    setStepPattern (seqIndex, newPat);
+}
+
+void MetuliferAudioProcessor::euclideanSequence (int seqIndex, int hits, int length)
+{
+    if (! juce::isPositiveAndBelow (seqIndex, numSequences))
+        return;
+
+    const int n = juce::jlimit (1, 32, length);
+    const int k = juce::jlimit (0, n, hits);
+
+    if (k == 0)
+    {
+        setStepPattern (seqIndex, 0);
+        return;
+    }
+
+    int newPat = 0;
+    for (int i = 0; i < n; ++i)
+    {
+        if ((i * k) % n < k)
+            newPat |= (1 << i);
+    }
+
+    setStepPattern (seqIndex, newPat);
 }
 
 //==============================================================================
@@ -555,9 +825,38 @@ bool MetuliferAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 }
 #endif
 
-void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    // 1. Process incoming MIDI (Transposition relative to middle C)
+    for (const auto meta : midiMessages)
+    {
+        const auto msg = meta.getMessage();
+        if (msg.isNoteOn())
+            midiTranspose.store (msg.getNoteNumber() - 60, std::memory_order_relaxed);
+        else if (msg.isAllNotesOff() || msg.isAllSoundOff())
+            midiTranspose.store (0, std::memory_order_relaxed);
+    }
+    midiMessages.clear();
+
+    // 2. Host Transport & Tempo Sync
+    const bool syncEnabled = hostSyncParam != nullptr
+                             && hostSyncParam->load (std::memory_order_relaxed) > 0.5f;
+
+    if (syncEnabled)
+    {
+        if (auto* playHead = getPlayHead())
+        {
+            if (auto posOpt = playHead->getPosition())
+            {
+                const bool isHostPlaying = posOpt->getIsPlaying();
+                const double bpm = posOpt->getBpm().orFallback (0.0);
+                const double ppq = posOpt->getPpqPosition().orFallback (0.0);
+                engine.syncToHost (ppq, bpm, isHostPlaying);
+            }
+        }
+    }
 
     const int numSamples = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
@@ -567,9 +866,14 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     updateLfos (numSamples);
 
+    const int transpose = midiTranspose.load (std::memory_order_relaxed);
+
     Voice::Params params[numSequences];
     for (int s = 0; s < numSequences; ++s)
+    {
         params[s] = voiceSources[s].read();
+        params[s].transpose = transpose;
+    }
 
     {
         const int active = activeBuffer.load (std::memory_order_acquire);
@@ -596,10 +900,15 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     if (engine.takePendingNoteOff())
     {
-        for (auto& voice : voices)
+        for (int s = 0; s < numSequences; ++s)
         {
-            voice.noteOff();
-            voice.resetArp();
+            voices[s].noteOff();
+            voices[s].resetArp();
+            if (activeMidiNotes[s] >= 0)
+            {
+                midiMessages.addEvent (juce::MidiMessage::noteOff (s + 1, activeMidiNotes[s], 0.0f), 0);
+                activeMidiNotes[s] = -1;
+            }
         }
     }
 
@@ -612,12 +921,28 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (ev.sampleOffset > pos)
             renderVoices (buffer, pos, ev.sampleOffset - pos);
 
-        auto& voice = voices[ev.sequence];
+        const int seq = ev.sequence;
+        auto& voice = voices[seq];
+        const int channel = seq + 1;
+        const int midiNote = juce::jlimit (0, 127, 48 + params[seq].octave1 * 12 + params[seq].note1 + transpose);
 
         if (ev.gateOn)
+        {
             voice.noteOn();
+            if (activeMidiNotes[seq] >= 0)
+                midiMessages.addEvent (juce::MidiMessage::noteOff (channel, activeMidiNotes[seq], 0.0f), ev.sampleOffset);
+            activeMidiNotes[seq] = midiNote;
+            midiMessages.addEvent (juce::MidiMessage::noteOn (channel, midiNote, 0.85f), ev.sampleOffset);
+        }
         else
+        {
             voice.noteOff();
+            if (activeMidiNotes[seq] >= 0)
+            {
+                midiMessages.addEvent (juce::MidiMessage::noteOff (channel, activeMidiNotes[seq], 0.0f), ev.sampleOffset);
+                activeMidiNotes[seq] = -1;
+            }
+        }
 
         pos = ev.sampleOffset;
     }

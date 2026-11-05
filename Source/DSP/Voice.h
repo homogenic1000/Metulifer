@@ -13,6 +13,7 @@ public:
         float attack2  = 5.0f,  decay2  = 200.0f, sustain2  = 70.0f, release2  = 300.0f;
         int   octave1  = 0, note1  = 0, wave1  = 1;
         int   octave2  = 0, note2  = 0, wave2  = 1;
+        int   transpose = 0; // Transposition in semitones (e.g. from MIDI In)
         float mixDb1   = 0.0f, mixDb2 = 0.0f;
         bool  useLpf   = true;
         float cutoff   = 20000.0f;

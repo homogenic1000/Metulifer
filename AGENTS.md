@@ -116,6 +116,42 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Intégration DAW (Sync), MIDI In/Out, Presets d'Usine & Outils Créatifs (Phases 2 à 5)
+- **Tâche** : Implémenter l'ensemble de la roadmap v2 : synchronisation DAW (Host Transport & BPM Sync), entrée MIDI (transposition) et sortie MIDI (séquenceur polyphonique 6 canaux), banque de 8 presets d'usine et algorithmes créatifs de séquençage (Euclidien, Shift circulaire, Randomizer).
+- **Fichiers** : `Metulifer.jucer`, `Source/DSP/Voice.h`, `Source/DSP/Voice.cpp`, `Source/Sequencer/SequencerEngine.h`, `Source/Sequencer/SequencerEngine.cpp`, `Source/PluginProcessor.h`, `Source/PluginProcessor.cpp`, `Source/UI/ClockPanel.h`, `Source/UI/ClockPanel.cpp`, `Source/UI/PluginEditor.h`, `Source/UI/PluginEditor.cpp`, `Source/Tests/UnitTests.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Metulifer.jucer` : Déclaration de `pluginWantsMidiIn="1"` et `pluginProducesMidiOut="1"`, régénération du projet Projucer (`JucePluginDefines.h`).
+  2. DAW Host Sync (Phase 2) :
+     - Paramètre APVTS `host_sync` (booléen) et bouton UI "Sync" dans `ClockPanel` avec attachment APVTS dédié.
+     - Intégration de `juce::AudioPlayHead::getPosition()` (`getPpqPosition()`, `getBpm()`, `getIsPlaying()`) dans `SequencerEngine::syncToHost()`.
+     - Verrouillage de phase sample-accurate sur la grille de doubles-croches hôte (16th notes) et synchronisation continue du tempo.
+  3. MIDI In / Out (Phase 3) :
+     - Support MIDI In : Transposition globale en temps réel des 6 voix à partir de la note centrale MIDI C3 (note 60) via `Voice::Params::transpose`, sans allocation mémoire audio.
+     - Support MIDI Out : Émission polyphonique des notes actives du séquenceur sur 6 canaux MIDI dédiés (piste 1 -> canal 1 ... piste 6 -> canal 6) avec précision à l'échantillon et envoi de `allNotesOff` sur arrêt du transport.
+  4. Presets d'Usine (Phase 4) :
+     - Implémentation des 8 presets d'usine dans `PluginProcessor` (`getNumPrograms()`, `getCurrentProgram()`, `setCurrentProgram()`, `getProgramName()`) :
+       1. `Default / Init` (patch initial épuré)
+       2. `Berlin Minimal` (techno hypnotique, basse sub, delay ping-pong)
+       3. `Acid 303` (basses résonantes acides, enveloppe percussive)
+       4. `Ambient Glass` (nappes atmosphériques, réverbe cathédrale, arpège lent)
+       5. `Lo-Fi Nostalgia` (chaleur analogique feutrée, modulation subtile)
+       6. `Industrial Crunch` (distorsion saturée, rythmes agressifs)
+       7. `Melodic Arps` (arpèges cristallins en quintes et octaves)
+       8. `Cyberpunk Drive` (synthwave sombre, basses tranchantes, filtres modulés)
+  5. Outils Créatifs de Séquenceur (Phase 5) :
+     - `shiftSequence(int trackIdx, int stepDelta)` : Décalage circulaire gauche/droite préservant la longueur de piste.
+     - `randomizeSequence(int trackIdx, float density)` : Génération stochastique de pas selon une densité cible.
+     - `euclideanSequence(int trackIdx, int pulses, int steps)` : Répartition euclidienne optimale des impulsions (algorithme de Bjorklund).
+  6. Suite de Tests Unitaires (`Source/Tests/UnitTests.cpp`) :
+     - Ajout des suites de tests automatisés : `HostSyncUnitTest`, `MidiInOutUnitTest`, `FactoryPresetsUnitTest`, `CreativeToolsUnitTest`.
+     - 7 suites de tests complètes exécutées avec succès (`TEST SUMMARY: ALL PASSED`).
+- **Validation** :
+  - ✅ Build Debug et Release complets sans avertissement (`xcodebuild -configuration Debug/Release`).
+  - ✅ Suite complète de 7 tests unitaires exécutée en mode headless : 100% succès.
+  - ✅ Validation `pluginval` niveau 5 réussie (SUCCESS) sur VST3 (`Metulifer.vst3`) et AU (`Metulifer.component`).
+- **Commit** : `a9c0fee` — `feat: implement daw host sync, midi in/out, 8 factory presets, and creative sequencer tools`
+- **Next steps** : Mise à jour de la documentation bilingue Fumadocs et publication sur GitHub Pages.
+
 ### 2026-11-05 — CI GitHub Actions & Suite de tests automatisés (Phase 1)
 - **Tâche** : Mettre en place un pipeline CI complet sur GitHub Actions (`macos-14`) avec tests unitaires DSP, persistance d'état et validation stricte `pluginval` niveau 5.
 - **Fichiers** : `.github/workflows/ci.yml`, `Source/Tests/UnitTests.cpp`, `Source/PluginProcessor.cpp`, `Metulifer.jucer`, `AGENTS.md`

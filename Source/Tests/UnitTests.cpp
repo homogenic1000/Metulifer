@@ -62,6 +62,163 @@ public:
 static SequencerUnitTest sequencerUnitTest;
 
 //==============================================================================
+class HostSyncUnitTest : public juce::UnitTest
+{
+public:
+    HostSyncUnitTest() : juce::UnitTest ("Host Transport & BPM Sync", "DAW") {}
+
+    void runTest() override
+    {
+        beginTest ("DAW Timeline and Transport Synchronization");
+        {
+            SequencerEngine engine;
+            engine.prepare (44100.0);
+
+            std::atomic<int> patterns[6] {};
+            std::atomic<float> lengths[6] {};
+            std::atomic<float> tempo { 120.0f };
+            for (int i = 0; i < 6; ++i)
+                lengths[i].store (16.0f);
+
+            SequencerEngine::Sources s;
+            s.patterns = patterns;
+            for (int i = 0; i < 6; ++i)
+                s.lengths[i] = &lengths[i];
+            s.tempo = &tempo;
+            engine.setSources (s);
+
+            expect (! engine.isPlaying());
+
+            // 1. Host starts playback at 135 BPM, 1st beat of bar 2 (PPQ = 4.0)
+            engine.syncToHost (4.0, 135.0, true);
+            expect (engine.isPlaying(), "Engine should start playing when host starts");
+
+            // 2. Host stops
+            engine.syncToHost (8.0, 135.0, false);
+            expect (! engine.isPlaying(), "Engine should stop when host stops");
+            expect (engine.takePendingNoteOff(), "Pending note off must trigger on stop");
+        }
+    }
+};
+
+static HostSyncUnitTest hostSyncUnitTest;
+
+//==============================================================================
+class MidiInOutUnitTest : public juce::UnitTest
+{
+public:
+    MidiInOutUnitTest() : juce::UnitTest ("MIDI In & MIDI Out", "MIDI") {}
+
+    void runTest() override
+    {
+        beginTest ("Incoming MIDI transposition and Outgoing Step MIDI generation");
+        {
+            MetuliferAudioProcessor proc;
+            proc.prepareToPlay (44100.0, 512);
+
+            // 1. Send MIDI Note On 62 (D4, transpose +2 relative to C4=60)
+            juce::MidiBuffer inMidi;
+            inMidi.addEvent (juce::MidiMessage::noteOn (1, 62, 0.8f), 0);
+
+            juce::AudioBuffer<float> buffer (2, 512);
+            buffer.clear();
+
+            proc.processBlock (buffer, inMidi);
+            expectEquals (proc.getMidiTranspose(), 2);
+
+            // 2. Set step 0 active on sequence 0 and start playback
+            proc.setStepPattern (0, 1);
+            proc.setHostSyncEnabled (false); // use internal clock
+            proc.setPlaying (true);
+
+            juce::MidiBuffer outMidi;
+            proc.processBlock (buffer, outMidi);
+
+            bool generatedNoteOn = false;
+            for (const auto meta : outMidi)
+            {
+                const auto msg = meta.getMessage();
+                if (msg.isNoteOn() && msg.getChannel() == 1)
+                    generatedNoteOn = true;
+            }
+            expect (generatedNoteOn, "Sequencer must generate outgoing MIDI noteOn on channel 1");
+
+            proc.setPlaying (false);
+        }
+    }
+};
+
+static MidiInOutUnitTest midiInOutUnitTest;
+
+//==============================================================================
+class FactoryPresetsUnitTest : public juce::UnitTest
+{
+public:
+    FactoryPresetsUnitTest() : juce::UnitTest ("Factory Presets", "Presets") {}
+
+    void runTest() override
+    {
+        beginTest ("Preset loading and program integrity");
+        {
+            MetuliferAudioProcessor proc;
+            expectEquals (proc.getNumPrograms(), 8);
+
+            for (int i = 0; i < 8; ++i)
+            {
+                proc.setCurrentProgram (i);
+                expectEquals (proc.getCurrentProgram(), i);
+                expect (proc.getProgramName (i).isNotEmpty(), "Preset name must not be empty");
+
+                // Verify that patterns or parameters exist for this preset
+                int patternSeq0 = proc.getStepPattern (0);
+                expect (patternSeq0 != 0, "Preset seq 0 pattern should have active steps");
+            }
+        }
+    }
+};
+
+static FactoryPresetsUnitTest factoryPresetsUnitTest;
+
+//==============================================================================
+class CreativeToolsUnitTest : public juce::UnitTest
+{
+public:
+    CreativeToolsUnitTest() : juce::UnitTest ("Creative Sequencer Tools", "Sequencer") {}
+
+    void runTest() override
+    {
+        beginTest ("Step shift, euclidean rhythm and randomizer");
+        {
+            MetuliferAudioProcessor proc;
+
+            // 1. Test Shift: pattern with bit 0 active (0b0001) shifted by 2 becomes 0b0100 (4)
+            proc.setStepPattern (0, 1);
+            proc.shiftSequence (0, 2);
+            expectEquals (proc.getStepPattern (0), 4);
+
+            // Shift backward by 1 becomes 0b0010 (2)
+            proc.shiftSequence (0, -1);
+            expectEquals (proc.getStepPattern (0), 2);
+
+            // 2. Test Euclidean: 4 hits over 16 steps should place pulses on steps 0, 4, 8, 12
+            proc.euclideanSequence (1, 4, 16);
+            int euclidPat = proc.getStepPattern (1);
+            expect ((euclidPat & (1 << 0)) != 0);
+            expect ((euclidPat & (1 << 4)) != 0);
+            expect ((euclidPat & (1 << 8)) != 0);
+            expect ((euclidPat & (1 << 12)) != 0);
+
+            // 3. Test Randomize
+            proc.randomizeSequence (2, 0.5f);
+            int randPat = proc.getStepPattern (2);
+            expect (randPat != 0, "Randomized pattern should not be empty with 0.5 density");
+        }
+    }
+};
+
+static CreativeToolsUnitTest creativeToolsUnitTest;
+
+//==============================================================================
 class DSPSafetyUnitTest : public juce::UnitTest
 {
 public:
