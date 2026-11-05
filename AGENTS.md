@@ -116,6 +116,18 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Déploiement et publication de la documentation sur GitHub Pages
+- **Tâche** : Déployer et publier le site de documentation Fumadocs / Next.js sur GitHub Pages (`https://homogenic1000.github.io/Metulifer/`).
+- **Fichiers** : `.github/workflows/deploy-docs.yml`, `AGENTS.md`
+- **Modifs** :
+  1. `.github/workflows/deploy-docs.yml` : Création du workflow GitHub Actions pour compiler et déployer automatiquement la documentation Next.js sur GitHub Pages à chaque commit modifiant `docs/**` sur la branche `main` (pnpm 10, Node.js 20, export statique avec `NEXT_PUBLIC_BASE_PATH=/Metulifer`, `actions/deploy-pages@v4`).
+  2. Publication directe de l'export statique pré-compilé (`docs/out` avec `.nojekyll`) sur la branche orpheline `gh-pages` du dépôt GitHub distant pour mise en ligne immédiate.
+- **Validation** :
+  - ✅ Export statique vérifié avec préfixe `/Metulifer/` sur tous les assets et hyperliens.
+  - ✅ Workflow GitHub Actions configuré avec permissions Pages (`contents: read`, `pages: write`, `id-token: write`).
+- **Commit** : `384d8d2` — `ci: add GitHub Pages deployment workflow and publish docs`
+- **Next steps** : —
+
 ### 2026-11-05 — Refonte & Avancée majeure de la documentation bilingue (Développeur & Utilisateur)
 - **Tâche** : Mettre à niveau l'ensemble de la documentation technique et utilisateur (site Fumadocs FR/EN et README racine) pour refléter fidèlement toutes les fonctionnalités modernes et optimisations récentes du projet.
 - **Fichiers** : `README.md`, `docs/content/docs/fr/guide/interface.mdx`, `docs/content/docs/en/guide/interface.mdx`, `docs/content/docs/fr/guide/sequencer.mdx`, `docs/content/docs/en/guide/sequencer.mdx`, `docs/content/docs/fr/guide/lfo-modulation.mdx`, `docs/content/docs/en/guide/lfo-modulation.mdx`, `docs/content/docs/fr/architecture/ui-skin.mdx`, `docs/content/docs/en/architecture/ui-skin.mdx`, `docs/content/docs/fr/architecture/dsp.mdx`, `docs/content/docs/en/architecture/dsp.mdx`, `AGENTS.md`
