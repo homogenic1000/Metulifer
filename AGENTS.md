@@ -116,6 +116,28 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Standalone avec boutons de fenêtrage natifs macOS (Traffic Lights) & Menu Audio
+- **Tâche** : Remplacer la barre de titre et les boutons de fenêtrage JUCE ("juice buttons") par de véritables boutons de fenêtrage natifs macOS Cocoa (traffic lights 🔴 🟡 🟢) stylisés en Dark Aqua, et préserver l'accès complet aux réglages Audio/MIDI de l'application Standalone via un bouton dédié `[AUDIO]` dans l'en-tête.
+- **Réalisations** :
+  1. **Branche de sécurité `feature/native-traffic-lights`** :
+     - Création d'une branche isolée pour préserver l'intégrité de la branche `main`.
+  2. **Couche Objective-C++ Cocoa NativeTitleBar (`Source/UI/NativeTitleBar_mac.h` & `.mm`)** :
+     - Implémentation de `NativeTitleBar::setupNativeTitleBar(juce::DocumentWindow* window)` : active `setUsingNativeTitleBar(true)` et configure l'instance sous-jacente `NSWindow` en Cocoa (`NSAppearanceNameDarkAqua`, titre `"Metulifer"`, boutons natifs macOS).
+     - Gestion asynchrone sécurisée (`MessageManager::callAsync` avec `SafePointer<DocumentWindow>`) pour garantir l'application du styling Cocoa Dark Aqua dès l'affichage effectif de la fenêtre (`setVisible(true)`).
+     - Implémentation de `NativeTitleBar::openSettingsMenu(juce::DocumentWindow* window, juce::Component* targetComponent)` : positionne et déclenche proprement le bouton `optionsButton` interne de `StandaloneFilterWindow` pour faire apparaître le menu contextuel JUCE (configuration Audio & MIDI, sauvegarde/chargement d'état) ancré directement sous le bouton d'en-tête.
+  3. **Intégration dans l'éditeur (`Source/PluginEditor.h` & `.cpp`)** :
+     - Surcharge de `parentHierarchyChanged()` conditionnée à `juce::JUCEApplicationBase::isStandaloneApp()` pour appliquer la barre native uniquement en mode application autonome, sans aucun impact sur les instances VST3 et AU chargées dans un DAW.
+     - Ajout du bouton d'en-tête `[AUDIO]` en mode autonome (`settingsButton`) positionné élégamment dans la barre d'outils supérieure à côté de `[MATRIX]`.
+  4. **Enregistrement Projucer (`Metulifer.jucer`)** :
+     - Ajout des fichiers `NativeTitleBar_mac.h` et `NativeTitleBar_mac.mm` dans le groupe `Source/UI` et régénération Projucer avec encodage binaire préservé.
+  5. **Validation et conformité** :
+     - Build Xcode Debug et Release réussi à 100% sur l'ensemble des cibles (`Standalone`, `VST3`, `AU`).
+     - Exécution des 9 tests unitaires headless : `TEST SUMMARY: ALL PASSED`.
+     - Validation stricte niveau 5 `pluginval` sur `Metulifer.vst3` et `Metulifer.component` (AU) : 100% `SUCCESS` sans régression.
+- **Fichiers** : `Source/UI/NativeTitleBar_mac.h`, `Source/UI/NativeTitleBar_mac.mm`, `Source/PluginEditor.h`, `Source/PluginEditor.cpp`, `Metulifer.jucer`, `AGENTS.md`
+- **Build** : ✅ Debug et Release réussis sans avertissement
+- **Next steps** : —
+
 ### 2026-11-05 — Automatisation des Releases GitHub (CI/CD Pipeline & Packaging)
 - **Tâche** : Automatiser la génération, la validation et la publication des versions officielles de Metulifer sur GitHub Releases.
 - **Réalisations** :

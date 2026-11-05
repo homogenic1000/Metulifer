@@ -9,6 +9,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "UI/Skin.h"
+#include "UI/NativeTitleBar_mac.h"
 
 //==============================================================================
 MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProcessor& p)
@@ -39,6 +40,19 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     matrixButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff1f1f26));
     matrixButton.setColour (juce::TextButton::textColourOffId, juce::Colour (0xffa1a1aa));
     matrixButton.onClick = [this] { setMatrixViewOpen (! isMatrixViewOpen); };
+
+    if (juce::JUCEApplicationBase::isStandaloneApp())
+    {
+        addAndMakeVisible (settingsButton);
+        settingsButton.setTooltip ("Audio & MIDI Device Settings");
+        settingsButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff1f1f26));
+        settingsButton.setColour (juce::TextButton::textColourOffId, juce::Colour (0xffa1a1aa));
+        settingsButton.onClick = [this]
+        {
+            if (auto* dw = findParentComponentOfClass<juce::DocumentWindow>())
+                NativeTitleBar::openSettingsMenu (dw, &settingsButton);
+        };
+    }
 
     addAndMakeVisible (inspectButton);
     inspectButton.setTooltip ("Toggle UI Inspector (Cmd+I)");
@@ -323,6 +337,8 @@ void MetuliferAudioProcessorEditor::resized()
 
     inspectButton.setBounds (getWidth() - marginX - 60, 8, 60, 18);
     matrixButton.setBounds (inspectButton.getX() - 68, 8, 62, 18);
+    if (juce::JUCEApplicationBase::isStandaloneApp())
+        settingsButton.setBounds (matrixButton.getX() - 66, 8, 60, 18);
 
     // Top Section: Sequencer (Left) | DisplayScreen + ClockPanel (Right)
     sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, 417);
@@ -399,6 +415,19 @@ void MetuliferAudioProcessorEditor::refreshCableTargets()
 }
 
 //==============================================================================
+void MetuliferAudioProcessorEditor::parentHierarchyChanged()
+{
+    AudioProcessorEditor::parentHierarchyChanged();
+
+    if (juce::JUCEApplicationBase::isStandaloneApp())
+    {
+        if (auto* dw = findParentComponentOfClass<juce::DocumentWindow>())
+        {
+            NativeTitleBar::setupNativeTitleBar (dw);
+        }
+    }
+}
+
 void MetuliferAudioProcessorEditor::sequenceSelected (int index)
 {
     displayScreen.setSequenceNumber (index + 1);

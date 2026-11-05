@@ -37,6 +37,7 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    void parentHierarchyChanged() override;
 
 private:
     void sequenceSelected (int index);
@@ -83,6 +84,7 @@ private:
     CableLayer cableLayer;
     ModMatrixPanel modMatrixPanel;
     juce::TextButton matrixButton { "MATRIX" };
+    juce::TextButton settingsButton { "AUDIO" };
     juce::TextButton inspectButton { "Inspect" };
     melatonin::Inspector inspector { *this, false };
     bool isMatrixViewOpen = false;
