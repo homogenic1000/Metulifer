@@ -116,6 +116,22 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Refonte & Avancée majeure de la documentation bilingue (Développeur & Utilisateur)
+- **Tâche** : Mettre à niveau l'ensemble de la documentation technique et utilisateur (site Fumadocs FR/EN et README racine) pour refléter fidèlement toutes les fonctionnalités modernes et optimisations récentes du projet.
+- **Fichiers** : `README.md`, `docs/content/docs/fr/guide/interface.mdx`, `docs/content/docs/en/guide/interface.mdx`, `docs/content/docs/fr/guide/sequencer.mdx`, `docs/content/docs/en/guide/sequencer.mdx`, `docs/content/docs/fr/guide/lfo-modulation.mdx`, `docs/content/docs/en/guide/lfo-modulation.mdx`, `docs/content/docs/fr/architecture/ui-skin.mdx`, `docs/content/docs/en/architecture/ui-skin.mdx`, `docs/content/docs/fr/architecture/dsp.mdx`, `docs/content/docs/en/architecture/dsp.mdx`, `AGENTS.md`
+- **Modifs** :
+  1. `README.md` : Modernisation complète (présentation du séquenceur 6 pistes modulaire, double VCO polyBLEP, arpégiateur 11 modes, multi-FX 3-en-1, LFOs virtuels, monitoring studio 60 Hz, skinning 3D, instructions de compilation Debug/Release et tests `pluginval`).
+  2. `guide/interface.mdx` (FR & EN) : Documentation de l'oscilloscope temps réel avec verrouillage de phase (rising zero-crossing trigger) et calibrage automatique sur 2 cycles, du dB-mètre stéréo dBFS avec Peak-Hold 1 s et alerte CLIP, des mini-écrans OLED LFO, de l'animation en direct des potentiomètres modulés (bague bicolore et aiguille rotative), et de l'accélération matérielle macOS 120 FPS (`setOpaque`).
+  3. `guide/sequencer.mdx` (FR & EN) : Documentation du mode Pinceau glissé (Click-and-Drag Paintbrush) pour peindre ou effacer une série de pas en un seul balayage continu, et de la précision 60 Hz de la tête de lecture.
+  4. `guide/lfo-modulation.mdx` (FR & EN) : Documentation complète des mini-écrans OLED affichant les cibles connectées en temps réel (`SEQ 1 CUTOFF` ou `[ UNLINKED ]`) et du retour visuel des potentiomètres physiques modulés.
+  5. `architecture/ui-skin.mdx` (FR & EN) : Spécification complète du moteur de substitution 3D sans casse (`Skin::drawFilmstrip`, `Skin::drawButtonSprite`, `Skin::drawStepButton`, `Skin::drawLever`, `Skin::drawScreenOverlay`), de l'indexation unique en mémoire avec negative caching (zéro accès disque à 60 Hz), et des directives Blender 3D.
+  6. `architecture/dsp.mdx` (FR & EN) : Documentation détaillée du système de mise en veille des voix inactives (*Voice Sleep & Tail Management*), de l'antialiasing polyBLEP sur dents de scie et ondes carrées, du vrai délai Ping-Pong à rétroaction croisée (*Cross-Feedback*) avec saturation `tanh`, du dirty-checking des coefficients de réverbe, et du downmix stéréo-vers-mono.
+- **Validation** :
+  - ✅ Build Next.js / Fumadocs réussi avec compilation des 38 pages statiques FR & EN en 4.5s (`next build`).
+  - ✅ Zéro erreur TypeScript ou de syntaxe JSX/MDX.
+- **Commit** : `<sha court>` — `docs: modernize and expand comprehensive user and developer documentation`
+- **Next steps** : —
+
 ### 2026-11-05 — Élimination des chutes de FPS au déplacement de fenêtre & Synchronisation Debug/Release
 - **Tâche** : Résoudre les chutes de FPS lors du déplacement de la fenêtre Standalone et la persistance de surconsommation CPU/Energy Impact rapportée en environnement de développement.
 - **Causes racines identifiées** :

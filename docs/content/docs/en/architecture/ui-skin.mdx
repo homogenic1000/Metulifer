@@ -1,58 +1,83 @@
 ---
-title: UI System & Skinning
-description: MetuliferLookAndFeel vector rendering, layout coordinates, asset modularity, and Blender 3D integration workflow.
+title: UI System, 3D Skinning & Performance
+description: Hybrid vector / 3D filmstrip engine, zero-breakage skinning fallback, negative caching, and macOS hardware graphics acceleration.
 ---
 
 Metulifer features a fixed **1280 × 720 pixel** desktop footprint, crafted to emulate the tactile immediacy of modern hardware synthesizers.
-
-## Vector Rendering Engine (`MetuliferLookAndFeel`)
-
-All GUI widgets are rendered dynamically using pure vector geometry in `Source/UI/MetuliferLookAndFeel.{h,cpp}`:
-
-### 1. Rotary Knobs
-- **Milled Aluminum Body**: Circular dual-tone dark metallic gradients with subtle beveled highlights.
-- **Track Arc**: High-contrast illuminated indicator arc (Electric Blue `#60a5fa` or Cyan `#38bdf8`).
-- **Indicator Pointer**: Distinct radial pointer indicating current knob position.
-- **Mouse Precision**: Supports smooth vertical mouse dragging with fine-resolution adjustment when holding `Shift`.
-
-### 2. Step Buttons
-Each sequencer step button reflects three stacked graphical states:
-- **Inactive (Off)**: Matte dark background with subtle border outline.
-- **Active (On)**: Luminous neon accent with crisp white typography.
-- **Playhead Sweep**: High-intensity border highlight tracking the real-time audio clock position.
-
-### 3. Function & Mode Buttons
-Tab selectors (`REV`, `DLY`, `RDX`), arpeggiator switches (`ARP`), filter mode buttons (`LPF`, `HPF`), and clipboard buttons (`C`, `P`) include built-in LED activity indicators for glanceable stage readability.
+It is built on a hybrid rendering architecture: an ultra-crisp procedural vector engine coupled with zero-breakage 3D filmstrip substitution.
 
 ---
 
-## Modularity and Skin Support (`Skin.h`)
+## 3D Skinning & Filmstrip Engine (`Skin.h` / `Skin.cpp`)
 
-The `Skin` subsystem provides hot-swapping between rendering paradigms:
-1. **Pure Vector Mode (Default)**: Zero external bitmap dependencies, perfectly crisp scaling across Retina and High-DPI screens.
-2. **Skinned Bitmap Mode**: Capable of loading high-resolution brushed metal faceplates, photorealistic shadows, and textures.
+The `Skin` subsystem bridges standard JUCE components with photorealistic 3D rendered assets from Blender. If an asset is detected in `Resources/` or `BinaryData`, it is rendered immediately; otherwise, the engine falls back gracefully to pure vector rendering without missing a frame.
+
+### 1. Rotary Knob Filmstrips (`Skin::drawFilmstrip`)
+- **Flexible Orientation**: Supports vertical ($1 \times N$) or horizontal ($N \times 1$) filmstrips.
+- **Dynamic Frame Detection**: Automatically calculates animation frame count from the aspect ratio (`numFrames = imgH / imgW` or `imgW / imgH`).
+- **High-Quality Resampling**: Rendered using `juce::Graphics::highResamplingQuality` for razor-sharp Retina fidelity.
+- **Three-Tier Fallback Cascade**:
+  1. Specific control name: `btn_<name>_filmstrip` or `<name>_filmstrip`
+  2. Dimension-based generic fallback:
+     - `knob_big_filmstrip` (diameter $\ge 70$ px)
+     - `knob_med_filmstrip` (diameter $\ge 40$ px)
+     - `knob_small_filmstrip` (diameter $< 40$ px)
+  3. Physical vector fallback (`MetuliferLookAndFeel::drawHardwareKnob`).
+
+### 2. Multi-State Button Sprites (`Skin::drawButtonSprite`)
+Supports multi-state toggles and momentary switches with automatic state selection:
+- **6-Frame Filmstrips**: `0: Off`, `1: Off Hover`, `2: Off Down`, `3: On`, `4: On Hover`, `5: On Down`.
+- **4 & 2-Frame Filmstrips**: Simplified sprite animations.
+- **Discrete Image Files**: Automatic discovery of `btn_<name>_on`, `btn_<name>_off`, `btn_<name>_down`.
+
+### 3. Sequencer Step Buttons (`Skin::drawStepButton`)
+- Supports unified `step_button_filmstrip` (with on, off, hover, down states) or discrete state assets `step_on`, `step_off`, `step_downbeat` (downbeat 4/4 grouping).
+
+### 4. Octave Lever Switch (`Skin::drawLever`)
+- Renders 5-position octave lever switches (-2, -1, 0, +1, +2) via `lever_octave_filmstrip` or discrete images `lever_octave_0` through `lever_octave_4`.
+
+### 5. Screen Glass Overlay (`Skin::drawScreenOverlay`)
+- Transparent 3D glass bezel with specular reflection highlights overlaid on top of the OLED oscilloscope and dB meter (`screen_glass_overlay.png`).
+
+---
+
+## Performance & Energy Invariants
+
+To maintain a rock-solid 60/120 Hz refresh rate with near-zero energy consumption:
+
+### 1. Zero Disk I/O & Negative Caching
+- **One-Time Directory Indexing**: On first query, all resource directories (`Resources/`, bundle `Contents/Resources`, etc.) are cataloged once in an in-memory `std::unordered_map<std::string, juce::File>`.
+- **Mandatory Negative Caching**: Missing assets are immediately cached as invalid images (`imageCache[key] = juce::Image()`). Subsequent 60 Hz queries hit memory in O(1) time with **zero `stat()` filesystem syscalls or disk latency**.
+
+### 2. macOS Hardware GPU Acceleration (`setOpaque(true)`)
+- The root plugin editor is explicitly marked opaque.
+- Window dragging and repositioning is executed directly by the macOS WindowServer using GPU texture blitting with **zero CPU redraw calls**.
+
+### 3. CoreGraphics Clipping Optimization (`setPaintingIsUnclipped`)
+- All 192 sequencer step buttons and rows activate `setPaintingIsUnclipped(true)`, eliminating repetitive CoreGraphics clip path calculations.
 
 ---
 
 ## Blender 3D to JUCE Workflow
 
-The current vector look serves as an ergonomic skeleton. The visual roadmap incorporates a photorealistic 3D hardware frontplate modeled and rendered in **Blender 3D**:
+The vector engine serves as an ergonomic base. To integrate photorealistic hardware skins modeled in **Blender 3D**:
 
 ```
 [Blender 3D Modeling]
        │  Machined aluminum chassis, tactile knurled knobs, cast shadows
        ▼
 [Cycles / Eevee Render Passes]
-       │  1. High-resolution faceplate backdrop (1280x720 @2x Retina)
-       │  2. Knob sprite filmstrips (64 or 128 frames of rotation)
+       │  1. High-resolution faceplate backdrop (1280x720 @2x Retina) : bg_editor.png
+       │  2. Knob sprite filmstrips (64 or 128 frames) : knob_big_filmstrip.png, etc.
+       │  3. Glass overlay bezel : screen_glass_overlay.png
        ▼
-[JUCE Skin.h Integration]
-       │  Seamlessly painted through juce::Image and FilmstripKnob
+[Place in Resources/]
+       │  Auto-discovered on startup by Skin.cpp
        ▼
 [Tactile Hardware Instrument in Host DAW]
 ```
 
 ### Blender Design Guidelines
-- **Canvas Resolution**: 1280 × 720 px base (and 2560 × 1440 px for 2x Retina rendering).
+- **Canvas Resolution**: 1280 × 720 px base (and 2560 × 1440 px `@2x` for Retina rendering).
 - **Knob Pivot Alignment**: Rotational knob axes in 3D scene cameras must match the exact pixel centers in `Source/PluginEditor.cpp`.
-- **OLED Window**: Leave an empty/transparent cutout at `(986, 32)` with dimensions `247 × 132 px` to preserve the dynamic vector oscilloscope and parameter display.
+- **OLED Window**: Leave an empty/transparent cutout at `(960, 32)` with dimensions `288 × 128 px` to preserve the dynamic vector oscilloscope and parameter display.

@@ -1,6 +1,6 @@
 ---
-title: Digital Signal Processing (DSP)
-description: Complete voice signal chain in Voice.cpp, phase accumulators, TPT filters, multi-FX and real-time audio safety.
+title: Digital Signal Processing (DSP) & Voice Architecture
+description: Complete voice signal chain in Voice.cpp, polyBLEP antialiased oscillators, TPT filters, Voice Sleep & Tail Management, and real-time multi-FX.
 ---
 
 Each sequence inside Metulifer hosts its own dedicated audio synthesis engine encapsulated within the `Voice` class (`Source/DSP/Voice.{h,cpp}`).
@@ -11,110 +11,125 @@ All audio code strictly adheres to hard real-time audio constraints: **zero dyna
 The audio signal traverses the following stages sequentially:
 
 ```
-[VCO 1] ──▶ [ADSR 1] ──▶ [Mix Gain 1] ──┐
-                                         ├──▶ [Sum] ──▶ [VCF Filter] ──▶ [Volume Gain]
-[VCO 2] ──▶ [ADSR 2] ──▶ [Mix Gain 2] ──┘                                      │
-                                                                               ▼
-[Stereo Out] ◀── [Stereo Reverb] ◀── [Ping-Pong Delay] ◀── [Redux Bitcrusher] ◀─┘
+[VCO 1 (polyBLEP)] ──▶ [ADSR 1] ──▶ [Mix Gain 1] ──┐
+                                                    ├──▶ [Sum] ──▶ [VCF Filter] ──▶ [Volume Gain]
+[VCO 2 (polyBLEP)] ──▶ [ADSR 2] ──▶ [Mix Gain 2] ──┘                                      │
+                                                                                          ▼
+[Stereo/Mono Out] ◀── [Stereo Reverb] ◀── [Ping-Pong Delay] ◀── [Redux Bitcrusher] ◀──────┘
 ```
 
 ---
 
-## 1. Generators (VCO 1 & VCO 2)
+## 1. Antialiased Generators (VCO 1 & VCO 2 with polyBLEP)
 
-Both oscillators evaluate waveforms via normalized phase accumulators running in `[0.0, 1.0[`:
-
-```
-delta_phase = frequency / sampleRate
-```
+Both oscillators evaluate waveforms via normalized phase accumulators running in `[0.0, 1.0[` paired with high-performance **polyBLEP (Polynomial Bandlimited Step)** antialiasing:
 
 Four selectable waveshapes:
-- **Sine**: `sin(2 * pi * phase)`
-- **Saw**: `2 * phase - 1` (linear upward ramp)
-- **Square**: `phase < 0.5 ? +1 : -1`
-- **Triangle**: `1 - 4 * abs(phase - 0.5)`
+- **Sine**: `sin(2 * pi * phase)` (pure spectral sine).
+- **Saw**: `(2 * phase - 1) - polyBlep(phase, increment)` (rich harmonics free of digital aliasing).
+- **Square**: binary pulse wave corrected by dual polyBLEP steps on rising and falling transitions (`phase` and `phase + 0.5`).
+- **Triangle**: `1 - 4 * abs(phase - 0.5)` (warm, soft acoustic character).
 
 ### Pitch and Arpeggiator Tracking
-Fundamental frequency `f` is computed from standard MIDI notes and octave switches (−2 to +2):
+Fundamental frequency `f` is computed from base pitch (C3 = 130.81 Hz), octave switch (−2 to +2), and note interval:
 
-```
-f = 440.0 * pow(2.0, (midiNote - 69 + 12 * octave) / 12.0)
+```cpp
+f = 130.81 * std::exp2((double) octave + (double) note / 12.0);
 ```
 
-When the **Arpeggiator** is active for a sequence, each active gate trigger calls `advanceArp()`, injecting musical semitone offsets from a chosen chord scale while perfectly maintaining the harmonic interval between VCO1 and VCO2.
+When the **Arpeggiator** is engaged on a sequence, `advanceArp()` steps through the selected algorithmic pattern and musical scale, adding note offsets synchronously across both VCOs without altering their relative detune.
 
 ---
 
 ## 2. ADSR Envelopes
 
-Each oscillator features a discrete `juce::ADSR` envelope generator.
-- Exponential attack, decay, and release phases.
-- Time parameters employ a **0.3 skew factor** for high knob resolution under 100 ms while supporting long swells up to 2 seconds.
+Each oscillator features an independent `juce::ADSR` envelope generator.
+- Attack, decay, and release curves follow natural exponential decay characteristics.
+- Temporal parameters use a logarithmic potentiometer taper (**skew factor 0.3**) providing fine resolution below 100 ms while allowing long swells up to 2 seconds.
 
 ---
 
 ## 3. VCF Filtering (State Variable TPT)
 
-The filter uses `juce::dsp::StateVariableTPTFilter<float>`.
-This Topology-Preserving Transform topology ensures absolute stability even under rapid LFO cutoff frequency modulation:
+Filter stages utilize `juce::dsp::StateVariableTPTFilter<float>`.
+Topology-preserving transform (TPT) ensures absolute numerical stability during high-speed cutoff modulation from LFOs:
 - **LPF (Low-Pass Filter)**: 12 dB/octave attenuation of high frequencies.
-- **HPF (High-Pass Filter)**: Low-end rumble cleaning and harmonic brightening.
-- Cutoff frequency spans from 20 Hz to 20,000 Hz logarithmically (skew 0.3).
+- **HPF (High-Pass Filter)**: low-end sub cut and spectral thinning.
+- Logarithmic sweep range from 20 Hz to 20,000 Hz.
 
 ---
 
 ## 4. Multi-FX: Redux (Bitcrusher & Decimator)
 
-The Redux stage applies two degradations:
+The Redux effect degrades audio through two distinct degradation stages:
 
-1. **Time Decimation (Downsampling)**:
-   A sample-counter modulo `rate` latches and holds output amplitude over `N` samples (1 to 32).
-2. **Amplitude Bit-Depth Truncation**:
+1. **Downsampling (Temporal Decimation)**:
+   A sample counter modulo `rate` latches and holds samples (Sample & Hold) over `N` frames (1 to 32).
+2. **Bit-Depth Quantization**:
+   ```cpp
+   y = std::round (x * steps) / steps; // steps = 2^(bits - 1)
    ```
-   y = floor(x * 2^(bits - 1) + 0.5) / 2^(bits - 1)
+   Variable resolution from 2 bits (extreme digital crunch) to 16 bits (clean pass).
+3. **Dry/Wet Crossfade**: phase-linear blend.
+
+---
+
+## 5. Multi-FX: True Ping-Pong Stereo Delay with Cross-Feedback
+
+Delay line buffers are pre-allocated during `prepare()` with capacity for 2.5 seconds of audio:
+
+- **True Cross-Feedback Ping-Pong**:
+  Left channel echoes directly into the Right delay buffer, and Right echoes back into Left:
+  ```cpp
+  delayL[writePos] = in + std::tanh(outR * feedback);
+  delayR[writePos] = std::tanh(outL * feedback);
+  ```
+- **Soft Hyperbolic Tangent (`tanh`) Saturation**:
+  Non-linear saturation in the feedback loop prevents runaway feedback exceeding 0 dBFS even at maximum feedback settings (up to 90%).
+- **Dual Stereo Mode**: switchable independent L/L and R/R parallel delay lines.
+- **Instant Buffer Purge**: delay memory is instantly zeroed when toggled off (`delayBuffer.clear()`), avoiding stale audio bursts upon re-engagement.
+
+---
+
+## 6. Multi-FX: Stereo Reverb & Parameter Caching
+
+Built upon `juce::dsp::Reverb`, spatial processing follows the delay line:
+- **Room Mode**: short, dense early reflections suited for tight rhythm stabs.
+- **Hall Mode**: expansive, cathedral-like decay tail.
+- **Dirty Checking Optimization**: coefficients are recalculated only when reverb mode or mix changes, preventing comb-filter coefficient recomputation on every audio block.
+
+---
+
+## 7. Voice Sleep & Tail Management
+
+To guarantee minimal CPU footprint (< 5% under load and 0.0% idle) without abruptly cutting off natural reverb or delay tails:
+
+1. **Immediate Idle Bypass**:
+   When envelopes are quiet (`!adsr1.isActive() && !adsr2.isActive()`) and delay/reverb are inactive, `Voice::renderChunk()` exits in **0 nanoseconds**.
+2. **Decay Tail Management**:
+   - Following note release, upstream synthesis is bypassed: **polyBLEP oscillators, ADSR envelopes, VCF filters, and Redux are completely skipped on silence**.
+   - Delay and reverb decay tails continue ringing out naturally for up to 4.0 seconds.
+3. **Acoustic Silence Detection**:
+   When residual energy drops below -80 dBFS ($< 10^{-4}$), the voice is automatically put to sleep (`isVoiceActive = false`).
+4. **Instant Transient Wakeup**:
+   Any `noteOn()` event immediately wakes the voice with zero latency.
+
+---
+
+## 8. Summing, Mono Downmix & Soft Clipping Protection
+
+At the conclusion of `processBlock()`:
+1. **Automatic Mono Downmixing**:
+   When instantiated on a mono DAW track, left and right channels from stereo delay and reverb are summed at 50% (`0.5f`), preserving all spatial effects without dropping the right channel.
+2. **Headroom Attenuation & Soft Saturation**:
+   A 6 dB headroom trim combined with smooth hyperbolic tangent (`std::tanh`) saturation prevents digital hard clipping when all 6 polyphonic voices sum simultaneously:
+   ```cpp
+   for (int ch = 0; ch < numChannels; ++ch)
+   {
+       auto* data = buffer.getWritePointer (ch);
+       for (int i = 0; i < numSamples; ++i)
+           data[i] = std::tanh (data[i]);
+   }
    ```
-   Resolution ranges from 2 bits (extreme digital fuzz) up to 16 bits (clean transparency).
-3. **Dry/Wet Crossfade**: Phase-aligned linear blend.
-
----
-
-## 5. Multi-FX: Stereo Ping-Pong Delay
-
-The delay module utilizes circular audio ring buffers preallocated at `prepare()` to comfortably store up to 2.5 seconds of stereo audio at any host sample rate.
-
-- **Soft-Saturation in Feedback Loop**:
-  The feedback signal passes through an analog-modeled soft non-linearity:
-  ```
-  feedback_sample = tanh(sample * saturation_gain)
-  ```
-  This prevents runaway digital clipping beyond 0 dBFS even at maximum feedback settings (up to 90%).
-- **Stereo Ping-Pong Spreading**:
-  Left channel reads nominal delay time `T`, while right channel reads an offset delay time (`0.75 * T`), giving a lush stereo bouncing effect.
-
----
-
-## 6. Multi-FX: Stereo Reverb
-
-Powered by `juce::dsp::Reverb`, spatial reverberation follows the delay stage:
-- **Room Mode**: Tight room response, dense reflections for drums and staccato synths.
-- **Hall Mode**: Expansive decay tail and wide stereo diffusion.
-- **Compensated Gain Staging**: The dry/wet mix curves are auto-adjusted to prevent energy buildup characteristic of Freeverb designs.
-
----
-
-## 7. Master Output Safeguards & Soft Limiting
-
-At the end of `processBlock()`, before writing into the host DAW output bus:
-1. Headroom scale attenuation (−6 dB) allows 6 voices to sum safely.
-2. A **hyperbolic tangent (`tanh`) soft-clipper** ensures zero harsh digital wrap-around clipping:
-
-```cpp
-for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-{
-    auto* samples = buffer.getWritePointer (ch);
-    for (int i = 0; i < buffer.getNumSamples(); ++i)
-        samples[i] = std::tanh (samples[i] * 0.5f);
-}
-```
-
-3. A fast RMS envelope follower computes peak levels and stores them in a lock-free `std::atomic<float>` for the OLED display at 30 Hz.
+3. **Studio Peak & RMS Monitoring at 60 Hz**:
+   Real-time per-channel peak and RMS measurements are stored into thread-safe atomic floats (`peakDbL/R`, `rmsDbL/R`) with peak hold to drive the UI's calibrated dBFS meter and phase-locked oscilloscope.

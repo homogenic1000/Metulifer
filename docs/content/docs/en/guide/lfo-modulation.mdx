@@ -35,6 +35,22 @@ An LFO is **inactive** when:
 In that case its output value is forced to `0` and no parameter is touched.
 There is no ghost modulation.
 
+## Visual Feedback & LFO OLED Display
+
+To remove all guesswork when patching modulations, each LFO features dedicated live visual feedback:
+
+1. **Destination OLED Screen**:
+   - Each LFO slice has its own backlit miniature OLED screen.
+   - Displays the connected destination parameter in real time (e.g. `SEQ 1 CUTOFF`, `SEQ 3 DLY MIX`) or `[ UNLINKED ]` when idle.
+   - Frequency in Hertz is dynamically updated (e.g. `SIN 2.4Hz`).
+   - A live activity dot oscillates vertically along the screen edge tracing the waveform.
+2. **Real-Time Modulated Knobs**:
+   - When a knob is connected to an active LFO, its needle rotates physically in rhythm with the modulating wave.
+   - A colored dynamic arc (amber for LFO 1, cyan for LFO 2) expands and contracts between the base setting and the instantaneous modulated value.
+   - A white indicator dot marks the user's base value.
+
+---
+
 ## Virtual cables
 
 ### Create a cable

@@ -23,19 +23,46 @@ The editor is **1280 × 720** and places its panels at absolute coordinates
 The `CableLayer` covers the whole window (0, 0, 1280, 720) but its `hitTest()` only
 returns `true` near a jack or a cable: clicks pass through everywhere else.
 
-## The OLED display
+## The OLED Display & Studio Monitoring
 
-Three display modes, driven by a **30 Hz** `Timer`:
+The central display is synchronized at **60 Hz** with zero perceived latency:
 
-| Mode | Content | Duration |
-|---|---|---|
-| **Signal** (default) | sequence number + output RMS bar | permanent |
-| **Parameter** | parameter name + value + unit (e.g. `attack 120 ms`) | 2 s after a change |
-| **Message** | free text (e.g. `seq 3 volume 80 %`, `octave 1`) | 2 s |
+### 1. Phase-Locked Real-Time Oscilloscope
+When parameters are untouched, the screen renders an ultra-precise oscilloscope trace:
+- **Rising Zero-Crossing Trigger**: Automatic trigger detection locks waveform phase in place, keeping the waveform steady with zero jitter or drift.
+- **Dynamic Period Scaling**: Measures fundamental frequency to always display exactly **2 full waveform cycles**, regardless of the pitch played.
+- **Adaptive Auto-Gain**: Fits vertical amplitude to occupy ~82% of screen height with a soft decay to flat line during silence.
+- **Measurement Graticule**: Subtle vector grid lines at 25%, 50%, and 75% height.
 
-It returns to signal mode automatically after **2 seconds** of inactivity
-(`paramShownUntilMs`). RMS is computed on the audio thread and read lock-free by the
-UI (`std::atomic<float> rms`).
+### 2. Studio Stereo dBFS Meter
+Below the oscilloscope is a calibrated professional stereo dBFS meter:
+- **Independent L and R channels**: Dual bargraphs reading from -48 dBFS to +3 dBFS.
+- **Instant Attack & Logarithmic Fallback**: Zero-latency peak capture with natural 54 dB/s logarithmic decay.
+- **1-Second Peak Hold**: Retains maximum transient peaks for 1 second before decaying.
+- **CLIP Indicator**: High-contrast red alert when exceeding 0 dBFS.
+- **Tenth-of-a-dB Readout**: Real-time numerical display (e.g. `-6.2 dB` or `-inf dB`).
+
+### 3. Contextual Parameter Display
+Whenever a knob or button is adjusted, the screen shifts immediately into amber **EDIT** mode for 2 seconds:
+- Displays full parameter name, exact value, and unit (e.g. `seq 1 cutoff 1250 Hz`, `tempo 128.0 BPM`, `reverb Room`).
+- Shows sequencer feedback alerts (e.g. `SEQ 1 COPIED`, `SEQ 2 PASTED`).
+
+---
+
+## Live LFO Modulation Feedback
+
+Metulifer features a complete real-time visual feedback loop between LFO modulators and target synth knobs:
+
+1. **LFO OLED Mini-Screens**:
+   - Each LFO slice has a backlit OLED screen displaying the exact connected parameter target (e.g. `SEQ 1 CUTOFF`, `SEQ 3 DLY TIME`) or `[ UNLINKED ]`.
+   - Real-time display of active waveform (`SIN`, `SAW`, `SQR`, `TRI`) and modulation frequency in Hertz (e.g. `3.5Hz`).
+   - Pulsing activity indicator and LED brightness ring next to the output jack.
+2. **Real-Time Modulated Knobs**:
+   - Any knob modulated by an active LFO displays a dynamic **two-tone modulation arc** (amber for LFO 1, cyan for LFO 2) indicating real-time swing.
+   - The knob's needle actively rotates in sync with the LFO wave.
+   - A reference indicator dot marks the user's static base setting.
+
+---
 
 ## Pagination by selection
 
@@ -50,8 +77,14 @@ A single set of knobs serves all six sequences:
 
 <Callout type="info" title="Tempo, length, volume">
   These controls are **not** re-bound: each has its own permanent attachment,
-  because they belong to a specific row (or to the project for tempo).
+  car they belong to a specific row (or to the project for tempo).
 </Callout>
+
+## Hardware Graphics Acceleration & 120 FPS Fluidity
+
+The UI incorporates advanced macOS rendering optimizations:
+- **Native Opacity (`setOpaque(true)`)**: The root plugin editor is marked opaque to the macOS WindowServer. Window dragging, repositioning, and staging are handled via hardware GPU texture blit with zero CPU redraw overhead.
+- **Unclipped Rendering (`setPaintingIsUnclipped`)**: The 192 step buttons and static controls bypass CoreGraphics clipping path calculations, ensuring a locked 60/120 Hz refresh rate.
 
 ## Component inspector
 

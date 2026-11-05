@@ -20,14 +20,17 @@ séquence 2 : 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 ...
   À 120 BPM et 44,1 kHz : **5 512,5 échantillons** (≈ 125 ms).
 - Le tempo est **global** (`tempo`, 20–300 BPM).
 
-## Les pas
+## Les pas & Mode Pinceau glissé (Paintbrush)
 
 Chaque rangée contient **32 boutons de pas** :
 
-- **Clic** : bascule le pas (actif = rétro-éclairage ambre).
-- Les temps forts (pas 1, 5, 9, 13…) sont accentués visuellement à l'état inactif.
-- Le motif est stocké sous forme de **bitfield 32 bits** par séquence, dans un `ValueTree`
-  sérialisé avec l'état du plugin — pas dans les paramètres du host.
+- **Clic simple** : bascule l'état du pas (actif = rétro-éclairage tactile ambre).
+- **Mode Pinceau glissé (Click-and-Drag Paintbrush)** : maintenez le bouton de la souris enfoncé et balayez horizontalement la rangée pour peindre ou effacer une série continue de pas d'un seul geste fluide.
+  - Si le premier pas touché était inactif, le balayage active tous les pas survolés.
+  - Si le premier pas touché était actif (ou via clic droit), le balayage efface les pas.
+  - Un algorithme d'interpolation continue garantit qu'aucun pas n'est manqué, même lors d'un coup de pinceau très rapide.
+- Les temps forts rythmiques (pas 1, 5, 9, 13…) bénéficient d'un contraste ardoise distinctif à l'état inactif (groupement 4/4).
+- Le motif est stocké sous forme de **bitfield 32 bits** par séquence dans un `ValueTree` sérialisé avec l'état du plugin — pas dans les paramètres du host.
 
 <Callout type="info" title="Pourquoi pas des paramètres ?">
   Stocker 192 pas en paramètres automatisables polluerait l'automation du DAW.
@@ -66,7 +69,7 @@ Le bouton **ARP** de rangée permet d'activer le mode mélodique d'une simple pr
 ## Tête de lecture
 
 Pendant la lecture, un **marqueur orange** se déplace sur chaque rangée, à la position
-du pas courant de cette séquence. Le marqueur est rafraîchi à 30 Hz par le timer de
+du pas courant de cette séquence. Le marqueur est rafraîchi à 60 Hz avec synchronisation zéro-latence par le timer de
 l'éditeur (pas par le thread audio).
 
 À l'arrêt, les marqueurs disparaissent et les compteurs repartent de zéro au prochain **Play**.

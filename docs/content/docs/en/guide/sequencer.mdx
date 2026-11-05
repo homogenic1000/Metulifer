@@ -19,12 +19,16 @@ sequence 2 : 1 2 3 4 5 6 7 1 2 3 4 5 6 7 1 2 ...
   At 120 BPM and 44.1 kHz: **5,512.5 samples** (≈ 125 ms).
 - Tempo is **global** (`tempo`, 20–300 BPM).
 
-## Steps
+## Steps & Click-and-Drag Paintbrush
 
 Each row holds **32 step buttons**:
 
-- **Click**: toggles the step (active = amber backlight).
-- Downbeats (steps 1, 5, 9, 13…) are visually accented while inactive.
+- **Single Click**: toggles step state (active = amber backlight).
+- **Click-and-Drag Paintbrush**: hold the mouse button and sweep across the row horizontally to paint or erase a continuous chain of steps in one smooth motion.
+  - If the initial step clicked was off, dragging activates every hovered step.
+  - If the initial step clicked was on (or via right-click), dragging erases steps.
+  - Continuous interpolation ensures no steps are missed even during very fast mouse sweeps.
+- Downbeat accents (steps 1, 5, 9, 13…) feature distinct slate styling while inactive for clear 4/4 grouping.
 - The pattern is stored as a **32-bit bitfield** per sequence, inside a `ValueTree`
   serialised with the plugin state — not in host parameters.
 
@@ -65,7 +69,7 @@ The row-level **ARP** button allows you to engage melodic variations on the fly 
 ## Playhead
 
 During playback, an **orange marker** moves along each row, at that sequence's current step.
-The marker is refreshed at 30 Hz by the editor timer (not by the audio thread).
+The marker is refreshed at 60 Hz with zero-latency synchronization by the editor timer (not by the audio thread).
 
 When stopped, markers disappear and counters restart from zero on the next **Play**.
 

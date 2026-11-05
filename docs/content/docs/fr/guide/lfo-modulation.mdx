@@ -35,6 +35,22 @@ Un LFO est **inactif** si :
 Dans ce cas, sa valeur de sortie est forcée à `0` et aucun paramètre n'est modifié.
 Il n'y a donc pas de modulation fantôme.
 
+## Rétroaction visuelle & Écran OLED LFO
+
+Pour lever toute ambiguïté sur les connexions de modulation, chaque LFO dispose de rétroactions visuelles dédiées :
+
+1. **Écran OLED de destination** :
+   - Chaque tranche de LFO possède son propre écran miniature OLED.
+   - Il affiche en direct la destination active (ex: `SEQ 1 CUTOFF`, `SEQ 3 DLY MIX`) ou la mention `[ UNLINKED ]` si aucun câble n'est branché.
+   - La fréquence réelle en Hertz est rafraîchie en temps réel (ex: `SIN 2.4Hz`).
+   - Un point d'activité oscille verticalement sur le bord de l'écran en suivant la forme d'onde.
+2. **Potentiomètres animés en temps réel** :
+   - Lorsqu'un potentiomètre est raccordé à un LFO actif, son aiguille tourne physiquement en rythme avec l'onde modulatrice.
+   - Un arc de modulation coloré (ambre pour LFO 1, cyan pour LFO 2) s'étend dynamiquement entre la position de base et la valeur modulée instantanée.
+   - Un repère blanc matérialise le point de repos statique défini par l'utilisateur.
+
+---
+
 ## Câbles virtuels
 
 ### Créer un câble

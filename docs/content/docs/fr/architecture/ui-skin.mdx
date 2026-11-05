@@ -1,59 +1,83 @@
 ---
-title: Interface et Habillage (Skinning)
-description: Rendu vectoriel MetuliferLookAndFeel, coordonnées d'affichage, modularité et flux de travail Blender 3D.
+title: Interface, Habillage 3D & Performance
+description: Moteur de rendu hybride vectoriel / 3D filmstrips, système Skin sans casse, negative caching et accélération matérielle macOS.
 ---
 
 L'interface de Metulifer repose sur une résolution fixe de **1280 × 720 pixels**, pensée pour restituer l'ergonomie physique d'un synthétiseur matériel de studio.
-
-## Moteur de rendu vectoriel (`MetuliferLookAndFeel`)
-
-Toutes les commandes visuelles sont dessinées en temps réel par `Source/UI/MetuliferLookAndFeel.{h,cpp}` :
-
-### 1. Potentiomètres rotatifs (Knobs)
-- **Corps usiné** : double dégradé circulaire sombre avec relief en biseau subtil.
-- **Bague de course** : arc de progression rétro-éclairé (bleu `#60a5fa` ou cyan `#38bdf8`) indiquant la valeur relative.
-- **Curseur lumineux** : ligne radiale contrastée indiquant l'angle d'orientation avec précision.
-- **Précision gestuelle** : gestion de la sensibilité fine via glissement vertical de la souris ou Shift + clic.
-
-### 2. Boutons de pas (Step Buttons)
-Chaque bouton de pas reflète trois états superposés :
-- **Inactif** : gris neutre sombre, délimité par une bordure discrète.
-- **Actif (On)** : rétro-éclairage bleu/cyan intense avec texte contrasté.
-- **Tête de lecture (Playhead)** : contour vif lumineux blanc/ambre marquant l'instant exact où le pas est scanné par l'horloge audio.
-
-### 3. Boutons de navigation et d'effets
-Les boutons d'onglets Multi-FX (`REV`, `DLY`, `RDX`), d'arpégiateur (`ARP`), de filtre (`LPF`, `HPF`) et de presse-papier (`C`, `P`) possèdent des indicateurs LED intégrés et des typographies lisibles en basse luminosité.
+Elle s'appuie sur une architecture hybride : un moteur vectoriel procédural haute fidélité doublé d'une infrastructure de substitution 3D automatique (*Skinning sans casse*).
 
 ---
 
-## Modularité et chargement d'assets (`Skin.h`)
+## Moteur de substitution 3D (`Skin.h` / `Skin.cpp`)
 
-La classe `Skin` centralise les ressources graphiques optionnelles.
-Le plugin peut basculer en toute transparence entre :
-1. **Mode Vectoriel pur (défaut)** : Zéro asset externe nécessaire, affichage net quelle que soit la densité de pixels de l'écran Retina.
-2. **Mode Bitmap / Assets skinnables** : Chargement de plaques de fond usinées, de lettrages sérigraphiés ou de textures métalliques depuis le dossier de ressources.
+Le module `Skin` fournit une passerelle universelle entre les éléments d'interface JUCE et des rendus photoréalistes issus de Blender 3D. Si un asset est présent dans `Resources/` ou `BinaryData`, il est affiché ; sinon, le moteur bascule instantanément sur le rendu vectoriel sans aucune erreur ni dégradation visuelle.
+
+### 1. Filmstrips de potentiomètres rotatifs (`Skin::drawFilmstrip`)
+- **Orientation automatique** : Accepte les bandes d'animation verticales ($1 \times N$) ou horizontales ($N \times 1$).
+- **Calcul dynamique des trames** : Le nombre d'étapes d'animation est déduit du ratio de dimensions de l'image (`numFrames = imgH / imgW` ou `imgW / imgH`).
+- **Échantillonnage haute résolution** : Rendu en `juce::Graphics::highResamplingQuality` adapté aux écrans Retina.
+- **Cascade de recherche en 3 étapes** :
+  1. Nom spécifique de contrôle : `btn_<name>_filmstrip` ou `<name>_filmstrip`
+  2. Fallback générique par gabarit dimensionnel :
+     - `knob_big_filmstrip` (diamètre $\ge 70$ px)
+     - `knob_med_filmstrip` (diamètre $\ge 40$ px)
+     - `knob_small_filmstrip` (diamètre $< 40$ px)
+  3. Fallback vectoriel matériel (`MetuliferLookAndFeel::drawHardwareKnob`).
+
+### 2. Spritesheets de boutons multi-états (`Skin::drawButtonSprite`)
+Gère les boutons simples et à bascule avec sélection automatique de trame selon l'état :
+- **Filmstrips à 6 trames** : `0: Off`, `1: Off Survol`, `2: Off Clic/Enfoncé`, `3: On`, `4: On Survol`, `5: On Clic/Enfoncé`.
+- **Filmstrips à 4 ou 2 trames** : Rétro-compatibilité pour les sprites simplifiés.
+- **Fichiers discrets** : Recherche automatique de fichiers individuels `btn_<nom>_on`, `btn_<nom>_off`, `btn_<nom>_down`.
+
+### 3. Touches de pas du séquenceur (`Skin::drawStepButton`)
+- Support d'un filmstrip global `step_button_filmstrip` (états on, off, hover, down) ou de sprites individuels `step_on`, `step_off`, `step_downbeat` (accentuation 4/4).
+
+### 4. Commutateur d'octave (`Skin::drawLever`)
+- Rendu de commutateur mécanique à 5 positions d'octave (-2, -1, 0, +1, +2) via `lever_octave_filmstrip` ou sprites `lever_octave_0` à `lever_octave_4`.
+
+### 5. Calque de verre d'écran (`Skin::drawScreenOverlay`)
+- Calque de réfraction 3D transparent déposé au-dessus de l'oscilloscope et du dB-mètre pour simuler la vitre fumée de l'afficheur OLED (`screen_glass_overlay.png`).
+
+---
+
+## Optimisations de performance & Énergie
+
+Pour maintenir une réactivité 60/120 Hz sans impact batterie sous macOS, le système intègre des garanties strictes :
+
+### 1. Zéro I/O disque & Negative Caching
+- **Indexation mémoire unique** : Lors du premier appel à `Skin::scan()`, les 4 répertoires de ressources (`Resources/`, bundle `Contents/Resources`, etc.) sont scannés une seule fois en mémoire dans une table `std::unordered_map<std::string, juce::File>`.
+- **Negative Caching obligatoire** : Si un asset n'existe pas sur le disque, l'échec est mémorisé (`imageCache[key] = juce::Image()`). Les requêtes futures à 60 Hz sont résolues en mémoire en O(1) avec **zéro appel système `stat()` ou lecture disque**.
+
+### 2. Accélération matérielle macOS (`setOpaque(true)`)
+- Le composant racine `MetuliferAudioProcessorEditor` est explicitement déclaré opaque.
+- Lors des déplacements de la fenêtre sur l'écran, le compositeur WindowServer de macOS déplace directement la surface GPU par simple translation matérielle (*hardware blit*), sans déclencher de redessin logiciel de la hiérarchie de composants.
+
+### 3. Suppression du clipping CoreGraphics (`setPaintingIsUnclipped`)
+- Les 192 boutons de pas et les rangées du séquenceur activent `setPaintingIsUnclipped(true)`, supprimant les opérations de calcul de clip paths CoreGraphics à chaque trame.
 
 ---
 
 ## Workflow Blender 3D vers JUCE
 
-L'interface actuelle constitue un socle vectoriel ultra-performant. La prochaine étape visuelle prévoit la création d'une interface skeuomorphique rendue sous **Blender 3D** :
+L'interface actuelle constitue un socle vectoriel ultra-performant. Pour injecter les rendus photoréalistes sous **Blender 3D** :
 
 ```
 [Modélisation 3D Blender]
        │  Châssis aluminium brossé, potentiomètres moletés, ombres portées
        ▼
 [Rendu de passes (Cycles / Eevee)]
-       │  1. Plaque de fond haute résolution (1280x720 @2x Retina)
-       │  2. Bandes d'animation de potentiomètres (Filmstrips 64/128 frames)
+       │  1. Plaque de fond haute résolution (1280x720 @2x Retina) : bg_editor.png
+       │  2. Bandes de potentiomètres (64/128 frames) : knob_big_filmstrip.png, etc.
+       │  3. Vitre d'écran fumée : screen_glass_overlay.png
        ▼
-[Intégration Skin.h dans JUCE]
-       │  Remplacement transparent via juce::Image et FilmstripKnob
+[Dépôt dans Resources/]
+       │  Détection automatique au démarrage par Skin.cpp
        ▼
 [Rendu final matériel réaliste dans le DAW]
 ```
 
 ### Directives pour les rendus 3D
-- **Dimensions de base** : 1280 × 720 (avec déclinaison 2560 × 1440 pour les écrans haute densité).
+- **Dimensions de base** : 1280 × 720 (avec déclinaison 2560 × 1440 `@2x` pour les écrans Retina).
 - **Centres de rotation** : Les axes des potentiomètres rotatifs dans Blender doivent respecter rigoureusement les coordonnées des composants JUCE (`resized()` dans `PluginEditor.cpp`).
-- **Écran OLED** : Conserver une zone évidée rectangulaire transparente à `(986, 32)` de taille `247 × 132` pour laisser transparaître le composant vectoriel interactif de l'écran.
+- **Écran OLED** : Conserver une zone évidée rectangulaire transparente à `(960, 32)` de taille `288 × 128` pour laisser transparaître le composant vectoriel interactif de l'écran.

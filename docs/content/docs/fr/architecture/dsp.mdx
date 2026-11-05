@@ -1,6 +1,6 @@
 ---
-title: Traitement du Signal (DSP)
-description: Chaîne audio complète dans Voice.cpp, accumulateurs de phase, filtres TPT, multi-effets et garanties temps réel.
+title: Traitement du Signal (DSP) & Architecture Audio
+description: Chaîne audio complète dans Voice.cpp, oscillateurs polyBLEP, filtres TPT, Voice Sleep & Tail Management, et multi-effets en temps réel.
 ---
 
 Chaque séquence de Metulifer possède son propre moteur de synthèse audio encapsulé dans la classe `Voice` (`Source/DSP/Voice.{h,cpp}`).
@@ -11,37 +11,33 @@ Toutes les opérations audio respectent scrupuleusement les exigences de la prog
 Le signal traverse la chaîne suivante de manière séquentielle :
 
 ```
-[VCO 1] ──▶ [ADSR 1] ──▶ [Gain Mix 1] ──┐
-                                         ├──▶ [Sommation] ──▶ [Filtre VCF] ──▶ [Gain Volume]
-[VCO 2] ──▶ [ADSR 2] ──▶ [Gain Mix 2] ──┘                                            │
-                                                                                     ▼
-[Sortie Stéréo] ◀── [Reverb Stéréo] ◀── [Delay Ping-Pong] ◀── [Redux Bitcrusher] ◀───┘
+[VCO 1 (polyBLEP)] ──▶ [ADSR 1] ──▶ [Gain Mix 1] ──┐
+                                                    ├──▶ [Sommation] ──▶ [Filtre VCF] ──▶ [Gain Volume]
+[VCO 2 (polyBLEP)] ──▶ [ADSR 2] ──▶ [Gain Mix 2] ──┘                                            │
+                                                                                                ▼
+[Sortie Stéréo/Mono] ◀── [Reverb Stéréo] ◀── [Delay Ping-Pong] ◀── [Redux Bitcrusher] ◀─────────┘
 ```
 
 ---
 
-## 1. Générateurs (VCO 1 & VCO 2)
+## 1. Générateurs anti-repliement (VCO 1 & VCO 2 avec polyBLEP)
 
-Les deux oscillateurs calculent leur forme d'onde via un accumulateur de phase normalisé entre `[0.0, 1.0[` :
-
-```
-delta_phase = frequency / sampleRate
-```
+Les deux oscillateurs calculent leur forme d'onde via un accumulateur de phase normalisé entre `[0.0, 1.0[` avec algorithme de suppression d'aliasing **polyBLEP (Polynomial Bandlimited Step)** :
 
 Quatre formes d'onde sont disponibles :
-- **Sine** : `sin(2 * pi * phase)`
-- **Saw** : `2 * phase - 1` (rampe linéaire)
-- **Square** : `phase < 0.5 ? +1 : -1`
-- **Triangle** : `1 - 4 * abs(phase - 0.5)`
+- **Sine** : `sin(2 * pi * phase)` (pur sinus spectral).
+- **Saw (Dent de scie)** : `(2 * phase - 1) - polyBlep(phase, increment)` (harmoniques riches sans aliasing dans les aigus).
+- **Square (Carrée)** : onde binaire enrichie de corrections polyBLEP sur les fronts montant et descendant (`phase` et `phase + 0.5`).
+- **Triangle** : `1 - 4 * abs(phase - 0.5)` (timbre chaud et doux).
 
 ### Hauteur de note et arpégiateur
-La fréquence fondamentale `f` est calculée à partir de la note MIDI (0 à 127) et du sélecteur d'octave (−2 à +2) :
+La fréquence fondamentale `f` est calculée à partir de la note fondamentale (C3 par défaut = 130.81 Hz), de l'octave (−2 à +2) et du bouton note :
 
-```
-f = 440.0 * pow(2.0, (midiNote - 69 + 12 * octave) / 12.0)
+```cpp
+f = 130.81 * std::exp2((double) octave + (double) note / 12.0);
 ```
 
-Lorsque l'**Arpégiateur** est activé sur la séquence, chaque pas actif déclenche `advanceArp()`, qui ajoute un décalage de demi-tons issu d'une gamme musicale sélectionnée sans altérer l'accordage relatif entre VCO1 et VCO2.
+Lorsque l'**Arpégiateur** est activé, `advanceArp()` sélectionne la note suivante selon l'un des 11 modes algorithmiques et l'une des 10 gammes harmoniques, et applique l'offset conjointement aux deux VCOs sans décaler leur accordage relatif.
 
 ---
 
@@ -70,51 +66,70 @@ Le module Redux dégrade le signal par double altération :
 1. **Downsampling (Sous-échantillonnage temporel)** :
    Un compteur d'échantillons modulo `rate` maintient la valeur courante (Sample & Hold) pendant `N` échantillons (1 à 32).
 2. **Quantification d'amplitude (Bit-depth)** :
-   ```
-   y = floor(x * 2^(bits - 1) + 0.5) / 2^(bits - 1)
+   ```cpp
+   y = std::round (x * steps) / steps; // steps = 2^(bits - 1)
    ```
    La résolution s'étend de 2 bits (fuzz numérique extrême) à 16 bits (haute fidélité).
 3. **Crossfade Dry/Wet** : mélange linéaire sans déphasage.
 
 ---
 
-## 5. Multi-FX : Delay Stéréo Ping-Pong
+## 5. Multi-FX : Delay Stéréo Ping-Pong à Cross-Feedback
 
-Le délai est implémenté avec une ligne de retard circulaire préallouée à l'initialisation (`prepare()`) pour accueillir jusqu'à 2,5 secondes de son à n'importe quel taux d'échantillonnage.
+Le délai est implémenté avec une ligne de retard circulaire préallouée à l'initialisation (`prepare()`) pour accueillir jusqu'à 2,5 secondes de son :
 
-- **Saturation douce dans la boucle** :
-  Le signal de feedback traverse une non-linéarité douce :
+- **Vrai Ping-Pong à rétroaction croisée (Cross-Feedback)** :
+  Le canal gauche réinjecte son écho dans le canal droit, et le canal droit dans le canal gauche :
+  ```cpp
+  delayL[writePos] = in + std::tanh(outR * feedback);
+  delayR[writePos] = std::tanh(outL * feedback);
   ```
-  feedback_sample = tanh(sample * saturation_gain)
-  ```
-  Ceci empêche tout risque d'emballement numérique au-delà de 0 dBFS lors de réinjections élevées (jusqu'à 90 %).
-- **Mode Ping-Pong stéréo** :
-  Le canal gauche lit le retard nominal `T`, tandis que le canal droit lit un décalage rythmique spécifique (`0.75 * T`), créant une spatialisation stéréo dynamique.
+- **Saturation non-linéaire douce** :
+  L'utilisation de `std::tanh` dans la boucle de feedback prévient tout risque d'emballement numérique au-delà de 0 dBFS, même à 90 % de feedback.
+- **Mode Dual Stéréo** : réinjection indépendante L/L et R/R commutable en direct.
+- **Nettoyage instantané** : le buffer de delay est automatiquement vidé lors de la coupure de l'effet (`delayBuffer.clear()`), évitant toute bouffée de son résiduel à la réactivation.
 
 ---
 
-## 6. Multi-FX : Reverb Stéréo
+## 6. Multi-FX : Reverb Stéréo & Optimisation de calcul
 
 Basée sur le moteur `juce::dsp::Reverb`, la réverbération traite le signal après le délai :
 - **Mode Room** : réflexions courtes, diffusion dense, adapté aux percussions et stabs.
 - **Mode Hall** : réflexions amples, longue queue de résonance spatiale.
-- **Gain staging compensé** : le mix pondère la composante dry et wet pour éviter le gonflement d'énergie inhérent aux réverbérations de type Schroeder/Freeverb.
+- **Dirty Checking des coefficients** : les paramètres de réverbération ne sont mis à jour que lors d'un changement effectif de mode ou de mix, évitant de recalculer les coefficients des 8 filtres en peigne et 4 filtres passe-tout à chaque bloc audio.
 
 ---
 
-## 7. Protection de sortie et Soft Limiting
+## 7. Mise en veille des voix inactives (Voice Sleep & Tail Management)
 
-En sortie de `processBlock()`, avant l'écriture dans le bus master du DAW :
-1. Une atténuation d'échelle (headroom −6 dB) prépare la sommation des 6 voix simultanées.
-2. Un étage de **soft clipping par tangente hyperbolique (`tanh`)** garantit l'absence de saturation numérique dure :
+Pour garantir une consommation CPU minimale (< 5 % en jeu et 0.0 % au repos) sans couper prématurément les queues d'effets :
 
-```cpp
-for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-{
-    auto* samples = buffer.getWritePointer (ch);
-    for (int i = 0; i < buffer.getNumSamples(); ++i)
-        samples[i] = std::tanh (samples[i] * 0.5f);
-}
-```
+1. **Bypass immédiat** :
+   Si une voix est au repos (`!adsr1.isActive() && !adsr2.isActive()`) et que ni le délai ni la réverbe ne sont actifs, `Voice::renderChunk()` retourne instantanément en **0 nanoseconde**.
+2. **Gestionnaire de queue de résonance (Tail Management)** :
+   - Dès la fin de relâchement des notes, la synthèse amont est court-circuitée : **les oscillateurs polyBLEP, les enveloppes ADSR, le filtre VCF et le Redux ne sont plus calculés sur le silence**.
+   - Le délai et la réverbe continuent de s'amortir de manière autonome jusqu'à 4.0 secondes.
+3. **Détection de silence acoustique** :
+   Dès que l'énergie résiduelle descend sous -80 dBFS ($< 10^{-4}$), la voix est automatiquement basculée en sommeil (`isVoiceActive = false`).
+4. **Réveil instantané** :
+   Tout appel à `noteOn()` réactive instantanément la voix sans perte de transitoire.
 
-3. Un suiveur d'enveloppe RMS rapide calcule l'amplitude crête stockée dans un `std::atomic<float>` pour animer l'écran OLED à 30 Hz sans impacter le thread audio.
+---
+
+## 8. Sommation, Downmix Mono & Limiteur Soft Clipping
+
+En sortie de `processBlock()` :
+1. **Support Mono et Stéréo automatique** :
+   Si Metulifer est inséré sur une piste mono, les canaux gauche et droit de la réverbe et du delay ping-pong sont sommés à 50 % (`0.5f`), évitant toute perte d'information spatiale.
+2. **Gain Headroom & Saturation douce** :
+   Une atténuation de headroom (−6 dB) suivie d'un étage de saturation douce par tangente hyperbolique (`std::tanh`) protège le bus master du DAW contre les écrêtements numériques violents lors de la sommation des 6 voix simultanées :
+   ```cpp
+   for (int ch = 0; ch < numChannels; ++ch)
+   {
+       auto* data = buffer.getWritePointer (ch);
+       for (int i = 0; i < numSamples; ++i)
+           data[i] = std::tanh (data[i]);
+   }
+   ```
+3. **Double mesure Studio Peak & RMS à 60 Hz** :
+   Le processor calcule en direct les crêtes réelles et l'énergie RMS par canal, enregistrées dans des atomiques thread-safe (`peakDbL/R`, `rmsDbL/R`) avec maintien de crête pour alimenter le dB-mètre et l'oscilloscope de l'interface.

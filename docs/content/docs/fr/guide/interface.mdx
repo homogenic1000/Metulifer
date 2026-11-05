@@ -23,19 +23,46 @@ L'éditeur fait **1280 × 720** et place ses panneaux à des coordonnées absolu
 Le `CableLayer` couvre toute la fenêtre (0, 0, 1280, 720) mais son `hitTest()` ne
 renvoie `true` que près d'un jack ou d'un câble : les clics passent à travers partout ailleurs.
 
-## L'écran OLED
+## L'écran OLED et Visualisation Studio
 
-Trois modes d'affichage, gérés par un `Timer` à **30 Hz** :
+L'affichage central est synchronisé à **60 Hz** avec zéro latence perçue :
 
-| Mode | Contenu | Durée |
-|---|---|---|
-| **Signal** (défaut) | numéro de séquence + barre RMS de sortie | permanent |
-| **Paramètre** | nom du paramètre + valeur + unité (ex. `attack 120 ms`) | 2 s après manipulation |
-| **Message** | texte libre (ex. `seq 3 volume 80 %`, `octave 1`) | 2 s |
+### 1. Oscilloscope temps réel à verrouillage de phase
+En l'absence de manipulation de paramètre, l'écran affiche un tracé d'oscilloscope ultra-précis :
+- **Déclenchement Trigger (Zero-crossing)** : Détection automatique du front montant pour verrouiller la phase de l'onde et figer visuellement la forme sonore sans scintillement ni défilement erratique.
+- **Calibrage dynamique de période** : Mesure de la fréquence fondamentale pour afficher en permanence **2 cycles complets d'onde**, quelle que soit la note jouée.
+- **Auto-gain adaptatif** : Ajuste l'amplitude verticale pour occuper harmonieusement ~82 % de la hauteur de l'écran avec retour progressif vers le repos lors des silences.
+- **Grille de mesure (Graticule)** : Repères vectoriels discrets au quart, centre et trois-quarts d'amplitude.
 
-Le retour au mode signal est automatique après **2 secondes** d'inactivité
-(`paramShownUntilMs`). Le RMS est calculé dans le thread audio et lu sans verrou
-par l'interface (`std::atomic<float> rms`).
+### 2. dB-mètre stéréo de studio
+Sous l'oscilloscope se trouve un double crête-mètre professionnel calibré en **dBFS** :
+- **Voies séparées L et R** : Barres bargraph indépendantes de -48 dB à +3 dB.
+- **Balistique instantanée & Décroissance logarithmique** : Attaque à zéro latence pour capturer les transitoires les plus rapides, et décroissance naturelle à 54 dB/s.
+- **Maintien de crête (Peak Hold 1 s)** : Un curseur lumineux mémorise la crête maximale pendant 1 seconde avant de redescendre.
+- **Alerte de saturation (CLIP)** : Voyant rouge d'alerte dès dépassement de 0 dBFS.
+- **Affichage numérique précis** : Lecture chiffrée en direct au dixième de dB (ex: `-6.2 dB` ou `-inf dB`).
+
+### 3. Affichage contextuel des paramètres
+Lorsqu'un potentiomètre ou un bouton est manipulé, l'écran bascule instantanément en mode **EDIT** ambre pendant 2 secondes :
+- Nom complet du paramètre, valeur précise et unité (ex. `seq 1 cutoff 1250 Hz`, `tempo 128.0 BPM`, `reverb Room`).
+- Notifications d'état du séquenceur (ex. `SEQ 1 COPIED`, `SEQ 2 PASTED`).
+
+---
+
+## Animation visuelle des modulations (LFO)
+
+Metulifer propose une boucle de rétroaction visuelle temps réel complète entre les LFO et les commandes de synthèse :
+
+1. **Mini-écrans OLED sur les LFOs** :
+   - Chaque panneau LFO intègre son propre écran rétro-éclairé affichant le nom exact de la destination connectée (ex. `SEQ 1 CUTOFF`, `SEQ 3 DLY TIME`) ou `[ UNLINKED ]`.
+   - Affichage de la forme d'onde active (`SIN`, `SAW`, `SQR`, `TRI`) et de la fréquence exacte en Hertz (ex. `3.5Hz`).
+   - Voyant d'activité pulsé et LED d'amplitude lumineuse près du jack.
+2. **Potentiomètres animés en direct** :
+   - Tout potentiomètre modulé par un LFO actif affiche une **bague de modulation bicolore** (ambre pour LFO 1, cyan pour LFO 2) indiquant la plage d'oscillation en temps réel.
+   - L'aiguille du potentiomètre pivote physiquement en rythme avec l'onde LFO.
+   - Un point repère blanc indique la valeur de base statique définie par l'utilisateur.
+
+---
 
 ## Pagination par sélection
 
@@ -52,6 +79,12 @@ Un seul jeu de knobs sert les six séquences :
   Ces contrôles ne sont **pas** re-branchés : ils ont chacun leur attachement permanent,
   car ils appartiennent à une rangée précise (ou au projet pour le tempo).
 </Callout>
+
+## Accélération graphique matérielle & Fluidité
+
+L'interface bénéficie d'une optimisation matérielle poussée sous macOS :
+- **Opacité native (`setOpaque(true)`)** : La fenêtre principale est déclarée opaque au compositeur WindowServer de macOS. Le déplacement ou redimensionnement de la fenêtre est exécuté par translation GPU sans aucun redessin logiciel du CPU.
+- **Rendu non découpé (`setPaintingIsUnclipped`)** : Les 192 boutons de pas et commandes statiques sont exemptés des calculs de clipping CoreGraphics, assurant une fréquence de rafraîchissement stable à 60/120 Hz.
 
 ## Inspecteur de composants
 
