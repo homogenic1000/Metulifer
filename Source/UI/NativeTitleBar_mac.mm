@@ -11,31 +11,32 @@ namespace NativeTitleBar
         if (window == nullptr)
             return;
 
-        window->setTitleBarButtonsRequired (juce::DocumentWindow::allButtons, false);
+        // Only close and minimise buttons for fixed-size window
+        window->setTitleBarButtonsRequired (juce::DocumentWindow::closeButton | juce::DocumentWindow::minimiseButton, false);
 
         if (! window->isUsingNativeTitleBar())
             window->setUsingNativeTitleBar (true);
 
-        constexpr int defaultWidth = 1280;
-        constexpr int defaultHeight = 720;
+        constexpr int fixedWidth = 1280;
+        constexpr int fixedHeight = 720;
 
-        window->setResizable (true, false);
-        window->setResizeLimits (1060, 680, 2560, 1440);
+        window->setResizable (false, false);
 
         if (editor != nullptr)
         {
-            if (editor->getWidth() < 1000 || editor->getHeight() < 600)
-                editor->setSize (defaultWidth, defaultHeight);
+            editor->setSize (fixedWidth, fixedHeight);
         }
+
+        window->setContentComponentSize (fixedWidth, fixedHeight);
 
         auto& desktop = juce::Desktop::getInstance();
         auto* primaryScreen = desktop.getDisplays().getPrimaryDisplay();
         auto screenBounds = primaryScreen != nullptr ? primaryScreen->userBounds.toNearestInt()
                                                      : juce::Rectangle<int> (0, 0, 1920, 1080);
 
-        if (window->getWidth() < 1200 || window->getHeight() < 680 || ! screenBounds.intersects (window->getBounds()))
+        if (window->getWidth() != fixedWidth || window->getHeight() < fixedHeight || ! screenBounds.intersects (window->getBounds()))
         {
-            window->setContentComponentSize (defaultWidth, defaultHeight);
+            window->setContentComponentSize (fixedWidth, fixedHeight);
             window->centreWithSize (window->getWidth(), window->getHeight());
         }
 
@@ -53,11 +54,17 @@ namespace NativeTitleBar
                     nsWindow.titleVisibility = NSWindowTitleVisible;
                     nsWindow.titlebarAppearsTransparent = NO;
 
-                    // Enable zoom and resizing on Cocoa NSWindow
-                    nsWindow.styleMask |= NSWindowStyleMaskResizable;
+                    // Strictly lock window size on macOS Cocoa
+                    nsWindow.styleMask &= ~NSWindowStyleMaskResizable;
+                    [nsWindow setShowsResizeIndicator:NO];
+
                     NSButton* zoomButton = [nsWindow standardWindowButton:NSWindowZoomButton];
                     if (zoomButton != nil)
-                        zoomButton.enabled = YES;
+                        zoomButton.enabled = NO;
+
+                    [nsWindow setContentSize:NSMakeSize (fixedWidth, fixedHeight)];
+                    [nsWindow setMinSize:nsWindow.frame.size];
+                    [nsWindow setMaxSize:nsWindow.frame.size];
 
                     [nsWindow display];
                 }

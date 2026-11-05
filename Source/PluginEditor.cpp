@@ -21,8 +21,7 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     setOpaque (true);
     setLookAndFeel (&lookAndFeel);
 
-    setResizable (true, true);
-    setResizeLimits (1060, 680, 2560, 1440);
+    setResizable (false, false);
 
     addAndMakeVisible (sequencerPanel);
     addAndMakeVisible (displayScreen);
@@ -344,16 +343,13 @@ void MetuliferAudioProcessorEditor::resized()
         settingsButton.setBounds (matrixButton.getX() - 66, 8, 60, 18);
 
     // Top Section: Sequencer (Left) | DisplayScreen + ClockPanel (Right)
-    const int botH = 224;
-    const int botMargin = 28;
-    const int botY = juce::jmax (468, getHeight() - botH - botMargin);
-    const int topH = botY - 32 - 19; // 417 at default 720 height
-
-    sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, topH);
+    sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, 417);
     displayScreen.setBounds (rightColX, 32, rightColWidth, 128);
-    clockPanel.setBounds (rightColX, 172, rightColWidth, topH - 140);
+    clockPanel.setBounds (rightColX, 172, rightColWidth, 277);
 
     // Bottom Section: SynthPanel + 4 modular slices (VCF, LFO1, LFO2, Reverb/Multi-FX)
+    const int botY = 468;
+    const int botH = 224;
     const int moduleW = 105;
     const int gap = 14;
 

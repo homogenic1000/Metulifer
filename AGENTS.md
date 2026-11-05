@@ -116,6 +116,26 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Verrouillage taille fixe (1280x720) pour assets et rendus graphiques
+- **Tâche** : Figer strictement les dimensions à 1280x720 (format pixel-perfect non-responsive) pour garantir la fidélité des composants issus de rendus 3D/graphiques, tout en conservant les traffic lights macOS natifs Dark Aqua (fermer 🔴, réduire 🟡).
+- **Réalisations** :
+  1. **Désactivation du redimensionnement** :
+     - Appel de `setResizable(false, false)` sur `AudioProcessorEditor` et sur `StandaloneFilterWindow`.
+     - Layout `resized()` ramené à ses coordonnées fixes et stables au pixel près (1280x720).
+  2. **Verrouillage Cocoa NSWindow (`Source/UI/NativeTitleBar_mac.mm`)** :
+     - Retrait du flag `NSWindowStyleMaskResizable` sur la fenêtre native macOS.
+     - Désactivation de l'indicateur de redimensionnement (`setShowsResizeIndicator:NO`).
+     - Désactivation du bouton vert de zoom (`zoomButton.enabled = NO`), comportement natif standard de macOS pour les fenêtres à taille fixe (utilitaires, instruments matériels virtuels).
+     - Verrouillage strict de `minSize` et `maxSize` sur la taille de cadre fixe (1280x720 de zone client).
+  3. **Validation & Conformité** :
+     - Cibles Debug et Release compilées avec succès (`xcodebuild`).
+     - Dimensions Standalone vérifiées : 1280 x 720 exacts, fenêtre non redimensionnable, boutons fermer et réduire natifs fonctionnels.
+     - 9 tests unitaires passés (`ALL PASSED`).
+     - Validation stricte niveau 5 `pluginval` sur `Metulifer.vst3` et `Metulifer.component` (AU) : 100% `SUCCESS`.
+- **Fichiers** : `Source/UI/NativeTitleBar_mac.h`, `Source/UI/NativeTitleBar_mac.mm`, `Source/PluginEditor.cpp`, `AGENTS.md`
+- **Build** : ✅ Debug et Release réussis sans erreur
+- **Next steps** : —
+
 ### 2026-11-05 — Correctif Standalone : Initialisation asynchrone des dimensions et redimensionnement dynamique
 - **Tâche** : Corriger le bug où la fenêtre Standalone s'ouvrait avec des dimensions minuscules (128x160) et refusait le redimensionnement.
 - **Cause racine identifiée** :
