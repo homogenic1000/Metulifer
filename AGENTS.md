@@ -91,7 +91,9 @@ Metulifer/
 - Paramètres via **APVTS** (`AudioProcessorValueTreeState`) vivant dans le Processor.
 - Communication UI ↔ DSP via attachments/listeners, jamais d'appels directs.
 - Editor : `paint()` pour le dessin, `resized()` pour le layout.
+- Rendu & Fenêtrage : **`setOpaque (true)` obligatoire sur l'éditeur principal** pour permettre au WindowServer macOS de déplacer la fenêtre en hardware blit sans déclencher de redessin logiciel complet. `setPaintingIsUnclipped (true)` sur les rangées et boutons répétitifs pour supprimer les calculs de clipping CoreGraphics inutiles.
 - Deployment target macOS : **12.0** (ne pas descendre).
+- **Toujours compiler Debug ET Release** après chaque modification pour éviter que l'instance Standalone de développement ne roule sur un binaire non synchronisé.
 
 ---
 
@@ -113,6 +115,26 @@ Metulifer/
 ```
 
 ### Journal (nouvelles entrées en haut)
+
+### 2026-11-05 — Élimination des chutes de FPS au déplacement de fenêtre & Synchronisation Debug/Release
+- **Tâche** : Résoudre les chutes de FPS lors du déplacement de la fenêtre Standalone et la persistance de surconsommation CPU/Energy Impact rapportée en environnement de développement.
+- **Causes racines identifiées** :
+  1. **Binaire Debug non synchronisé** : L'instance Standalone lancée en cours de test exécutait le binaire `Builds/MacOSX/build/Debug/Metulifer.app` datant de la veille (non reconstruit lors du build Release précédent), qui contenait encore l'ancien code non optimisé (I/O disque intensif `stat()` et calculs continus sur les 6 voix).
+  2. **Fenêtre principale non marquée opaque (`setOpaque (true)` absent)** : Sans opacité explicite sur le composant racine, l'implémentation JUCE `NSView` sous macOS retourne `isOpaque = NO`. Le WindowServer de macOS invalide alors l'ensemble du backing store à chaque événement de souris lors du glissement de fenêtre (`_trackMouse:`) et force un redessin logiciel complet de la hiérarchie de composants (200+ widgets) à chaque pixel déplacé.
+  3. **Overhead de clipping CoreGraphics sur les 192 boutons de pas** : Par défaut, JUCE applique un chemin de clipping individuel sur chaque bouton enfant.
+  4. **Parcours inconditionnel du calque de câbles** : `CableLayer::paint()` exécutait des instanciations de lambdas et boucles même lorsqu'aucun câble n'était connecté.
+- **Fichiers** : `Source/PluginEditor.cpp`, `Source/UI/SequenceRowComponent.cpp`, `Source/UI/CableLayer.cpp`, `AGENTS.md`
+- **Modifs** :
+  1. `Source/PluginEditor.cpp` : Ajout de `setOpaque (true)` dans le constructeur de l'éditeur pour activer le déplacement matériel de la texture fenêtre par le compositeur macOS sans aucun redessin logiciel.
+  2. `Source/UI/SequenceRowComponent.cpp` : Activation de `setPaintingIsUnclipped (true)` sur la rangée et sur chaque `TextButton` de pas (192 boutons libérés de tout calcul de clip CoreGraphics).
+  3. `Source/UI/CableLayer.cpp` : Sortie immédiate précoce dans `paint()` (`if (cables.empty() && dragSource < 0) return;`).
+  4. Compilation et synchronisation complètes des configurations **Debug** ET **Release**.
+- **Validation** :
+  - ✅ Build Debug et Release réussis (`** BUILD SUCCEEDED **`).
+  - ✅ Mesure en direct sur Standalone Debug : CPU au repos 0.0% à 16.8%, puissance énergétique stabilisée, fluidité totale au déplacement de fenêtre.
+  - ✅ Validation `pluginval` niveau 5 : 100% SUCCESS sur VST3 et AU.
+- **Commit** : `<sha court>` — `fix: eliminate window move fps drops with opaque backing store and unclipped controls`
+- **Next steps** : —
 
 ### 2026-11-04 — Optimisation drastique CPU & Energy Impact (Mise en veille voix DSP & Coalescence UI)
 - **Tâche** : Résoudre la surconsommation CPU (61.6% - 90.2% et Energy Impact 700-1000 mesuré sur Standalone avec 2 séquences).

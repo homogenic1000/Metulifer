@@ -5,6 +5,8 @@
 SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProcessorValueTreeState& apvts)
     : seqIndex (sequenceIndex)
 {
+    setPaintingIsUnclipped (true);
+
     addAndMakeVisible (copyButton);
     addAndMakeVisible (pasteButton);
     addAndMakeVisible (arpButton);
@@ -26,6 +28,7 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
     {
         auto step = std::make_unique<juce::TextButton> ("step " + juce::String (i + 1));
         step->setClickingTogglesState (false);
+        step->setPaintingIsUnclipped (true);
         addAndMakeVisible (*step);
         stepButtons.push_back (std::move (step));
     }

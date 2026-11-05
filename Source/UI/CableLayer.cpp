@@ -297,6 +297,9 @@ void CableLayer::removeCable (const Cable& cable)
 
 void CableLayer::paint (juce::Graphics& g)
 {
+    if (cables.empty() && dragSource < 0)
+        return;
+
     auto drawCable = [&g, this] (juce::Point<float> from, juce::Point<float> to,
                                  const juce::Colour& colour, float width)
     {

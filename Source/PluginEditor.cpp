@@ -16,6 +16,7 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
       audioProcessor (p),
       sequencerPanel (p.apvts)
 {
+    setOpaque (true);
     setLookAndFeel (&lookAndFeel);
 
     addAndMakeVisible (sequencerPanel);
