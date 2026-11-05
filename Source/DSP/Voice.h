@@ -14,6 +14,8 @@ public:
         int   octave1  = 0, note1  = 0, wave1  = 1;
         int   octave2  = 0, note2  = 0, wave2  = 1;
         int   transpose = 0; // Transposition in semitones (e.g. from MIDI In)
+        float pitchMod1 = 0.0f; // Continuous pitch modulation in semitones
+        float pitchMod2 = 0.0f;
         float mixDb1   = 0.0f, mixDb2 = 0.0f;
         bool  useLpf   = true;
         float cutoff   = 20000.0f;
@@ -51,6 +53,9 @@ public:
     void noteOn();
     void noteOff();
     void render (juce::AudioBuffer<float>& out, int startSample, int numSamples);
+
+    float getEnv1() const noexcept { return env1Value; }
+    float getEnv2() const noexcept { return env2Value; }
 
 private:
     struct WaveOsc
@@ -156,6 +161,7 @@ private:
     int currentArpOffset = 0;
 
     float mixGain1 = 1.0f, mixGain2 = 1.0f, volumeGain = 0.8f;
+    float env1Value = 0.0f, env2Value = 0.0f;
     bool reverbActive = false;
     bool isVoiceActive = false;
     int tailCounter = 0;

@@ -1,0 +1,85 @@
+---
+title: Modulation Matrix (Mod Matrix)
+description: Multi-source routing matrix inspired by Ableton Wavetable and Drift with bipolar depths (-100% to +100%) and LFO cross-modulation.
+---
+
+## Overview
+
+Metulifer's **Modulation Matrix** brings the fluid, comprehensive routing workflow of modern flagships like **Ableton Wavetable** and **Ableton Drift** into a modular step sequencer.
+
+While the virtual patch cables provide tactile 1-to-1 connections from LFOs to destination knobs, the Modulation Matrix provides an **interconnected multi-source grid** where any modulation source can drive multiple synthesis and effect destinations with bipolar depths and vector summation.
+
+```
+[ MOD MATRIX ] ── Access via toolbar header button or shortcut M
+```
+
+<Callout type="info" title="Keyboard Shortcut">
+  Press `M` on your keyboard at any time to toggle the Modulation Matrix overlay on and off.
+</Callout>
+
+---
+
+## 6 Modulation Sources
+
+| Source | Signal Type | Description |
+|---|---|---|
+| **LFO 1** | Bipolar (-1.0 to +1.0) | Multi-waveform LFO (Sine, Saw, Square, Tri) with rate from 0.1 to 20 Hz. |
+| **LFO 2** | Bipolar (-1.0 to +1.0) | Independent secondary low-frequency oscillator. |
+| **ADSR 1** | Unipolar (0.0 to 1.0) | Primary amplifier envelope of the active voice. |
+| **ADSR 2** | Unipolar (0.0 to 1.0) | Assignable secondary modulation envelope. |
+| **Key/Pitch** | Bipolar (-1.0 to +1.0) | Key tracking normalized relative to middle C (MIDI note 60). |
+| **Velocity** | Unipolar (0.0 to 1.0) | Dynamic trigger velocity of the active step. |
+
+---
+
+## 15 Synthesis & FX Destinations
+
+The matrix gives you deep expressive control across all sound generation and processing modules:
+
+### Synthesis & Filter (SYNTH Filter)
+1. **VCF Cutoff**: Resonant filter cutoff frequency (exponential sweep up to +/- 4 octaves).
+2. **VCO 1 Pitch**: Continuous pitch offset for Oscillator 1 (+/- 24 semitones).
+3. **VCO 2 Pitch**: Continuous pitch offset for Oscillator 2 (+/- 24 semitones).
+4. **VCO 1 Wave**: Continuous waveshape morphing (Sine -> Saw -> Square -> Triangle).
+5. **VCO 2 Wave**: Continuous waveshape morphing for Oscillator 2.
+6. **Mix VCO 1**: Oscillator 1 balance and level (+/- 30 dB).
+7. **Mix VCO 2**: Oscillator 2 balance and level (+/- 30 dB).
+
+### Envelopes & Multi-FX (FX Filter)
+8. **ADSR 1 Decay**: Primary envelope decay duration.
+9. **ADSR 2 Decay**: Modulation envelope decay duration.
+10. **Reverb Mix**: Wet/dry reverberation balance (+/- 50%).
+11. **Delay Time**: Delay echo timing (+/- 400 ms).
+12. **Delay Feedback**: Delay regeneration amount (+/- 45%).
+13. **Redux Bits**: Bitcrusher quantization bit depth (+/- 7 bits).
+14. **Redux Rate**: Downsampler decimation factor (+/- 15x).
+15. **LFO 2 Rate (Cross-Modulation)**: Modulate LFO 2 speed via LFO 1 or envelopes for chaotic FM vibratos.
+
+---
+
+## Cell Interaction & Gestures
+
+Every cell on the matrix grid represents a Source x Destination routing:
+
+- **Vertical Click & Drag**: Drag upwards to increase positive depth (`+1%` to `+100%`, illuminated in cyan). Drag downwards for inverted bipolar modulation (`-1%` to `-100%`, illuminated in warm amber).
+- **Shift Key (Fine Adjustment)**: Hold `Shift` while dragging for high-precision tuning.
+- **Double-Click**: Instantly resets the cell to zero (`--`).
+- **Mouse Wheel**: Scroll over any cell to increment or decrement the modulation amount.
+- **Right-Click Context Menu**: Provides instant access to `Reset to 0%`, `Set to +100%`, `Set to -100%`, `+50%`, `-50%`.
+
+---
+
+## Navigation & Filtering
+
+The header toolbar provides effortless management:
+- **S1 through S6 Tabs**: Switch the matrix view to inspect or adjust any of the 6 independent sequencer voices.
+- **ALL / SYNTH / FX Filters**: Quickly filter rows to show either all 15 destinations or focus on the 7 synth parameters or 8 FX parameters without vertical scrolling.
+- **CLEAR SEQ**: Clears all active modulation routings for the current sequence in a single click.
+- **Close Button [X]**: Dismisses the matrix overlay to reveal the main synth knobs and modular slices.
+
+---
+
+## Real-Time Lock-Free Performance
+
+- **Zero Allocation & Real-Time Safe**: All 540 matrix intersections are stored in a flat atomic array `std::atomic<float> modMatrix[6][15][6]`. Evaluation within `processBlock()` executes in under 100 nanoseconds per audio block without mutexes or dynamic memory operations.
+- **Total Preset & State Persistence**: All routings are serialized into the `matrixTree` ValueTree and saved with host DAW sessions and factory presets.

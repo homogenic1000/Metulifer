@@ -87,6 +87,8 @@ void Voice::reset()
 {
     adsr1.reset();
     adsr2.reset();
+    env1Value = 0.0f;
+    env2Value = 0.0f;
     filter.reset();
     reverb.reset();
     delayBuffer.clear();
@@ -167,8 +169,10 @@ void Voice::setParams (const Params& p)
 
 void Voice::updateFrequencies()
 {
-    osc1.setFrequency (frequencyFor (currentParams.octave1, currentParams.note1 + currentArpOffset + currentParams.transpose), sampleRate);
-    osc2.setFrequency (frequencyFor (currentParams.octave2, currentParams.note2 + currentArpOffset + currentParams.transpose), sampleRate);
+    const double noteAndMod1 = (double) (currentParams.note1 + currentArpOffset + currentParams.transpose) + (double) currentParams.pitchMod1;
+    const double noteAndMod2 = (double) (currentParams.note2 + currentArpOffset + currentParams.transpose) + (double) currentParams.pitchMod2;
+    osc1.setFrequency (130.81 * std::exp2 ((double) currentParams.octave1 + noteAndMod1 / 12.0), sampleRate);
+    osc2.setFrequency (130.81 * std::exp2 ((double) currentParams.octave2 + noteAndMod2 / 12.0), sampleRate);
 }
 
 void Voice::advanceArp()
@@ -295,6 +299,8 @@ void Voice::noteOn()
     isVoiceActive = true;
     tailCounter = 0;
     silentDelaySamples = 0;
+    env1Value = 1.0f;
+    env2Value = 1.0f;
 
     if (currentParams.arpEnabled)
     {
@@ -339,6 +345,8 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         return;
 
     const bool envActive = adsr1.isActive() || adsr2.isActive();
+    if (! adsr1.isActive()) env1Value = 0.0f;
+    if (! adsr2.isActive()) env2Value = 0.0f;
 
     if (! envActive)
     {
@@ -359,16 +367,22 @@ void Voice::renderChunk (juce::AudioBuffer<float>& out, int startSample, int num
         auto* s1 = scratch1.getWritePointer (0);
         auto* s2 = scratch2.getWritePointer (0);
 
+        float lastEnv1 = 0.0f;
         for (int i = 0; i < numSamples; ++i)
-            s1[i] = osc1.next();
-
-        adsr1.applyEnvelopeToBuffer (scratch1, 0, numSamples);
+        {
+            lastEnv1 = adsr1.getNextSample();
+            s1[i] = osc1.next() * lastEnv1;
+        }
+        env1Value = adsr1.isActive() ? lastEnv1 : 0.0f;
         scratch1.applyGain (0, numSamples, mixGain1);
 
+        float lastEnv2 = 0.0f;
         for (int i = 0; i < numSamples; ++i)
-            s2[i] = osc2.next();
-
-        adsr2.applyEnvelopeToBuffer (scratch2, 0, numSamples);
+        {
+            lastEnv2 = adsr2.getNextSample();
+            s2[i] = osc2.next() * lastEnv2;
+        }
+        env2Value = adsr2.isActive() ? lastEnv2 : 0.0f;
         scratch2.applyGain (0, numSamples, mixGain2);
 
         scratch1.addFrom (0, 0, scratch2, 0, 0, numSamples);

@@ -14,7 +14,8 @@
 MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProcessor& p)
     : AudioProcessorEditor (&p),
       audioProcessor (p),
-      sequencerPanel (p.apvts)
+      sequencerPanel (p.apvts),
+      modMatrixPanel (p)
 {
     setOpaque (true);
     setLookAndFeel (&lookAndFeel);
@@ -28,6 +29,17 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     addAndMakeVisible (lfoPanel2);
     addAndMakeVisible (reverbPanel);
     addAndMakeVisible (cableLayer); // au-dessus de tout (hitTest limité aux jacks/câbles)
+    addChildComponent (modMatrixPanel);
+    modMatrixPanel.setVisible (false);
+    modMatrixPanel.onCloseRequested = [this] { setMatrixViewOpen (false); };
+    modMatrixPanel.onSequenceChanged = [this] (int seq) { sequenceSelected (seq); };
+
+    addAndMakeVisible (matrixButton);
+    matrixButton.setTooltip ("Toggle Modulation Matrix (M)");
+    matrixButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff1f1f26));
+    matrixButton.setColour (juce::TextButton::textColourOffId, juce::Colour (0xffa1a1aa));
+    matrixButton.onClick = [this] { setMatrixViewOpen (! isMatrixViewOpen); };
+
     addAndMakeVisible (inspectButton);
     inspectButton.setTooltip ("Toggle UI Inspector (Cmd+I)");
     inspectButton.onClick = [this] { inspector.toggle(); };
@@ -310,6 +322,7 @@ void MetuliferAudioProcessorEditor::resized()
     const int rightColX = getWidth() - marginX - rightColWidth; // 1280 - 32 - 288 = 960
 
     inspectButton.setBounds (getWidth() - marginX - 60, 8, 60, 18);
+    matrixButton.setBounds (inspectButton.getX() - 68, 8, 62, 18);
 
     // Top Section: Sequencer (Left) | DisplayScreen + ClockPanel (Right)
     sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, 417);
@@ -333,6 +346,7 @@ void MetuliferAudioProcessorEditor::resized()
     lfoPanel1.setBounds (lfo1X, botY, moduleW, botH);
     lfoPanel2.setBounds (lfo2X, botY, moduleW, botH);
     reverbPanel.setBounds (revX, botY, moduleW, botH);
+    modMatrixPanel.setBounds (marginX, botY, getWidth() - marginX * 2, botH);
 
     cableLayer.setBounds (0, 0, getWidth(), getHeight());
 
@@ -390,8 +404,27 @@ void MetuliferAudioProcessorEditor::sequenceSelected (int index)
     displayScreen.setSequenceNumber (index + 1);
     bindSequence (index);
     cableLayer.setSelectedSequence (index);
+    modMatrixPanel.setSelectedSequence (index);
     updateLfoDestinations();
     clearParamDisplay();
+}
+
+void MetuliferAudioProcessorEditor::setMatrixViewOpen (bool open)
+{
+    isMatrixViewOpen = open;
+    modMatrixPanel.setVisible (open);
+    if (open)
+    {
+        modMatrixPanel.setSelectedSequence (currentSeq);
+        modMatrixPanel.refreshCells();
+        modMatrixPanel.toFront (true);
+    }
+
+    matrixButton.setColour (juce::TextButton::buttonColourId,
+                            open ? juce::Colour (0xff0284c7) : juce::Colour (0xff1f1f26));
+    matrixButton.setColour (juce::TextButton::textColourOffId,
+                            open ? juce::Colours::white : juce::Colour (0xffa1a1aa));
+    matrixButton.repaint();
 }
 
 void MetuliferAudioProcessorEditor::bindSequence (int index)
@@ -926,6 +959,13 @@ bool MetuliferAudioProcessorEditor::keyPressed (const juce::KeyPress& key)
     if (key.getModifiers().isCommandDown() && (key.getKeyCode() == 'I' || key.getKeyCode() == 'i'))
     {
         inspector.toggle();
+        return true;
+    }
+
+    if (! key.getModifiers().isCommandDown() && ! key.getModifiers().isAltDown()
+        && (key.getKeyCode() == 'M' || key.getKeyCode() == 'm'))
+    {
+        setMatrixViewOpen (! isMatrixViewOpen);
         return true;
     }
 

@@ -116,6 +116,35 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Boutons Mute/Solo (Electribe EMX/ESX) & Matrice de Modulation Bipolaire (Ableton Style)
+- **Tâche** : Implémenter les boutons Mute et Solo par séquence inspirés des groovebox Korg Electribe EMX-1/ESX-1, ainsi qu'une matrice de modulation interconnectée (6 sources x 15 destinations, profondeurs bipolaires -100% à +100%) inspirée d'Ableton Wavetable et Drift.
+- **Détails des réalisations** :
+  1. **Workflow Mute & Solo (Korg Electribe EMX/ESX)** :
+     - Ajout des boutons `[M]` (rouge vif `#ef4444`) et `[S]` (jaune `#eab308`) sur chaque rangée `SequenceRowComponent` avec assombrissement visuel de la piste mutée.
+     - Paramètres APVTS automatisables `seq1_mute`...`seq6_mute` et `seq1_solo`...`seq6_solo` (total APVTS porté à 221 paramètres).
+     - Comportement DSP non-destructif (*Tail Preservation*) : lors du mute, suppression des déclenchements de pas `gateOn` sans coupure abrupte du buffer audio, permettant aux enveloppes actives et aux queues de delay/reverb stéréo de s'éteindre naturellement.
+     - Mémoire de mute sur désactivation du solo.
+  2. **Matrice de Modulation (Mod Matrix Ableton Style)** :
+     - Création de `Source/DSP/ModMatrix.h` définissant 6 sources (`LFO1`, `LFO2`, `ADSR1`, `ADSR2`, `KeyPitch`, `Velocity`) et 15 destinations (Cutoff, Pitch 1/2, Wave 1/2, Mix 1/2, Decay 1/2, Reverb Mix, Delay Time/Feedback, Redux Bits/Rate, LFO2 Rate).
+     - DSP temps réel 100% lock-free et zero-allocation : stockage dans un tableau plat atomique `std::atomic<float> modMatrix[6][15][6]`, sommation vectorielle continue en moins de 100 ns dans `processBlock()`.
+     - Cross-modulation LFO 1 -> LFO 2 Rate dans `updateLfos()`.
+     - Intégration de `pitchMod1` / `pitchMod2` dans `Voice::updateFrequencies()` et échantillonnage temps réel des enveloppes ADSR `env1Value` / `env2Value`.
+     - Sérialisation persistante de la matrice via `matrixTree` dans l'état XML du plugin.
+  3. **Composant UI ModMatrixPanel** :
+     - Composant Ableton dark sleek avec onglets de sélection de séquence `S1`..`S6`, filtres de catégories `ALL` / `SYNTH` / `FX`, bouton `CLEAR SEQ` et fermeture `[X]`.
+     - Cellules interactives `MatrixCell` à ajustement vertical par glisser-déplacer, mode précision avec touche `Shift`, double-clic pour réinitialiser, menu contextuel clic-droit et affichage bipolaire jaugé (cyan pour les valeurs positives, ambre pour les valeurs négatives).
+     - Bouton d'en-tête `MATRIX` et raccourci clavier `M` pour afficher/masquer le panneau par-dessus la section basse.
+  4. **Tests & Validation de conformité** :
+     - Ajout des suites de tests unitaires `MuteSoloUnitTest` et `ModMatrixUnitTest` dans `Source/Tests/UnitTests.cpp` (100% passés).
+     - Build Xcode Debug et Release (`xcodebuild` sans erreur ni warning).
+     - Validation stricte niveau 5 `pluginval` sur VST3 et AU (`SUCCESS`, `auval` code 0).
+  5. **Documentation & Déploiement** :
+     - Mise à jour bilingue (FR/EN) des guides séquenceur, paramètres d'architecture et création des guides `mod-matrix.mdx`.
+     - Build réussi du site de documentation Next.js (40/40 pages statiques).
+- **Fichiers** : `Source/DSP/ModMatrix.h`, `Source/DSP/Voice.h`, `Source/DSP/Voice.cpp`, `Source/PluginProcessor.h`, `Source/PluginProcessor.cpp`, `Source/UI/ModMatrixPanel.h`, `Source/UI/ModMatrixPanel.cpp`, `Source/UI/SequenceRowComponent.h`, `Source/UI/SequenceRowComponent.cpp`, `Source/UI/PluginEditor.h`, `Source/PluginEditor.cpp`, `Source/Tests/UnitTests.cpp`, `Metulifer.jucer`, `docs/**`, `AGENTS.md`
+- **Build** : ✅ Debug OK, ✅ Release OK, ✅ Tests unitaires OK, ✅ Pluginval VST3/AU niveau 5 OK
+- **Next steps** : —
+
 ### 2026-11-05 — Élimination du heap-use-after-free sur l'automatisation d'interface (SafePointer & cycle de vie UI)
 - **Tâche** : Résoudre le plantage `malloc: pointer being freed was not allocated` / `Abort trap: 6` survenu sous `pluginval` lors du test d'automatisation d'interface (`Editor Automation`) sur le format Audio Unit (AU).
 - **Causes racines identifiées** :

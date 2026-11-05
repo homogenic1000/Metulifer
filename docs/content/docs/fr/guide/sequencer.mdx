@@ -54,15 +54,23 @@ au pas 0. Réduire la longueur à 7 transforme une séquence de 32 pas en boucle
   contrairement aux knobs du synthé qui suivent la sélection.
 </Callout>
 
-## Boutons de rangée : Copy, Paste et ARP
+## Boutons de rangée : Mute, Solo, Copy, Paste et ARP
 
-Chaque rangée dispose de trois boutons d'action directe :
+Chaque rangée dispose de boutons d'action directe en temps réel :
 
-| Bouton | Action | Rôle |
-|---|---|---|
-| **C** | Copy | Copie le motif de 32 pas dans le presse-papiers interne partagé. |
-| **P** | Paste | Colle le motif mémorisé sur la rangée cible (conserve la longueur active). |
-| **ARP** | Arpégiateur | Active/désactive instantanément l'arpège sur la séquence (voyant bleu néon). |
+| Bouton | Action | Rôle | Style / Feedback |
+|---|---|---|---|
+| **M** | Mute (Electribe) | Coupe instantanément les déclenchements de pas tout en laissant résonner naturellement les queues de réverbe et de delay sans clic. | Rétro-éclairage rouge vif (`#ef4444`) quand actif ; assombrit la rangée mutée. |
+| **S** | Solo (Electribe) | Isole la séquence sélectionnée et rend inaudibles toutes les autres pistes. Préserve l'état de mute antérieur restauré à la désactivation. | Rétro-éclairage jaune vif (`#eab308`) quand actif. |
+| **C** | Copy | Copie le motif de 32 pas dans le presse-papiers interne partagé. | Rétro-éclairage ardoise discret. |
+| **P** | Paste | Colle le motif mémorisé sur la rangée cible (conserve la longueur active). | Rétro-éclairage ardoise discret. |
+| **ARP** | Arpégiateur | Active/désactive instantanément l'arpège sur la séquence (voyant bleu néon). | Cyan néon (`#38bdf8`) quand actif. |
+
+### Workflow de Mute / Solo inspiré des Korg Electribe EMX-1 & ESX-1
+Sur les groovebox mythiques **Korg Electribe** :
+1. **Mute non destructif (*Tail Preservation*)** : Presser **[M]** n'interrompt pas brutalement les buffers audio. Le moteur DSP supprime simplement les déclenchements `gateOn` suivants. La voix active achève sa phase de release et les échos de delay/reverbe s'éteignent naturellement dans l'espace stéréo.
+2. **Mémoire de Solo** : Activer un ou plusieurs boutons **[S]** force l'écoute exclusive des pistes solo. Lorsque vous relâchez le Solo, la configuration exacte de vos mutes précédents est instantanément restituée.
+3. **Automatisable dans le DAW** : Chaque séquence dispose des paramètres automatisables `seq1_mute` … `seq6_mute` et `seq1_solo` … `seq6_solo`.
 
 Le bouton **ARP** de rangée permet d'activer le mode mélodique d'une simple pression pendant le jeu en direct, tout en conservant les réglages détaillés de mode et de gamme dans le [panneau Arpégiateur](/fr/docs/guide/arpeggiator).
 

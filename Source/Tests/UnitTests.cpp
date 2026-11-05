@@ -310,3 +310,122 @@ public:
 };
 
 static StateSerializationUnitTest stateSerializationUnitTest;
+
+//==============================================================================
+class MuteSoloUnitTest : public juce::UnitTest
+{
+public:
+    MuteSoloUnitTest() : juce::UnitTest ("Mute and Solo Workflow", "Sequencer") {}
+
+    void runTest() override
+    {
+        beginTest ("Electribe Mute & Solo Behavior");
+        {
+            MetuliferAudioProcessor proc;
+            proc.prepareToPlay (44100.0, 512);
+
+            // Default: unmuted and unsoloed
+            for (int i = 0; i < MetuliferAudioProcessor::numSequences; ++i)
+            {
+                expect (! proc.isSequenceMuted (i), "Sequence " + juce::String (i) + " should start unmuted");
+                expect (! proc.isSequenceSolo (i), "Sequence " + juce::String (i) + " should start unsoloed");
+            }
+
+            // Test setting mute via API and parameter sync
+            proc.setSequenceMuted (0, true);
+            expect (proc.isSequenceMuted (0), "Sequence 0 should be muted");
+            auto* muteParam = proc.apvts.getRawParameterValue ("seq1_mute");
+            expect (muteParam != nullptr && muteParam->load() > 0.5f);
+
+            // Test setting solo via API and parameter sync
+            proc.setSequenceSolo (2, true);
+            expect (proc.isSequenceSolo (2), "Sequence 2 should be soloed");
+            auto* soloParam = proc.apvts.getRawParameterValue ("seq3_solo");
+            expect (soloParam != nullptr && soloParam->load() > 0.5f);
+
+            // Test audio processing with Mute / Solo active
+            // Give track 0 and 1 active steps
+            proc.setStepPattern (0, 0b1111);
+            proc.setStepPattern (1, 0b1111);
+
+            juce::AudioBuffer<float> buffer (2, 512);
+            juce::MidiBuffer midi;
+
+            // With track 2 soloed, tracks 0 and 1 should generate silence/release only
+            proc.setPlaying (true);
+            proc.processBlock (buffer, midi);
+
+            // Turn off solo on 2
+            proc.setSequenceSolo (2, false);
+            expect (! proc.isSequenceSolo (2));
+
+            // With no solo active, track 0 is muted (should not trigger new notes)
+            // Track 1 is unmuted (should trigger notes)
+            proc.processBlock (buffer, midi);
+
+            // Turn off mute on 0
+            proc.setSequenceMuted (0, false);
+            expect (! proc.isSequenceMuted (0));
+        }
+    }
+};
+
+static MuteSoloUnitTest muteSoloUnitTest;
+
+//==============================================================================
+class ModMatrixUnitTest : public juce::UnitTest
+{
+public:
+    ModMatrixUnitTest() : juce::UnitTest ("Modulation Matrix", "DSP") {}
+
+    void runTest() override
+    {
+        beginTest ("ModMatrix Routings, Clamping and State Serialization");
+        {
+            MetuliferAudioProcessor proc1;
+
+            // Verify defaults are 0.0f
+            for (int s = 0; s < MetuliferAudioProcessor::numSequences; ++s)
+                for (int d = 0; d < ModMatrix::numDestinations; ++d)
+                    for (int src = 0; src < ModMatrix::numSources; ++src)
+                        expectEquals (proc1.getMatrixAmount (s, d, src), 0.0f);
+
+            // Set bipolar amounts
+            proc1.setMatrixAmount (0, ModMatrix::dstCutoff, ModMatrix::srcLFO1, 0.45f);
+            proc1.setMatrixAmount (0, ModMatrix::dstPitch1, ModMatrix::srcLFO2, -0.25f);
+            proc1.setMatrixAmount (1, ModMatrix::dstDelayTime, ModMatrix::srcEnv2, 0.80f);
+            proc1.setMatrixAmount (2, ModMatrix::dstLfo2Rate, ModMatrix::srcLFO1, -0.60f);
+
+            // Verify reads
+            expectWithinAbsoluteError (proc1.getMatrixAmount (0, ModMatrix::dstCutoff, ModMatrix::srcLFO1), 0.45f, 0.001f);
+            expectWithinAbsoluteError (proc1.getMatrixAmount (0, ModMatrix::dstPitch1, ModMatrix::srcLFO2), -0.25f, 0.001f);
+            expectWithinAbsoluteError (proc1.getMatrixAmount (1, ModMatrix::dstDelayTime, ModMatrix::srcEnv2), 0.80f, 0.001f);
+            expectWithinAbsoluteError (proc1.getMatrixAmount (2, ModMatrix::dstLfo2Rate, ModMatrix::srcLFO1), -0.60f, 0.001f);
+
+            // Test clamping beyond [-1.0, 1.0]
+            proc1.setMatrixAmount (0, ModMatrix::dstWave1, ModMatrix::srcKeyPitch, 2.5f);
+            expectWithinAbsoluteError (proc1.getMatrixAmount (0, ModMatrix::dstWave1, ModMatrix::srcKeyPitch), 1.0f, 0.001f);
+
+            proc1.setMatrixAmount (0, ModMatrix::dstWave2, ModMatrix::srcVelocity, -1.8f);
+            expectWithinAbsoluteError (proc1.getMatrixAmount (0, ModMatrix::dstWave2, ModMatrix::srcVelocity), -1.0f, 0.001f);
+
+            // Serialize state
+            juce::MemoryBlock state;
+            proc1.getStateInformation (state);
+            expect (state.getSize() > 0);
+
+            // Restore in another instance
+            MetuliferAudioProcessor proc2;
+            proc2.setStateInformation (state.getData(), (int) state.getSize());
+
+            expectWithinAbsoluteError (proc2.getMatrixAmount (0, ModMatrix::dstCutoff, ModMatrix::srcLFO1), 0.45f, 0.001f);
+            expectWithinAbsoluteError (proc2.getMatrixAmount (0, ModMatrix::dstPitch1, ModMatrix::srcLFO2), -0.25f, 0.001f);
+            expectWithinAbsoluteError (proc2.getMatrixAmount (1, ModMatrix::dstDelayTime, ModMatrix::srcEnv2), 0.80f, 0.001f);
+            expectWithinAbsoluteError (proc2.getMatrixAmount (2, ModMatrix::dstLfo2Rate, ModMatrix::srcLFO1), -0.60f, 0.001f);
+            expectWithinAbsoluteError (proc2.getMatrixAmount (0, ModMatrix::dstWave1, ModMatrix::srcKeyPitch), 1.0f, 0.001f);
+            expectWithinAbsoluteError (proc2.getMatrixAmount (0, ModMatrix::dstWave2, ModMatrix::srcVelocity), -1.0f, 0.001f);
+        }
+    }
+};
+
+static ModMatrixUnitTest modMatrixUnitTest;

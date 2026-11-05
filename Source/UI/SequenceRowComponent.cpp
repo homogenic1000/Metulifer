@@ -24,6 +24,19 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
             onArpToggled (arpButton.getToggleState());
     };
 
+    muteButton.setClickingTogglesState (true);
+    muteButton.setTooltip ("Mute sequence (Electribe style)");
+    muteButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xffef4444));
+    muteButton.setColour (juce::TextButton::textColourOnId, juce::Colours::white);
+    muteButton.onStateChange = [this] { repaint(); };
+    addAndMakeVisible (muteButton);
+
+    soloButton.setClickingTogglesState (true);
+    soloButton.setTooltip ("Solo sequence");
+    soloButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xffeab308));
+    soloButton.setColour (juce::TextButton::textColourOnId, juce::Colours::black);
+    addAndMakeVisible (soloButton);
+
     for (int i = 0; i < numSteps; ++i)
     {
         auto step = std::make_unique<juce::TextButton> ("step " + juce::String (i + 1));
@@ -55,6 +68,10 @@ SequenceRowComponent::SequenceRowComponent (int sequenceIndex, juce::AudioProces
         apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "volume"), volumeKnob);
     arpAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "arp_enabled"), arpButton);
+    muteAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "mute"), muteButton);
+    soloAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        apvts, MetuliferAudioProcessor::seqParamId (seqIndex, "solo"), soloButton);
 
     addMouseListener (&mouseListener, true);
 }
@@ -97,34 +114,50 @@ void SequenceRowComponent::paint (juce::Graphics& g)
     g.setColour (juce::Colours::white);
     g.setFont (juce::FontOptions (10.5f, juce::Font::bold));
     g.drawText ("S" + juce::String (seqIndex + 1), badgeArea, juce::Justification::centred);
+
+    if (muteButton.getToggleState())
+    {
+        g.setColour (juce::Colour (0x45000000));
+        g.fillRoundedRectangle (bounds, 5.0f);
+    }
 }
 
 void SequenceRowComponent::resized()
 {
     const float pad = 5.0f;
-    const float gap = 3.0f;
+    const float gap = 2.0f;
     auto area = getLocalBounds().toFloat().reduced (pad);
 
-    // Left area: Badge space (30) + C (24) + P (24) + ARP (28) = 112px
-    auto leftArea = area.removeFromLeft (116.0f);
-    leftArea.removeFromLeft (30.0f); // Space for S1..S6 badge
+    // Left area: Badge space (28) + M (22) + S (22) + C (22) + P (22) + ARP (28) = 154px
+    auto leftArea = area.removeFromLeft (156.0f);
+    leftArea.removeFromLeft (28.0f); // Space for S1..S6 badge
 
-    const float btnSize = 24.0f;
+    const float btnSize = 22.0f;
     const float btnY = (getHeight() - btnSize) * 0.5f;
 
+    auto muteArea = leftArea.removeFromLeft (btnSize);
+    muteButton.setBounds (juce::roundToInt (muteArea.getX()), juce::roundToInt (btnY),
+                          juce::roundToInt (btnSize), juce::roundToInt (btnSize));
+
+    leftArea.removeFromLeft (2.0f);
+    auto soloArea = leftArea.removeFromLeft (btnSize);
+    soloButton.setBounds (juce::roundToInt (soloArea.getX()), juce::roundToInt (btnY),
+                          juce::roundToInt (btnSize), juce::roundToInt (btnSize));
+
+    leftArea.removeFromLeft (3.0f);
     auto copyArea = leftArea.removeFromLeft (btnSize);
     copyButton.setBounds (juce::roundToInt (copyArea.getX()), juce::roundToInt (btnY),
                           juce::roundToInt (btnSize), juce::roundToInt (btnSize));
 
-    leftArea.removeFromLeft (3.0f);
+    leftArea.removeFromLeft (2.0f);
     auto pasteArea = leftArea.removeFromLeft (btnSize);
     pasteButton.setBounds (juce::roundToInt (pasteArea.getX()), juce::roundToInt (btnY),
                            juce::roundToInt (btnSize), juce::roundToInt (btnSize));
 
-    leftArea.removeFromLeft (3.0f);
-    auto arpArea = leftArea.removeFromLeft (30.0f);
+    leftArea.removeFromLeft (2.0f);
+    auto arpArea = leftArea.removeFromLeft (28.0f);
     arpButton.setBounds (juce::roundToInt (arpArea.getX()), juce::roundToInt (btnY),
-                         30, juce::roundToInt (btnSize));
+                         28, juce::roundToInt (btnSize));
 
     area.removeFromLeft (gap);
 

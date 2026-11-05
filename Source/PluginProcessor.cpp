@@ -143,6 +143,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout MetuliferAudioProcessor::cre
                                 "Dom7", "Sus4", "Fifths", "Chromatic" }, 1));
         layout.add (std::make_unique<juce::AudioParameterInt> (
             juce::ParameterID { id + "arp_octaves", 1 }, nm + "Arp Octaves", 1, 3, 1));
+
+        // Mute & Solo (Electribe style)
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "mute", 1 }, nm + "Mute", false));
+        layout.add (std::make_unique<juce::AudioParameterBool> (
+            juce::ParameterID { id + "solo", 1 }, nm + "Solo", false));
     }
 
     layout.add (std::make_unique<juce::AudioParameterInt> (
@@ -266,6 +272,8 @@ void MetuliferAudioProcessor::VoiceSources::bind (juce::AudioProcessorValueTreeS
     arpMode       = raw ("arp_mode");
     arpChord      = raw ("arp_chord");
     arpOctaves    = raw ("arp_octaves");
+    mute          = raw ("mute");
+    solo          = raw ("solo");
 }
 
 Voice::Params MetuliferAudioProcessor::VoiceSources::read() const
@@ -767,6 +775,64 @@ void MetuliferAudioProcessor::euclideanSequence (int seqIndex, int hits, int len
 }
 
 //==============================================================================
+bool MetuliferAudioProcessor::isSequenceMuted (int seqIndex) const
+{
+    if (juce::isPositiveAndBelow (seqIndex, numSequences))
+        if (auto* p = voiceSources[seqIndex].mute)
+            return p->load (std::memory_order_relaxed) > 0.5f;
+    return false;
+}
+
+void MetuliferAudioProcessor::setSequenceMuted (int seqIndex, bool mute)
+{
+    if (juce::isPositiveAndBelow (seqIndex, numSequences))
+        if (auto* p = apvts.getParameter (seqParamId (seqIndex, "mute")))
+            p->setValueNotifyingHost (mute ? 1.0f : 0.0f);
+}
+
+bool MetuliferAudioProcessor::isSequenceSolo (int seqIndex) const
+{
+    if (juce::isPositiveAndBelow (seqIndex, numSequences))
+        if (auto* p = voiceSources[seqIndex].solo)
+            return p->load (std::memory_order_relaxed) > 0.5f;
+    return false;
+}
+
+void MetuliferAudioProcessor::setSequenceSolo (int seqIndex, bool solo)
+{
+    if (juce::isPositiveAndBelow (seqIndex, numSequences))
+        if (auto* p = apvts.getParameter (seqParamId (seqIndex, "solo")))
+            p->setValueNotifyingHost (solo ? 1.0f : 0.0f);
+}
+
+float MetuliferAudioProcessor::getMatrixAmount (int seqIndex, int dest, int src) const noexcept
+{
+    if (! juce::isPositiveAndBelow (seqIndex, numSequences)
+        || ! juce::isPositiveAndBelow (dest, (int) ModMatrix::numDestinations)
+        || ! juce::isPositiveAndBelow (src, (int) ModMatrix::numSources))
+        return 0.0f;
+
+    return modMatrix[seqIndex][dest][src].load (std::memory_order_relaxed);
+}
+
+void MetuliferAudioProcessor::setMatrixAmount (int seqIndex, int dest, int src, float amount)
+{
+    if (! juce::isPositiveAndBelow (seqIndex, numSequences)
+        || ! juce::isPositiveAndBelow (dest, (int) ModMatrix::numDestinations)
+        || ! juce::isPositiveAndBelow (src, (int) ModMatrix::numSources))
+        return;
+
+    const float clamped = juce::jlimit (-1.0f, 1.0f, amount);
+    modMatrix[seqIndex][dest][src].store (clamped, std::memory_order_relaxed);
+
+    const auto prop = "r_" + juce::String (seqIndex) + "_" + juce::String (dest) + "_" + juce::String (src);
+    if (std::abs (clamped) < 0.001f)
+        matrixTree.removeProperty (prop, nullptr);
+    else
+        matrixTree.setProperty (prop, clamped, nullptr);
+}
+
+//==============================================================================
 juce::String MetuliferAudioProcessor::seqParamId (int seqIndex, const juce::String& name)
 {
     return "seq" + juce::String (seqIndex + 1) + "_" + name;
@@ -895,8 +961,123 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         }
     }
 
+    // ModMatrix evaluation per sequence
+    const float lfo1Val = lfoValue[0].load (std::memory_order_relaxed);
+    const float lfo2Val = lfoValue[1].load (std::memory_order_relaxed);
+
+    for (int s = 0; s < numSequences; ++s)
+    {
+        float srcVals[ModMatrix::numSources];
+        srcVals[ModMatrix::srcLFO1] = lfo1Val;
+        srcVals[ModMatrix::srcLFO2] = lfo2Val;
+        srcVals[ModMatrix::srcEnv1] = voices[s].getEnv1();
+        srcVals[ModMatrix::srcEnv2] = voices[s].getEnv2();
+        const int noteNum = 48 + params[s].octave1 * 12 + params[s].note1 + transpose;
+        srcVals[ModMatrix::srcKeyPitch] = juce::jlimit (-1.0f, 1.0f, (float) (noteNum - 60) / 36.0f);
+        srcVals[ModMatrix::srcVelocity] = 0.85f;
+
+        const auto getModSum = [this, s, &srcVals] (int dest) -> float
+        {
+            float sum = 0.0f;
+            for (int src = 0; src < (int) ModMatrix::numSources; ++src)
+            {
+                const float amt = modMatrix[s][dest][src].load (std::memory_order_relaxed);
+                if (std::abs (amt) > 0.001f)
+                    sum += amt * srcVals[src];
+            }
+            return sum;
+        };
+
+        const float modCutoff = getModSum (ModMatrix::dstCutoff);
+        if (std::abs (modCutoff) > 0.001f)
+            params[s].cutoff = juce::jlimit (20.0f, 20000.0f, params[s].cutoff * std::exp2 (modCutoff * 4.0f));
+
+        const float modP1 = getModSum (ModMatrix::dstPitch1);
+        params[s].pitchMod1 += modP1 * 24.0f;
+
+        const float modP2 = getModSum (ModMatrix::dstPitch2);
+        params[s].pitchMod2 += modP2 * 24.0f;
+
+        const float modW1 = getModSum (ModMatrix::dstWave1);
+        if (std::abs (modW1) > 0.001f)
+            params[s].wave1 = juce::jlimit (0, 3, (int) std::round ((float) params[s].wave1 + modW1 * 3.0f));
+
+        const float modW2 = getModSum (ModMatrix::dstWave2);
+        if (std::abs (modW2) > 0.001f)
+            params[s].wave2 = juce::jlimit (0, 3, (int) std::round ((float) params[s].wave2 + modW2 * 3.0f));
+
+        const float modMix1 = getModSum (ModMatrix::dstMix1);
+        if (std::abs (modMix1) > 0.001f)
+            params[s].mixDb1 = juce::jlimit (-60.0f, 6.0f, params[s].mixDb1 + modMix1 * 30.0f);
+
+        const float modMix2 = getModSum (ModMatrix::dstMix2);
+        if (std::abs (modMix2) > 0.001f)
+            params[s].mixDb2 = juce::jlimit (-60.0f, 6.0f, params[s].mixDb2 + modMix2 * 30.0f);
+
+        const float modD1 = getModSum (ModMatrix::dstDecay1);
+        if (std::abs (modD1) > 0.001f)
+            params[s].decay1 = juce::jlimit (10.0f, 3000.0f, params[s].decay1 * std::exp2 (modD1 * 2.0f));
+
+        const float modD2 = getModSum (ModMatrix::dstDecay2);
+        if (std::abs (modD2) > 0.001f)
+            params[s].decay2 = juce::jlimit (10.0f, 3000.0f, params[s].decay2 * std::exp2 (modD2 * 2.0f));
+
+        const float modRev = getModSum (ModMatrix::dstReverbMix);
+        if (std::abs (modRev) > 0.001f)
+            params[s].reverbMix = juce::jlimit (0.0f, 100.0f, params[s].reverbMix + modRev * 50.0f);
+
+        const float modDT = getModSum (ModMatrix::dstDelayTime);
+        if (std::abs (modDT) > 0.001f)
+            params[s].delayTime = juce::jlimit (20.0f, 1000.0f, params[s].delayTime + modDT * 400.0f);
+
+        const float modDF = getModSum (ModMatrix::dstDelayFeedback);
+        if (std::abs (modDF) > 0.001f)
+            params[s].delayFeedback = juce::jlimit (0.0f, 90.0f, params[s].delayFeedback + modDF * 45.0f);
+
+        const float modRB = getModSum (ModMatrix::dstReduxBits);
+        if (std::abs (modRB) > 0.001f)
+            params[s].reduxBits = juce::jlimit (2, 16, (int) std::round ((float) params[s].reduxBits + modRB * 7.0f));
+
+        const float modRR = getModSum (ModMatrix::dstReduxRate);
+        if (std::abs (modRR) > 0.001f)
+            params[s].reduxRate = juce::jlimit (1, 32, (int) std::round ((float) params[s].reduxRate + modRR * 15.0f));
+    }
+
     for (int s = 0; s < numSequences; ++s)
         voices[s].setParams (params[s]);
+
+    // Check solo and mute states (Electribe workflow)
+    bool anySolo = false;
+    for (int s = 0; s < numSequences; ++s)
+    {
+        if (voiceSources[s].solo != nullptr && voiceSources[s].solo->load (std::memory_order_relaxed) > 0.5f)
+        {
+            anySolo = true;
+            break;
+        }
+    }
+
+    bool isTrackAudible[numSequences];
+    for (int s = 0; s < numSequences; ++s)
+    {
+        const bool isSolo = voiceSources[s].solo != nullptr
+                            && voiceSources[s].solo->load (std::memory_order_relaxed) > 0.5f;
+        const bool isMuted = voiceSources[s].mute != nullptr
+                             && voiceSources[s].mute->load (std::memory_order_relaxed) > 0.5f;
+
+        if (anySolo)
+            isTrackAudible[s] = isSolo;
+        else
+            isTrackAudible[s] = ! isMuted;
+
+        // If track became inaudible while a note was actively ringing, release cleanly
+        if (! isTrackAudible[s] && activeMidiNotes[s] >= 0)
+        {
+            voices[s].noteOff();
+            midiMessages.addEvent (juce::MidiMessage::noteOff (s + 1, activeMidiNotes[s], 0.0f), 0);
+            activeMidiNotes[s] = -1;
+        }
+    }
 
     if (engine.takePendingNoteOff())
     {
@@ -928,11 +1109,23 @@ void MetuliferAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
         if (ev.gateOn)
         {
-            voice.noteOn();
-            if (activeMidiNotes[seq] >= 0)
-                midiMessages.addEvent (juce::MidiMessage::noteOff (channel, activeMidiNotes[seq], 0.0f), ev.sampleOffset);
-            activeMidiNotes[seq] = midiNote;
-            midiMessages.addEvent (juce::MidiMessage::noteOn (channel, midiNote, 0.85f), ev.sampleOffset);
+            if (isTrackAudible[seq])
+            {
+                voice.noteOn();
+                if (activeMidiNotes[seq] >= 0)
+                    midiMessages.addEvent (juce::MidiMessage::noteOff (channel, activeMidiNotes[seq], 0.0f), ev.sampleOffset);
+                activeMidiNotes[seq] = midiNote;
+                midiMessages.addEvent (juce::MidiMessage::noteOn (channel, midiNote, 0.85f), ev.sampleOffset);
+            }
+            else
+            {
+                if (activeMidiNotes[seq] >= 0)
+                {
+                    voice.noteOff();
+                    midiMessages.addEvent (juce::MidiMessage::noteOff (channel, activeMidiNotes[seq], 0.0f), ev.sampleOffset);
+                    activeMidiNotes[seq] = -1;
+                }
+            }
         }
         else
         {
@@ -1060,37 +1253,76 @@ void MetuliferAudioProcessor::updateLfos (int numSamples)
 {
     const double dt = (double) numSamples / juce::jmax (1.0, sampleRate);
 
-    for (int i = 0; i < 2; ++i)
+    // 1. Update LFO 1
+    const bool enabled1 = lfoEnabled[0] != nullptr
+                          && lfoEnabled[0]->load (std::memory_order_relaxed) > 0.5f;
+
+    if (! enabled1)
     {
-        const bool enabled = lfoEnabled[i] != nullptr
-                             && lfoEnabled[i]->load (std::memory_order_relaxed) > 0.5f;
+        lfoValue[0].store (0.0f, std::memory_order_relaxed);
+    }
+    else
+    {
+        const float rate1 = juce::jlimit (0.1f, 20.0f, lfoRate[0]->load (std::memory_order_relaxed));
+        lfoPhase[0] += rate1 * dt;
+        lfoPhase[0] -= std::floor (lfoPhase[0]);
 
-        if (! enabled)
+        const float p1 = (float) lfoPhase[0];
+        float w1 = 0.0f;
+        switch ((int) lfoWave[0]->load (std::memory_order_relaxed))
         {
-            lfoValue[i].store (0.0f, std::memory_order_relaxed);
-            continue;
-        }
-
-        const float rate = juce::jlimit (0.1f, 20.0f, lfoRate[i]->load (std::memory_order_relaxed));
-        lfoPhase[i] += rate * dt;
-        lfoPhase[i] -= std::floor (lfoPhase[i]);
-
-        const float p = (float) lfoPhase[i];
-        float w = 0.0f;
-
-        switch ((int) lfoWave[i]->load (std::memory_order_relaxed))
-        {
-            case 0:  w = std::sin (p * juce::MathConstants<float>::twoPi); break;
-            case 1:  w = 2.0f * p - 1.0f; break;
-            case 2:  w = p < 0.5f ? 1.0f : -1.0f; break;
-            case 3:  w = 1.0f - 4.0f * std::abs (p - 0.5f); break;
+            case 0:  w1 = std::sin (p1 * juce::MathConstants<float>::twoPi); break;
+            case 1:  w1 = 2.0f * p1 - 1.0f; break;
+            case 2:  w1 = p1 < 0.5f ? 1.0f : -1.0f; break;
+            case 3:  w1 = 1.0f - 4.0f * std::abs (p1 - 0.5f); break;
             default: break;
         }
 
-        const float depth = juce::jlimit (0.0f, 1.0f, lfoDepth[i]->load (std::memory_order_relaxed) / 100.0f);
-        const float offset = juce::jlimit (-1.0f, 1.0f, lfoOffset[i]->load (std::memory_order_relaxed) / 100.0f);
+        const float depth1 = juce::jlimit (0.0f, 1.0f, lfoDepth[0]->load (std::memory_order_relaxed) / 100.0f);
+        const float offset1 = juce::jlimit (-1.0f, 1.0f, lfoOffset[0]->load (std::memory_order_relaxed) / 100.0f);
+        lfoValue[0].store (juce::jlimit (-1.0f, 1.0f, w1 * depth1 + offset1), std::memory_order_relaxed);
+    }
 
-        lfoValue[i].store (juce::jlimit (-1.0f, 1.0f, w * depth + offset), std::memory_order_relaxed);
+    // 2. Update LFO 2 (with cross-modulation support from ModMatrix dstLfo2Rate)
+    const bool enabled2 = lfoEnabled[1] != nullptr
+                          && lfoEnabled[1]->load (std::memory_order_relaxed) > 0.5f;
+
+    if (! enabled2)
+    {
+        lfoValue[1].store (0.0f, std::memory_order_relaxed);
+    }
+    else
+    {
+        const float baseRate2 = juce::jlimit (0.1f, 20.0f, lfoRate[1]->load (std::memory_order_relaxed));
+
+        // Evaluate LFO 2 Rate modulation from matrix across sequences
+        float lfo2RateMod = 0.0f;
+        const float lfo1Val = lfoValue[0].load (std::memory_order_relaxed);
+        for (int s = 0; s < numSequences; ++s)
+        {
+            lfo2RateMod += modMatrix[s][ModMatrix::dstLfo2Rate][ModMatrix::srcLFO1].load (std::memory_order_relaxed) * lfo1Val;
+            lfo2RateMod += modMatrix[s][ModMatrix::dstLfo2Rate][ModMatrix::srcEnv1].load (std::memory_order_relaxed) * voices[s].getEnv1();
+            lfo2RateMod += modMatrix[s][ModMatrix::dstLfo2Rate][ModMatrix::srcEnv2].load (std::memory_order_relaxed) * voices[s].getEnv2();
+        }
+
+        const float effectiveRate2 = juce::jlimit (0.05f, 40.0f, baseRate2 * std::exp2 (lfo2RateMod * 2.0f));
+        lfoPhase[1] += effectiveRate2 * dt;
+        lfoPhase[1] -= std::floor (lfoPhase[1]);
+
+        const float p2 = (float) lfoPhase[1];
+        float w2 = 0.0f;
+        switch ((int) lfoWave[1]->load (std::memory_order_relaxed))
+        {
+            case 0:  w2 = std::sin (p2 * juce::MathConstants<float>::twoPi); break;
+            case 1:  w2 = 2.0f * p2 - 1.0f; break;
+            case 2:  w2 = p2 < 0.5f ? 1.0f : -1.0f; break;
+            case 3:  w2 = 1.0f - 4.0f * std::abs (p2 - 0.5f); break;
+            default: break;
+        }
+
+        const float depth2 = juce::jlimit (0.0f, 1.0f, lfoDepth[1]->load (std::memory_order_relaxed) / 100.0f);
+        const float offset2 = juce::jlimit (-1.0f, 1.0f, lfoOffset[1]->load (std::memory_order_relaxed) / 100.0f);
+        lfoValue[1].store (juce::jlimit (-1.0f, 1.0f, w2 * depth2 + offset2), std::memory_order_relaxed);
     }
 }
 
@@ -1112,6 +1344,7 @@ void MetuliferAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     root.appendChild (apvts.copyState(), nullptr);
     root.appendChild (stepsTree.createCopy(), nullptr);
     root.appendChild (modTree.createCopy(), nullptr);
+    root.appendChild (matrixTree.createCopy(), nullptr);
 
     if (auto xml = root.createXml())
         copyXmlToBinary (*xml, destData);
@@ -1145,6 +1378,33 @@ void MetuliferAudioProcessor::setStateInformation (const void* data, int sizeInB
     {
         modTree.copyPropertiesAndChildrenFrom (modState, nullptr);
         rebuildCables();
+    }
+
+    auto matrixState = root.getChildWithName (matrixTree.getType());
+    if (matrixState.isValid())
+    {
+        matrixTree.copyPropertiesAndChildrenFrom (matrixState, nullptr);
+
+        for (int s = 0; s < numSequences; ++s)
+        {
+            for (int d = 0; d < (int) ModMatrix::numDestinations; ++d)
+            {
+                for (int src = 0; src < (int) ModMatrix::numSources; ++src)
+                {
+                    const auto prop = "r_" + juce::String (s) + "_" + juce::String (d) + "_" + juce::String (src);
+                    const float val = (float) matrixTree.getProperty (prop, 0.0f);
+                    modMatrix[s][d][src].store (val, std::memory_order_relaxed);
+                }
+            }
+        }
+    }
+    else
+    {
+        matrixTree.removeAllProperties (nullptr);
+        for (int s = 0; s < numSequences; ++s)
+            for (int d = 0; d < (int) ModMatrix::numDestinations; ++d)
+                for (int src = 0; src < (int) ModMatrix::numSources; ++src)
+                    modMatrix[s][d][src].store (0.0f, std::memory_order_relaxed);
     }
 }
 

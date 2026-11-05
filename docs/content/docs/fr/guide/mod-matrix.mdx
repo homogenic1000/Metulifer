@@ -1,0 +1,85 @@
+---
+title: Matrice de Modulation (Mod Matrix)
+description: Matrice de routage multi-sources inspirée d'Ableton Wavetable et Drift avec profondeurs bipolaires (-100% à +100%) et cross-modulation.
+---
+
+## Présentation générale
+
+La **Matrice de Modulation** de Metulifer s'inspire directement du workflow éprouvé des synthétiseurs modernes comme **Ableton Wavetable** et **Ableton Drift**.
+
+Alors que le système de câbles virtuels permet de connecter visuellement un LFO vers une cible 1-à-1, la matrice de modulation offre une **grille multidimensionnelle interconnectée** où n'importe quelle source de modulation peut influencer simultanément plusieurs destinations de synthèse et d'effets, avec sommation vectorielle et contrôle fin bipolaire.
+
+```
+[ MOD MATRIX ] ── Accès via le bouton d'en-tête ou la touche raccourci M
+```
+
+<Callout type="info" title="Raccourci clavier">
+  Appuyez sur la touche `M` de votre clavier pour ouvrir ou fermer instantanément la matrice de modulation par-dessus la section inférieure.
+</Callout>
+
+---
+
+## 6 Sources de modulation
+
+| Source | Type de signal | Description |
+|---|---|---|
+| **LFO 1** | Bipolaire (-1.0 à +1.0) | Oscillateur basse fréquence avec formes Sine, Saw, Square, Tri et vitesse 0,1 à 20 Hz. |
+| **LFO 2** | Bipolaire (-1.0 à +1.0) | Deuxième oscillateur basse fréquence indépendant. |
+| **ADSR 1** | Unipolaire (0.0 à 1.0) | Enveloppe d'amplitude principale de la voix active. |
+| **ADSR 2** | Unipolaire (0.0 à 1.0) | Enveloppe de modulation assignable. |
+| **Key/Pitch** | Bipolaire (-1.0 à +1.0) | Suivi de clavier (Key Tracking) relatif à la note centrale C3 (note MIDI 60). |
+| **Velocity** | Unipolaire (0.0 à 1.0) | Vélocité dynamique de l'impulsion de pas active. |
+
+---
+
+## 15 Destinations de synthèse et d'effets
+
+La matrice permet de moduler l'ensemble des modules sonores :
+
+### Synthèse & Filtrage (Filtre SYNTH)
+1. **VCF Cutoff** : Fréquence de coupure du filtre résonant (balayage jusqu'à +/- 4 octaves).
+2. **VCO 1 Pitch** : Hauteur continue de l'oscillateur 1 (+/- 24 demi-tons).
+3. **VCO 2 Pitch** : Hauteur continue de l'oscillateur 2 (+/- 24 demi-tons).
+4. **VCO 1 Wave** : Forme d'onde continue (Sine -> Saw -> Square -> Triangle).
+5. **VCO 2 Wave** : Forme d'onde continue de l'oscillateur 2.
+6. **Mix VCO 1** : Gain de mixage de l'oscillateur 1 (+/- 30 dB).
+7. **Mix VCO 2** : Gain de mixage de l'oscillateur 2 (+/- 30 dB).
+
+### Enveloppes & Multi-FX (Filtre FX)
+8. **ADSR 1 Decay** : Temps de chute de l'enveloppe 1 (variation dynamique).
+9. **ADSR 2 Decay** : Temps de chute de l'enveloppe 2.
+10. **Reverb Mix** : Quantité de réverbération wet/dry (+/- 50%).
+11. **Delay Time** : Temps d'écho (+/- 400 ms).
+12. **Delay Feedback** : Réinjection du délai (+/- 45%).
+13. **Redux Bits** : Résolution du bitcrusher (+/- 7 bits).
+14. **Redux Rate** : Facteur de sous-échantillonnage (+/- 15x).
+15. **LFO 2 Rate (Cross-Modulation)** : Modulation de la vitesse du LFO 2 par le LFO 1 ou les enveloppes (synthèse FM basse fréquence).
+
+---
+
+## Contrôle gestuel des cellules (Cell Interaction)
+
+Chaque cellule de la matrice représente un croisement Source x Destination :
+
+- **Glisser vertical (Click & Drag)** : Glissez vers le haut pour augmenter l'intensité positive (`+1%` à `+100%`, affichage bleu cyan). Glissez vers le bas pour une modulation inversée (`-1%` à `-100%`, affichage ambre).
+- **Touche Shift (Fine Tuning)** : Maintenez `Shift` enfoncé pendant le glissement pour un réglage de précision au dixième de pourcent.
+- **Double-clic** : Réinitialise instantanément la cellule à zéro (`--`).
+- **Molette de souris** : Ajuste directement la valeur par incréments.
+- **Clic droit (Menu contextuel)** : Ouvre un menu rapide proposant `Reset to 0%`, `Set to +100%`, `Set to -100%`, `+50%`, `-50%`.
+
+---
+
+## Navigation & Filtrage
+
+Dans l'en-tête de la matrice :
+- **Onglets S1 à S6** : Permettent de basculer instantanément la matrice sur n'importe laquelle des 6 séquences indépendantes.
+- **Boutons ALL / SYNTH / FX** : Filtrent l'affichage pour visualiser l'ensemble des 15 destinations ou concentrer l'espace sur les 7 paramètres de synthèse ou les 8 paramètres d'effets sans défilement.
+- **CLEAR SEQ** : Réinitialise toutes les connexions de la séquence courante d'un seul clic.
+- **Bouton Fermer [X]** : Ferme la vue matricielle pour retrouver le panneau de synthèse principal.
+
+---
+
+## Sérialisation & Temps réel
+
+- **Lock-free & Zero Allocation** : Les 540 croisements potentiels sont évalués à l'aide d'un tableau plat atomique `std::atomic<float> modMatrix[6][15][6]`. L'évaluation complète dans `processBlock()` s'exécute en moins de 100 nanosecondes, sans verrou ni allocation dynamique.
+- **Persistance intégrale** : Les routages matriciels sont sérialisés dans le nœud `matrixTree` du plugin et automatiquement sauvegardés dans vos sessions de DAW et presets.

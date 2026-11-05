@@ -1,9 +1,9 @@
 ---
 title: Référence des paramètres
-description: Les 209 paramètres APVTS automatisables, leurs types, plages, identifiants et comportements.
+description: Les 221 paramètres APVTS automatisables, leurs types, plages, identifiants et comportements.
 ---
 
-Metulifer expose **209 paramètres automatisables** gérés par un `juce::AudioProcessorValueTreeState` (APVTS) unique.
+Metulifer expose **221 paramètres automatisables** gérés par un `juce::AudioProcessorValueTreeState` (APVTS) unique.
 Tous les paramètres sont thread-safe, consultables en lecture atomique par le thread audio sans allocation ni verrou.
 
 ## Nomenclature
@@ -43,9 +43,16 @@ Chaque LFO dispose de 5 paramètres :
 
 ---
 
-## 3. Paramètres par séquence (198 = 6 × 33)
+## 3. Paramètres par séquence (210 = 6 × 35)
 
 Pour chaque séquence `seq<N>` (où `N` varie de 1 à 6) :
+
+### Mute & Solo (Electribe Workflow, 2 paramètres)
+
+| Identifiant | Type | Plage | Défaut | Description |
+|---|---|---|---|---|
+| `seq<N>_mute` | Bool | On / Off | Off | Coupe les déclenchements de pas sans couper la queue de release/effets. |
+| `seq<N>_solo` | Bool | On / Off | Off | Isole la séquence et rend inaudibles toutes les autres pistes non solo. |
 
 ### Enveloppes ADSR (8 paramètres)
 
@@ -129,4 +136,5 @@ Certaines données dynamiques ne sont intentionnellement pas déclarées comme p
 
 1. **Les masques de pas (32 pas × 6 séquences = 192 pas)** : ils sont conservés dans un `ValueTree` séparé (`steps`) pour éviter d'inonder la fenêtre d'automation du DAW de centaines d'automations binaires.
 2. **Les câbles de modulation virtuels** : ils sont sauvegardés dans l'arbre `mod`.
-3. **Le compteur de pas courant et l'état de gate** : mis à jour en temps réel à chaque cycle de restitution audio.
+3. **La Matrice de Modulation (Mod Matrix)** : les 540 croisements bipolaires sont persistés dans l'arbre `matrix` (`matrixTree`) et synchronisés de manière lock-free via le tableau atomique `modMatrix`.
+4. **Le compteur de pas courant et l'état de gate** : mis à jour en temps réel à chaque cycle de restitution audio.

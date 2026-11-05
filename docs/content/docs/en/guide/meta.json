@@ -1,4 +1,4 @@
 {
   "title": "User guide",
-  "pages": ["sequencer", "synth", "filter", "multi-fx", "arpeggiator", "lfo-modulation", "interface", "reverb"]
+  "pages": ["sequencer", "synth", "filter", "multi-fx", "arpeggiator", "lfo-modulation", "mod-matrix", "interface", "reverb"]
 }

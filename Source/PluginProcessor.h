@@ -11,6 +11,7 @@
 #include <JuceHeader.h>
 #include "Sequencer/SequencerEngine.h"
 #include "DSP/Voice.h"
+#include "DSP/ModMatrix.h"
 
 //==============================================================================
 /**
@@ -105,6 +106,19 @@ public:
     void randomizeSequence (int seqIndex, float density);
     void euclideanSequence (int seqIndex, int hits, int length);
 
+    //==============================================================================
+    // Mute & Solo (Electribe style)
+    bool isSequenceMuted (int seqIndex) const;
+    void setSequenceMuted (int seqIndex, bool mute);
+    bool isSequenceSolo (int seqIndex) const;
+    void setSequenceSolo (int seqIndex, bool solo);
+
+    //==============================================================================
+    // Modulation Matrix (Ableton style)
+    float getMatrixAmount (int seqIndex, int dest, int src) const noexcept;
+    void  setMatrixAmount (int seqIndex, int dest, int src, float amount);
+    juce::ValueTree& getMatrixTree() noexcept { return matrixTree; }
+
 private:
     //==============================================================================
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
@@ -137,6 +151,8 @@ private:
         std::atomic<float>* arpMode = nullptr;
         std::atomic<float>* arpChord = nullptr;
         std::atomic<float>* arpOctaves = nullptr;
+        std::atomic<float>* mute = nullptr;
+        std::atomic<float>* solo = nullptr;
 
         void bind (juce::AudioProcessorValueTreeState& apvts, int sequenceIndex);
         Voice::Params read() const;
@@ -177,6 +193,8 @@ private:
 
     juce::ValueTree stepsTree { "steps" };
     juce::ValueTree modTree { "mod" };
+    juce::ValueTree matrixTree { "matrix" };
+    std::atomic<float> modMatrix[numSequences][ModMatrix::numDestinations][ModMatrix::numSources] {};
     std::atomic<float> rms { 0.0f };
     std::atomic<float> peakDbL { -80.0f };
     std::atomic<float> peakDbR { -80.0f };

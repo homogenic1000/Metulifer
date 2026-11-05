@@ -54,15 +54,23 @@ Reducing the length to 7 turns a 32-step sequence into a 7-step loop
   unlike synth knobs which follow the selection.
 </Callout>
 
-## Row Buttons: Copy, Paste, and ARP
+## Row Buttons: Mute, Solo, Copy, Paste, and ARP
 
-Each sequence row provides three quick-action buttons:
+Each sequence row provides direct real-time action buttons:
 
-| Button | Action | Purpose |
-|---|---|---|
-| **C** | Copy | Copies the entire 32-step pattern to the shared internal clipboard. |
-| **P** | Paste | Pastes the cached pattern onto the destination row (preserves loop length). |
-| **ARP** | Arpeggiator | Instantly toggles the arpeggiator on/off (lights up in luminous blue). |
+| Button | Action | Purpose | Style / Feedback |
+|---|---|---|---|
+| **M** | Mute (Electribe) | Instantly mutes step note triggers while letting reverb and delay tails ring out smoothly without any audio clicks. | Bright red backlit LED (`#ef4444`) when active; dims muted sequence row. |
+| **S** | Solo (Electribe) | Isolates the selected sequence, silencing all other tracks. Preserves previous mute states and restores them when solo is released. | Bright yellow backlit LED (`#eab308`) when active. |
+| **C** | Copy | Copies the entire 32-step pattern to the shared internal clipboard. | Subtle slate backlight. |
+| **P** | Paste | Pastes the cached pattern onto the destination row (preserves loop length). | Subtle slate backlight. |
+| **ARP** | Arpeggiator | Instantly toggles the arpeggiator on/off (lights up in luminous blue). | Luminous cyan (`#38bdf8`) when active. |
+
+### Korg Electribe EMX-1 & ESX-1 Inspired Mute / Solo Workflow
+Metulifer's mute architecture emulates classic hardware groovebox behavior:
+1. **Non-destructive Mute (*Tail Preservation*)**: Clicking **[M]** does not truncate audio rendering. The DSP engine simply ceases generating new `gateOn` step triggers. Active notes release smoothly, and stereo delay / reverb decays naturally.
+2. **Solo Memory**: Engaging one or multiple **[S]** buttons isolates the soloed tracks. Disengaging solo instantly recovers the prior mute configuration without user intervention.
+3. **DAW Automation**: Automate every track's mute and solo state through host parameters `seq1_mute` … `seq6_mute` and `seq1_solo` … `seq6_solo`.
 
 The row-level **ARP** button allows you to engage melodic variations on the fly during live performance, with detailed chord and algorithm settings configured in the [Arpeggiator panel](/en/docs/guide/arpeggiator).
 

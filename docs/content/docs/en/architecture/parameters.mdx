@@ -1,9 +1,9 @@
 ---
 title: Parameters Reference
-description: The 209 automatable APVTS parameters, their types, ranges, identifiers, and behaviors.
+description: The 221 automatable APVTS parameters, their types, ranges, identifiers, and behaviors.
 ---
 
-Metulifer exposes **209 automatable parameters** managed by a single `juce::AudioProcessorValueTreeState` (APVTS).
+Metulifer exposes **221 automatable parameters** managed by a single `juce::AudioProcessorValueTreeState` (APVTS).
 All parameters are thread-safe and read atomically by the audio thread with zero real-time heap allocations or mutexes.
 
 ## Naming Convention
@@ -43,9 +43,16 @@ Each LFO provides 5 parameters:
 
 ---
 
-## 3. Per-Sequence Parameters (198 = 6 × 33)
+## 3. Per-Sequence Parameters (210 = 6 × 35)
 
 For each sequence `seq<N>` (where `N` runs from 1 to 6):
+
+### Mute & Solo (Electribe Workflow, 2 parameters)
+
+| Parameter ID | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `seq<N>_mute` | Bool | On / Off | Off | Mutes step note triggering without truncating decay or reverb tails. |
+| `seq<N>_solo` | Bool | On / Off | Off | Isolates this sequence and mutes all other non-soloed tracks. |
 
 ### ADSR Envelopes (8 parameters)
 
@@ -129,4 +136,5 @@ Some data structures are purposefully segregated from the APVTS:
 
 1. **Step bitmasks (32 steps × 6 sequences = 192 steps)**: Stored in a separate `steps` ValueTree child to prevent cluttering host automation lists with binary toggles.
 2. **Virtual modulation patch cables**: Stored in the `mod` ValueTree child.
-3. **Current playhead positions and gate triggers**: Dynamically calculated per audio block.
+3. **Modulation Matrix**: All 540 bipolar matrix intersections are persisted in `matrixTree` (`matrix`) and kept lock-free in `std::atomic<float> modMatrix`.
+4. **Current playhead positions and gate triggers**: Dynamically calculated per audio block.

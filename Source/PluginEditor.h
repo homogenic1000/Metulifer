@@ -18,6 +18,7 @@
 #include "UI/LFOPanel.h"
 #include "UI/ReverbPanel.h"
 #include "UI/CableLayer.h"
+#include "UI/ModMatrixPanel.h"
 #include "UI/MetuliferLookAndFeel.h"
 #include <melatonin_inspector/melatonin_inspector.h>
 
@@ -60,6 +61,7 @@ private:
     void updateLfoButtons();
     void updateLfoDestinations();
     void refreshCableTargets();
+    void setMatrixViewOpen (bool open);
 
     void sliderValueChanged (juce::Slider* slider) override;
     void sliderDragStarted (juce::Slider* slider) override;
@@ -79,8 +81,11 @@ private:
     LFOPanel lfoPanel1 { "LFO1" }, lfoPanel2 { "LFO2" };
     ReverbPanel reverbPanel;
     CableLayer cableLayer;
+    ModMatrixPanel modMatrixPanel;
+    juce::TextButton matrixButton { "MATRIX" };
     juce::TextButton inspectButton { "Inspect" };
     melatonin::Inspector inspector { *this, false };
+    bool isMatrixViewOpen = false;
 
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> synthAttachments;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> vcfAttachments;

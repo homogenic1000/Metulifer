@@ -79,11 +79,13 @@ private:
 
     PlayheadMarker playhead;
 
+    juce::TextButton muteButton { "M" }, soloButton { "S" };
     juce::TextButton copyButton { "C" }, pasteButton { "P" }, arpButton { "ARP" };
     std::vector<std::unique_ptr<juce::TextButton>> stepButtons;
     juce::Slider lengthKnob, volumeKnob;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lengthAttachment, volumeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> arpAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> muteAttachment, soloAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SequenceRowComponent)
 };
