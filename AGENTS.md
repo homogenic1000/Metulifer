@@ -133,7 +133,7 @@ Metulifer/
   - ✅ Build Debug et Release réussis (`** BUILD SUCCEEDED **`).
   - ✅ Mesure en direct sur Standalone Debug : CPU au repos 0.0% à 16.8%, puissance énergétique stabilisée, fluidité totale au déplacement de fenêtre.
   - ✅ Validation `pluginval` niveau 5 : 100% SUCCESS sur VST3 et AU.
-- **Commit** : `<sha court>` — `fix: eliminate window move fps drops with opaque backing store and unclipped controls`
+- **Commit** : `a5028ad` — `fix: eliminate window move fps drops with opaque backing store and unclipped controls`
 - **Next steps** : —
 
 ### 2026-11-04 — Optimisation drastique CPU & Energy Impact (Mise en veille voix DSP & Coalescence UI)
