@@ -47,6 +47,9 @@
         <FILE id="sqEn1a" name="SequencerEngine.cpp" compile="1" resource="0" file="Source/Sequencer/SequencerEngine.cpp"/>
         <FILE id="sqEn1b" name="SequencerEngine.h" compile="0" resource="0" file="Source/Sequencer/SequencerEngine.h"/>
       </GROUP>
+      <GROUP id="{D3E4F5A6-7B8C-9D0E-1F2A-3B4C5D6E7F8A}" name="Tests">
+        <FILE id="tstUn1a" name="UnitTests.cpp" compile="1" resource="0" file="Source/Tests/UnitTests.cpp"/>
+      </GROUP>
     </GROUP>
     <GROUP id="{7A3B9C1D-4E5F-4A6B-8C7D-9E0F1A2B3C4D}" name="Resources">
       <FILE id="icMt1a" name="icon.json" compile="0" resource="0"

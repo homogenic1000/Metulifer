@@ -116,6 +116,20 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — CI GitHub Actions & Suite de tests automatisés (Phase 1)
+- **Tâche** : Mettre en place un pipeline CI complet sur GitHub Actions (`macos-14`) avec tests unitaires DSP, persistance d'état et validation stricte `pluginval` niveau 5.
+- **Fichiers** : `.github/workflows/ci.yml`, `Source/Tests/UnitTests.cpp`, `Source/PluginProcessor.cpp`, `Metulifer.jucer`, `AGENTS.md`
+- **Modifs** :
+  1. `.github/workflows/ci.yml` : Workflow automatisé déclenché sur push et pull requests vers `main`. Télécharge JUCE 9.0.2, resave le projet Projucer, compile l'ensemble des cibles en Release (Standalone, VST3, AU) sur `macos-14`, exécute les tests unitaires et valide les plugins avec `pluginval` niveau 5.
+  2. `Source/Tests/UnitTests.cpp` : Création de la suite de tests unitaires JUCE intégrée (`SequencerUnitTest`, `DSPSafetyUnitTest`, `StateSerializationUnitTest`) validant l'avancement temporel, l'absence absolue de NaN/Inf sur conditions extrêmes et la fidélité de sérialisation APVTS / ValueTree.
+  3. `Source/PluginProcessor.cpp` : Support de l'exécution des tests unitaires sans GUI via variable d'environnement `METULIFER_RUN_TESTS=1` ou argument `--run-tests` avec runner console et sortie propre.
+  4. `Metulifer.jucer` : Intégration du groupe `Tests` et resave Projucer.
+- **Validation** :
+  - ✅ Tests unitaires : `TEST SUMMARY: ALL PASSED` sur Debug et Release.
+  - ✅ Validation `pluginval` niveau 5 réussie (SUCCESS) sur VST3 et AU.
+- **Commit** : `d07ed0d` — `ci: add automated macOS GitHub Actions pipeline and unit test suite`
+- **Next steps** : Phase 2 — Intégration DAW (Host Transport & BPM Sync)
+
 ### 2026-11-05 — Configuration Workspace Antigravity & Intégration IDE
 - **Tâche** : Structurer le dépôt comme un Workspace complet pour Google Antigravity et l'IDE Antigravity / VS Code.
 - **Fichiers** : `.agents/skills/metulifer-dev/SKILL.md`, `.vscode/tasks.json`, `.vscode/settings.json`, `AGENTS.md`

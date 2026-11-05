@@ -198,16 +198,6 @@ MetuliferAudioProcessor::MetuliferAudioProcessor()
         voiceSources[i].bind (apvts, i);
     }
 
-    if (const char* env = std::getenv ("METULIFER_RUN_TESTS"))
-    {
-        if (env[0] != '0')
-        {
-            juce::UnitTestRunner runner;
-            runner.runAllTests (true);
-            std::exit (0);
-        }
-    }
-
     SequencerEngine::Sources src;
     src.patterns = patterns;
     src.tempo = apvts.getRawParameterValue ("tempo");
@@ -837,13 +827,47 @@ void MetuliferAudioProcessor::setStateInformation (const void* data, int sizeInB
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    if (const char* env = std::getenv ("METULIFER_RUN_TESTS"))
+    static bool hasRunTests = false;
+    if (! hasRunTests)
     {
-        if (env[0] != '0')
+        hasRunTests = true;
+        bool shouldRunTests = false;
+        if (const char* env = std::getenv ("METULIFER_RUN_TESTS"))
+            if (env[0] != '0') shouldRunTests = true;
+
+        if (juce::JUCEApplicationBase::isStandaloneApp())
         {
-            juce::UnitTestRunner runner;
+            if (juce::JUCEApplicationBase::getCommandLineParameters().contains ("--run-tests"))
+                shouldRunTests = true;
+        }
+
+        if (shouldRunTests)
+        {
+            struct ConsoleTestRunner : public juce::UnitTestRunner
+            {
+                void logMessage (const juce::String& msg) override
+                {
+                    std::cout << msg.toRawUTF8() << std::endl;
+                }
+            };
+
+            ConsoleTestRunner runner;
+            runner.setAssertOnFailure (false);
+            runner.setPassesAreLogged (true);
             runner.runAllTests (true);
-            std::exit (0);
+
+            int numFailures = 0;
+            for (int i = 0; i < runner.getNumResults(); ++i)
+                numFailures += runner.getResult (i)->failures;
+
+            std::cout << "\n========================================\n";
+            std::cout << "TEST SUMMARY: " << (numFailures == 0 ? "ALL PASSED" : "FAILURES DETECTED: " + std::to_string (numFailures)) << "\n";
+            std::cout << "========================================\n" << std::endl;
+
+            if (auto* app = juce::JUCEApplicationBase::getInstance())
+                app->systemRequestedQuit();
+            else
+                std::exit (numFailures > 0 ? 1 : 0);
         }
     }
     return new MetuliferAudioProcessor();

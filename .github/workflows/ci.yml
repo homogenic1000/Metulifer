@@ -1,0 +1,84 @@
+name: Metulifer CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Validate (macOS)
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup JUCE & Projucer
+        run: |
+          mkdir -p "$HOME/JUCE"
+          curl -L -o /tmp/juce.zip https://github.com/juce-framework/JUCE/releases/download/9.0.2/juce-9.0.2-osx.zip
+          unzip -q /tmp/juce.zip -d /tmp/juce_extracted
+          cp -R /tmp/juce_extracted/JUCE/* "$HOME/JUCE/"
+          chmod +x "$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer"
+          rm -rf /tmp/juce.zip /tmp/juce_extracted
+
+      - name: Resave Projucer project
+        run: |
+          "$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer" --resave Metulifer.jucer
+
+      - name: Build All Targets (Release)
+        run: |
+          DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+            -project Builds/MacOSX/Metulifer.xcodeproj \
+            -scheme "Metulifer - All" \
+            -configuration Release build
+
+      - name: Run Unit Tests
+        run: |
+          METULIFER_RUN_TESTS=1 Builds/MacOSX/build/Release/Metulifer.app/Contents/MacOS/Metulifer
+
+      - name: Setup pluginval
+        run: |
+          curl -L -o /tmp/pluginval.zip https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip
+          unzip -q /tmp/pluginval.zip -d /tmp/pluginval_extracted
+          sudo mv /tmp/pluginval_extracted/pluginval.app /Applications/
+          sudo ln -s /Applications/pluginval.app/Contents/MacOS/pluginval /usr/local/bin/pluginval
+          pluginval --version
+          rm -rf /tmp/pluginval.zip /tmp/pluginval_extracted
+
+      - name: Validate VST3 Plugin (Strictness Level 5)
+        run: |
+          pluginval --strictness-level 5 --validate-in-process --validate "Builds/MacOSX/build/Release/Metulifer.vst3"
+
+      - name: Validate AU Plugin (Strictness Level 5)
+        run: |
+          pluginval --strictness-level 5 --validate-in-process --validate "Builds/MacOSX/build/Release/Metulifer.component"
+
+      - name: Upload Release Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Metulifer-macOS-Release
+          path: |
+            Builds/MacOSX/build/Release/Metulifer.app
+            Builds/MacOSX/build/Release/Metulifer.vst3
+            Builds/MacOSX/build/Release/Metulifer.component
