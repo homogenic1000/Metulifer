@@ -129,7 +129,7 @@ Metulifer/
 - **Validation** :
   - ✅ Build Next.js / Fumadocs réussi avec compilation des 38 pages statiques FR & EN en 4.5s (`next build`).
   - ✅ Zéro erreur TypeScript ou de syntaxe JSX/MDX.
-- **Commit** : `<sha court>` — `docs: modernize and expand comprehensive user and developer documentation`
+- **Commit** : `3689465` — `docs: modernize and expand comprehensive user and developer documentation`
 - **Next steps** : —
 
 ### 2026-11-05 — Élimination des chutes de FPS au déplacement de fenêtre & Synchronisation Debug/Release
