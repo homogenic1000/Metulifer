@@ -6,7 +6,7 @@
 
 namespace NativeTitleBar
 {
-    void setupNativeTitleBar (juce::DocumentWindow* window)
+    void setupNativeTitleBar (juce::DocumentWindow* window, juce::Component* editor)
     {
         if (window == nullptr)
             return;
@@ -16,39 +16,53 @@ namespace NativeTitleBar
         if (! window->isUsingNativeTitleBar())
             window->setUsingNativeTitleBar (true);
 
-       #if JUCE_MAC
-        auto applyCocoaStyling = [](juce::DocumentWindow* win)
+        constexpr int defaultWidth = 1280;
+        constexpr int defaultHeight = 720;
+
+        window->setResizable (true, false);
+        window->setResizeLimits (1060, 680, 2560, 1440);
+
+        if (editor != nullptr)
         {
-            if (win == nullptr)
-                return;
+            if (editor->getWidth() < 1000 || editor->getHeight() < 600)
+                editor->setSize (defaultWidth, defaultHeight);
+        }
 
-            if (auto* peer = win->getPeer())
+        auto& desktop = juce::Desktop::getInstance();
+        auto* primaryScreen = desktop.getDisplays().getPrimaryDisplay();
+        auto screenBounds = primaryScreen != nullptr ? primaryScreen->userBounds.toNearestInt()
+                                                     : juce::Rectangle<int> (0, 0, 1920, 1080);
+
+        if (window->getWidth() < 1200 || window->getHeight() < 680 || ! screenBounds.intersects (window->getBounds()))
+        {
+            window->setContentComponentSize (defaultWidth, defaultHeight);
+            window->centreWithSize (window->getWidth(), window->getHeight());
+        }
+
+       #if JUCE_MAC
+        if (auto* peer = window->getPeer())
+        {
+            if (auto* view = (NSView*) peer->getNativeHandle())
             {
-                if (auto* view = (NSView*) peer->getNativeHandle())
+                if (NSWindow* nsWindow = [view window])
                 {
-                    if (NSWindow* nsWindow = [view window])
-                    {
-                        if (@available (macOS 10.14, *))
-                            nsWindow.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+                    if (@available (macOS 10.14, *))
+                        nsWindow.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
 
-                        nsWindow.title = @"Metulifer";
-                        nsWindow.titleVisibility = NSWindowTitleVisible;
-                        nsWindow.titlebarAppearsTransparent = NO;
-                        [nsWindow display];
-                    }
+                    nsWindow.title = @"Metulifer";
+                    nsWindow.titleVisibility = NSWindowTitleVisible;
+                    nsWindow.titlebarAppearsTransparent = NO;
+
+                    // Enable zoom and resizing on Cocoa NSWindow
+                    nsWindow.styleMask |= NSWindowStyleMaskResizable;
+                    NSButton* zoomButton = [nsWindow standardWindowButton:NSWindowZoomButton];
+                    if (zoomButton != nil)
+                        zoomButton.enabled = YES;
+
+                    [nsWindow display];
                 }
             }
-        };
-
-        applyCocoaStyling (window);
-
-        // StandaloneFilterWindow calls setVisible(true) after child editor is added.
-        // Queue an async call to ensure NSWindow styling is applied once the peer is fully attached.
-        juce::MessageManager::callAsync ([safeDw = juce::Component::SafePointer<juce::DocumentWindow> (window), applyCocoaStyling]
-        {
-            if (safeDw != nullptr)
-                applyCocoaStyling (safeDw.getComponent());
-        });
+        }
        #endif
     }
 

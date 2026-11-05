@@ -21,6 +21,9 @@ MetuliferAudioProcessorEditor::MetuliferAudioProcessorEditor (MetuliferAudioProc
     setOpaque (true);
     setLookAndFeel (&lookAndFeel);
 
+    setResizable (true, true);
+    setResizeLimits (1060, 680, 2560, 1440);
+
     addAndMakeVisible (sequencerPanel);
     addAndMakeVisible (displayScreen);
     addAndMakeVisible (clockPanel);
@@ -341,13 +344,16 @@ void MetuliferAudioProcessorEditor::resized()
         settingsButton.setBounds (matrixButton.getX() - 66, 8, 60, 18);
 
     // Top Section: Sequencer (Left) | DisplayScreen + ClockPanel (Right)
-    sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, 417);
+    const int botH = 224;
+    const int botMargin = 28;
+    const int botY = juce::jmax (468, getHeight() - botH - botMargin);
+    const int topH = botY - 32 - 19; // 417 at default 720 height
+
+    sequencerPanel.setBounds (marginX, 32, rightColX - marginX - 16, topH);
     displayScreen.setBounds (rightColX, 32, rightColWidth, 128);
-    clockPanel.setBounds (rightColX, 172, rightColWidth, 277);
+    clockPanel.setBounds (rightColX, 172, rightColWidth, topH - 140);
 
     // Bottom Section: SynthPanel + 4 modular slices (VCF, LFO1, LFO2, Reverb/Multi-FX)
-    const int botY = 468;
-    const int botH = 224;
     const int moduleW = 105;
     const int gap = 14;
 
@@ -423,7 +429,17 @@ void MetuliferAudioProcessorEditor::parentHierarchyChanged()
     {
         if (auto* dw = findParentComponentOfClass<juce::DocumentWindow>())
         {
-            NativeTitleBar::setupNativeTitleBar (dw);
+            // CRITICAL: Defer setup to the next message loop iteration so StandaloneFilterWindow
+            // completes its content construction and initial bounds calculation first.
+            // Calling setUsingNativeTitleBar synchronously during construction crushes the content bounds to 0.
+            juce::MessageManager::callAsync ([safeDw = juce::Component::SafePointer<juce::DocumentWindow> (dw),
+                                              safeEditor = juce::Component::SafePointer<MetuliferAudioProcessorEditor> (this)]
+            {
+                if (safeDw != nullptr && safeEditor != nullptr)
+                {
+                    NativeTitleBar::setupNativeTitleBar (safeDw.getComponent(), safeEditor.getComponent());
+                }
+            });
         }
     }
 }

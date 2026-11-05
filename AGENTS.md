@@ -116,6 +116,27 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-05 — Correctif Standalone : Initialisation asynchrone des dimensions et redimensionnement dynamique
+- **Tâche** : Corriger le bug où la fenêtre Standalone s'ouvrait avec des dimensions minuscules (128x160) et refusait le redimensionnement.
+- **Cause racine identifiée** :
+  1. Lors de la construction de `StandaloneFilterWindow`, l'appel synchrone à `setUsingNativeTitleBar(true)` déclenchait prématurément `sendLookAndFeelChange() -> ResizableWindow::resized()`, écrasant les dimensions du `MainContentComponent` à `0x0` avant que `setContentOwned()` et `setBoundsConstrained()` n'aient pu positionner et dimensionner la fenêtre.
+  2. Les coordonnées de coin d'écran (`1650, 1623`) sauvegardées dans `Metulifer.settings` sur configuration multi-écrans contraignaient la fenêtre contre le bord inférieur.
+  3. L'éditeur ne déclarait pas `setResizable(true, true)` ce qui bloquait le redimensionnement manuel sous macOS et désactivait le bouton vert de zoom Cocoa.
+- **Réalisations** :
+  1. **Différé d'initialisation (`Source/PluginEditor.cpp`)** : Exécution de `NativeTitleBar::setupNativeTitleBar` différée sur la boucle de messages via `juce::MessageManager::callAsync` avec `SafePointer`, garantissant la fin complète du calcul de dimensions de `StandaloneFilterWindow`.
+  2. **Garantie de dimensions & centrage (`Source/UI/NativeTitleBar_mac.mm`)** : Vérification des dimensions minimales (`width >= 1200`, `height >= 680`) et de l'intersection avec l'écran principal, réinitialisation automatique à 1280x720 et centrage écran (`centreWithSize`) si nécessaire.
+  3. **Support du redimensionnement & Zoom macOS** : Ajout de `setResizable(true, true)` et `setResizeLimits(1060, 680, 2560, 1440)` sur l'éditeur et activation explicite de `NSWindowStyleMaskResizable` et `NSWindowZoomButton` sur la `NSWindow`.
+  4. **Layout vertical adaptatif (`PluginEditor.cpp`)** : Ancrage dynamique de la section synthé/effets en bas et étirement fluide du séquenceur et de l'horloge sur agrandissement vertical.
+  5. **Nettoyage de préférences** : Suppression des coordonnées corrompues dans `Metulifer.settings`.
+- **Validation** :
+  - ✅ Build Debug et Release réussis sans erreur.
+  - ✅ Standalone vérifié : fenêtre 1282x778/810 centrée sur l'écran principal (X: 319, Y: 194), traffic lights natifs 🔴 🟡 🟢 fonctionnels, redimensionnement actif.
+  - ✅ 9 tests unitaires passés (`ALL PASSED`).
+  - ✅ `pluginval` niveau 5 réussi sur VST3 et AU.
+- **Fichiers** : `Source/UI/NativeTitleBar_mac.h`, `Source/UI/NativeTitleBar_mac.mm`, `Source/PluginEditor.cpp`, `AGENTS.md`
+- **Build** : ✅ Debug et Release réussis
+- **Next steps** : —
+
 ### 2026-11-05 — Standalone avec boutons de fenêtrage natifs macOS (Traffic Lights) & Menu Audio
 - **Tâche** : Remplacer la barre de titre et les boutons de fenêtrage JUCE ("juice buttons") par de véritables boutons de fenêtrage natifs macOS Cocoa (traffic lights 🔴 🟡 🟢) stylisés en Dark Aqua, et préserver l'accès complet aux réglages Audio/MIDI de l'application Standalone via un bouton dédié `[AUDIO]` dans l'en-tête.
 - **Réalisations** :
