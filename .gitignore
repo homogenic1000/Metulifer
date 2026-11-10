@@ -5,3 +5,4 @@ xcuserdata/
 #   ~/JUCE/Projucer.app/Contents/MacOS/Projucer --resave Metulifer.jucer
 JuceLibraryCode/
 Builds/
+dist/
