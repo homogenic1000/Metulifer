@@ -66,6 +66,7 @@ Metulifer/
 | Pull | **Obligatoire** avant chaque session de travail |
 | Commit | **À chaque tâche terminée**, code + `AGENTS.md` ensemble |
 | Message | **Conventional Commits** en anglais : `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:` |
+| Emojis | **STRICTEMENT INTERDITS** : aucun emoji dans les commits, les releases, les issues, les PRs ou la documentation. Style sobre, professionnel et technique uniquement. |
 | Exemples | `feat: add Voice class with 2 VCOs`, `fix: APVTS state not saved`, `docs: journal entry for UI layout` |
 
 ---
@@ -116,26 +117,28 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
-### 2026-11-10 — Publication de la Release Officielle v1.0.0 (VST3, AU, Standalone)
-- **Tâche** : Compiler en Release, tester rigoureusement, empaqueter et publier la version officielle `v1.0.0` de Metulifer sur GitHub Releases avec tous les binaires (VST3, AU, Standalone).
+### 2026-11-10 — Publication de la Release v0.1.0 (VST3, Standalone, AU) & Interdiction stricte des emojis
+- **Tâche** : Aligner la version sur 0.1.0, compiler en Release, tester rigoureusement, empaqueter et publier la version v0.1.0 sur GitHub Releases avec VST3, Standalone et AU, et inscrire l'interdiction absolue de tout emoji dans le protocole du projet.
 - **Réalisations** :
-  1. **Compilation & Validation stricte** :
-     - Compilation Release de toutes les cibles (`Metulifer - All`).
-     - Validation des 9 tests unitaires DSP (`METULIFER_RUN_TESTS=1`) : `ALL PASSED`.
-     - Validation stricte niveau 5 `pluginval` sur `Metulifer.vst3` : `SUCCESS`.
-     - Validation stricte niveau 5 `pluginval` sur `Metulifer.component` : `SUCCESS` (auval code 0).
-  2. **Packaging (`dist/`)** :
-     - `Metulifer-v1.0.0-macOS-VST3.zip` (3.97 Mo).
-     - `Metulifer-v1.0.0-macOS-Standalone.zip` (4.19 Mo) avec barre native Dark Aqua Cocoa et traffic lights.
-     - `Metulifer-v1.0.0-macOS-AU.zip` (3.98 Mo).
-     - `Metulifer-v1.0.0-macOS-Universal-Bundle.zip` (12.15 Mo) contenant les 3 formats et les instructions d'installation.
-     - `SHA256SUMS.txt` et `README_INSTALL.txt`.
-  3. **Déploiement GitHub** :
-     - Push des commits de `feature/native-traffic-lights` sur `main` et mise à jour de la branche distante.
-     - Tag `v1.0.0` créé et poussé sur GitHub.
-     - Release officielle `v1.0.0` publiée via GitHub CLI (`gh release create`) avec notes complètes et assets téléchargeables : https://github.com/homogenic1000/Metulifer/releases/tag/v1.0.0.
-- **Fichiers** : `AGENTS.md`, `dist/*`
-- **Statut** : ✅ En ligne et validé
+  1. **Règle stricte sur les emojis** : Interdiction totale d'utiliser des emojis dans les commits, les titres/notes de release, les issues, les PRs et la documentation. Style sobre, professionnel et rigoureux.
+  2. **Numérotation de version** : Mise à jour de Metulifer.jucer avec version="0.1.0", resave Projucer.
+  3. **Compilation et Validation stricte** :
+     - Compilation Release de toutes les cibles (Metulifer - All).
+     - Validation des 9 tests unitaires DSP (METULIFER_RUN_TESTS=1) : ALL PASSED.
+     - Validation stricte niveau 5 pluginval sur Metulifer.vst3 : SUCCESS.
+     - Validation stricte niveau 5 pluginval sur Metulifer.component : SUCCESS (auval code 0).
+  4. **Packaging (dist/)** :
+     - Metulifer-v0.1.0-macOS-VST3.zip (3.97 Mo).
+     - Metulifer-v0.1.0-macOS-Standalone.zip (4.19 Mo) avec barre native Dark Aqua Cocoa et boutons de fenêtrage natifs.
+     - Metulifer-v0.1.0-macOS-AU.zip (3.98 Mo).
+     - Metulifer-v0.1.0-macOS-Universal-Bundle.zip (12.15 Mo) contenant les 3 formats et les instructions d'installation.
+     - SHA256SUMS.txt et README_INSTALL.txt.
+  5. **Déploiement GitHub** :
+     - Suppression de la release et du tag v1.0.0 erronés.
+     - Tag v0.1.0 créé et poussé sur GitHub.
+     - Release officielle v0.1.0 publiée via GitHub CLI (gh release create) avec notes sobres sans emoji et assets téléchargeables : https://github.com/homogenic1000/Metulifer/releases/tag/v0.1.0.
+- **Fichiers** : Metulifer.jucer, AGENTS.md, dist/*
+- **Statut** : Valide et publie
 
 ### 2026-11-05 — Refonte UX & Système Typographique Neo-Grotesque Studio
 - **Tâche** : Améliorer significativement l'expérience utilisateur (UX) globale et intégrer une typographie suisse moderniste / Neo-Grotesque premium adaptée au hardware virtuel studio.

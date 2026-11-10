@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="kMa8Lm" name="Metulifer" pluginName="Metulifer" pluginDesc="Metulifer"
               companyName="Saumure" pluginManufacturer="Saumure" projectType="audioplug"
-              useAppConfig="0" pluginWantsMidiIn="1" pluginProducesMidiOut="1"
+              version="0.1.0" useAppConfig="0" pluginWantsMidiIn="1" pluginProducesMidiOut="1"
               pluginIsMidiEffectPlugin="0" addUsingNamespaceToJuceHeader="0"
               jucerFormatVersion="1" pluginCharacteristicsValue="pluginWantsMidiIn,pluginProducesMidiOut">
   <MAINGROUP id="NUJ2dn" name="Metulifer">
