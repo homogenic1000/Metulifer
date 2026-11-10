@@ -116,6 +116,27 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-10 — Publication de la Release Officielle v1.0.0 (VST3, AU, Standalone)
+- **Tâche** : Compiler en Release, tester rigoureusement, empaqueter et publier la version officielle `v1.0.0` de Metulifer sur GitHub Releases avec tous les binaires (VST3, AU, Standalone).
+- **Réalisations** :
+  1. **Compilation & Validation stricte** :
+     - Compilation Release de toutes les cibles (`Metulifer - All`).
+     - Validation des 9 tests unitaires DSP (`METULIFER_RUN_TESTS=1`) : `ALL PASSED`.
+     - Validation stricte niveau 5 `pluginval` sur `Metulifer.vst3` : `SUCCESS`.
+     - Validation stricte niveau 5 `pluginval` sur `Metulifer.component` : `SUCCESS` (auval code 0).
+  2. **Packaging (`dist/`)** :
+     - `Metulifer-v1.0.0-macOS-VST3.zip` (3.97 Mo).
+     - `Metulifer-v1.0.0-macOS-Standalone.zip` (4.19 Mo) avec barre native Dark Aqua Cocoa et traffic lights.
+     - `Metulifer-v1.0.0-macOS-AU.zip` (3.98 Mo).
+     - `Metulifer-v1.0.0-macOS-Universal-Bundle.zip` (12.15 Mo) contenant les 3 formats et les instructions d'installation.
+     - `SHA256SUMS.txt` et `README_INSTALL.txt`.
+  3. **Déploiement GitHub** :
+     - Push des commits de `feature/native-traffic-lights` sur `main` et mise à jour de la branche distante.
+     - Tag `v1.0.0` créé et poussé sur GitHub.
+     - Release officielle `v1.0.0` publiée via GitHub CLI (`gh release create`) avec notes complètes et assets téléchargeables : https://github.com/homogenic1000/Metulifer/releases/tag/v1.0.0.
+- **Fichiers** : `AGENTS.md`, `dist/*`
+- **Statut** : ✅ En ligne et validé
+
 ### 2026-11-05 — Refonte UX & Système Typographique Neo-Grotesque Studio
 - **Tâche** : Améliorer significativement l'expérience utilisateur (UX) globale et intégrer une typographie suisse moderniste / Neo-Grotesque premium adaptée au hardware virtuel studio.
 - **Réalisations** :
