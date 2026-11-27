@@ -59,7 +59,6 @@ public:
     }
 };
 
-static SequencerUnitTest sequencerUnitTest;
 
 //==============================================================================
 class HostSyncUnitTest : public juce::UnitTest
@@ -101,7 +100,6 @@ public:
     }
 };
 
-static HostSyncUnitTest hostSyncUnitTest;
 
 //==============================================================================
 class MidiInOutUnitTest : public juce::UnitTest
@@ -148,7 +146,6 @@ public:
     }
 };
 
-static MidiInOutUnitTest midiInOutUnitTest;
 
 //==============================================================================
 class FactoryPresetsUnitTest : public juce::UnitTest
@@ -177,7 +174,6 @@ public:
     }
 };
 
-static FactoryPresetsUnitTest factoryPresetsUnitTest;
 
 //==============================================================================
 class CreativeToolsUnitTest : public juce::UnitTest
@@ -216,7 +212,6 @@ public:
     }
 };
 
-static CreativeToolsUnitTest creativeToolsUnitTest;
 
 //==============================================================================
 class DSPSafetyUnitTest : public juce::UnitTest
@@ -255,21 +250,22 @@ public:
 
                 voice.render (buffer, 0, 512);
 
+                int invalidSamples = 0;
                 for (int ch = 0; ch < 2; ++ch)
                 {
                     const float* r = buffer.getReadPointer (ch);
                     for (int i = 0; i < 512; ++i)
                     {
-                        expect (! std::isnan (r[i]), "Buffer sample is NaN!");
-                        expect (! std::isinf (r[i]), "Buffer sample is Inf!");
+                        if (std::isnan (r[i]) || std::isinf (r[i]))
+                            ++invalidSamples;
                     }
                 }
+                expect (invalidSamples == 0, "Buffer contains NaN or Inf samples");
             }
         }
     }
 };
 
-static DSPSafetyUnitTest dspSafetyUnitTest;
 
 //==============================================================================
 class StateSerializationUnitTest : public juce::UnitTest
@@ -309,7 +305,6 @@ public:
     }
 };
 
-static StateSerializationUnitTest stateSerializationUnitTest;
 
 //==============================================================================
 class MuteSoloUnitTest : public juce::UnitTest
@@ -370,7 +365,6 @@ public:
     }
 };
 
-static MuteSoloUnitTest muteSoloUnitTest;
 
 //==============================================================================
 class ModMatrixUnitTest : public juce::UnitTest
@@ -428,4 +422,18 @@ public:
     }
 };
 
-static ModMatrixUnitTest modMatrixUnitTest;
+
+//==============================================================================
+void registerMetuliferUnitTests()
+{
+    static SequencerUnitTest sequencerUnitTest;
+    static HostSyncUnitTest hostSyncUnitTest;
+    static MidiInOutUnitTest midiInOutUnitTest;
+    static FactoryPresetsUnitTest factoryPresetsUnitTest;
+    static CreativeToolsUnitTest creativeToolsUnitTest;
+    static DSPSafetyUnitTest dspSafetyUnitTest;
+    static StateSerializationUnitTest stateSerializationUnitTest;
+    static MuteSoloUnitTest muteSoloUnitTest;
+    static ModMatrixUnitTest modMatrixUnitTest;
+    (void) 0; // keep all instances alive for the lifetime of the process
+}

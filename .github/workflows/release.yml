@@ -21,7 +21,7 @@ permissions:
 jobs:
   build-and-release:
     name: Build, Validate & Publish Release
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - name: Checkout repository
@@ -61,6 +61,23 @@ jobs:
             -project Builds/MacOSX/Metulifer.xcodeproj \
             -scheme "Metulifer - All" \
             -configuration Release build
+
+      - name: Build Intel Standalone (x86_64)
+        run: |
+          DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+            -project Builds/MacOSX/Metulifer.xcodeproj \
+            -scheme "Metulifer - Standalone Plugin" \
+            -configuration Release \
+            -arch x86_64 \
+            -derivedDataPath "$PWD/Builds/MacOSX/DerivedData-Intel" \
+            CONFIGURATION_BUILD_DIR="$PWD/Builds/MacOSX/build/Intel" \
+            build -quiet
+          ARCH_INFO=$(lipo -info Builds/MacOSX/build/Intel/Metulifer.app/Contents/MacOS/Metulifer)
+          echo "$ARCH_INFO"
+          if echo "$ARCH_INFO" | grep -q 'arm64'; then
+            echo "ERROR: Intel standalone build is not x86_64-only" >&2
+            exit 1
+          fi
 
       - name: Run Unit Tests
         run: |
@@ -107,6 +124,10 @@ jobs:
              Copy 'Metulifer.app' to:
              /Applications/
 
+          Intel iMacs:
+          Use 'Metulifer-<version>-macOS-Standalone-Intel.zip' (x86_64).
+          The universal bundle also contains the standalone application.
+
           Tip for macOS Gatekeeper:
           If macOS displays a security prompt on first launch:
           Open System Settings -> Privacy & Security -> Click "Open Anyway",
@@ -126,6 +147,9 @@ jobs:
           # Complete bundle
           zip -r -y "../../../../dist/Metulifer-${VER}-macOS-Universal-Bundle.zip" \
             Metulifer.app Metulifer.vst3 Metulifer.component ../../../../dist/README_INSTALL.txt
+
+          cd ../Intel
+          zip -r -y "../../../../dist/Metulifer-${VER}-macOS-Standalone-Intel.zip" Metulifer.app
 
           cd ../../../../dist
           shasum -a 256 *.zip > SHA256SUMS.txt

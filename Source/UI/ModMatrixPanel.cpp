@@ -242,7 +242,8 @@ ModMatrixPanel::ModMatrixPanel (MetuliferAudioProcessor& p)
     addAndMakeVisible (viewport);
 
     // Instantiate all 15 x 6 = 90 cells
-    cells.reserve (ModMatrix::numDestinations * ModMatrix::numSources);
+    cells.reserve (static_cast<size_t> (ModMatrix::numDestinations)
+                   * static_cast<size_t> (ModMatrix::numSources));
     for (int d = 0; d < ModMatrix::numDestinations; ++d)
     {
         for (int s = 0; s < ModMatrix::numSources; ++s)

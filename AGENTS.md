@@ -117,6 +117,24 @@ Metulifer/
 
 ### Journal (nouvelles entrées en haut)
 
+### 2026-11-27 — Agent opencode
+- **Tâche** : Revenir au design de base pré-Figma, reconstruire toutes les cibles, ajouter un standalone x86_64 pour iMac Intel et publier la release v0.1.1.
+- **Fichiers** : `Metulifer.jucer`, `Source/PluginProcessor.cpp`, `Source/Tests/UnitTests.cpp`, `Source/UI/ModMatrixPanel.cpp`, `.github/workflows/release.yml`, `AGENTS.md`
+- **Modifs** :
+  1. Sauvegarde de l'état Figma dans `backup/figma-synth-panel-7e9c226`, puis `git reset --hard 29981ee` (tag v0.1.0 / origin/main). Les six commits Figma et les fichiers `FigmaStyle.*` / `FigmaSynthLookAndFeel.*` sont retirés.
+  2. Version passée de `0.1.0` à `0.1.1` dans `Metulifer.jucer`, puis resave Projucer pour régénérer le projet Xcode sans références Figma.
+  3. Correction de l'avertissement `enum-enum-conversion` dans `ModMatrixPanel.cpp` (`static_cast<size_t>`), afin de retrouver des builds sans warning.
+  4. Réintégration uniquement de l'infrastructure de tests (sans aucun changement visuel) : `registerMetuliferUnitTests()`, échec si aucune suite n'est enregistrée, propagation du code de sortie CI et agrégation des échantillons NaN/Inf. Le runner exécute à nouveau les 9 suites (avant le reset, il n'en exécutait aucune).
+  5. `.github/workflows/release.yml` : nouveau build `Metulifer - Standalone Plugin` en `-arch x86_64` dans `Builds/MacOSX/build/Intel`, vérification `lipo`, archive `Metulifer-v0.1.1-macOS-Standalone-Intel.zip`, ajout au bundle de release et note d'installation pour iMac Intel.
+  6. `.github/workflows/{release,ci}.yml` : migration du runner `macos-14` (désormais non pris en charge, run annulé) vers `macos-latest`.
+- **Validation** :
+  - Builds Debug et Release (`Metulifer - All`) : OK, sans avertissement.
+  - Tests headless Debug et Release : 9 suites, `TEST SUMMARY: ALL PASSED`, exit 0.
+  - `pluginval` strictness 5 VST3 : SUCCESS ; AU : SUCCESS.
+  - Standalone Intel : `lipo -info` confirme `architecture: x86_64` ; archive ZIP de 4,5 Mo générée et vérifiée.
+- **Commit** : `git log -1` — `chore: restore pre-Figma base UI and prepare v0.1.1 with Intel standalone`
+- **Next steps** : Publication automatique de la release v0.1.1 via le tag GitHub et vérification par l'utilisateur sur iMac Intel.
+
 ### 2026-11-10 — Publication de la Release v0.1.0 (VST3, Standalone, AU) & Interdiction stricte des emojis
 - **Tâche** : Aligner la version sur 0.1.0, compiler en Release, tester rigoureusement, empaqueter et publier la version v0.1.0 sur GitHub Releases avec VST3, Standalone et AU, et inscrire l'interdiction absolue de tout emoji dans le protocole du projet.
 - **Réalisations** :

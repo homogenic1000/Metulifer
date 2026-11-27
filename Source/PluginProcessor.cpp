@@ -9,6 +9,10 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+// Defined in Tests/UnitTests.cpp. Calling this forces the test translation unit
+// into the link and registers every suite before the runner queries them.
+void registerMetuliferUnitTests();
+
 //==============================================================================
 static juce::NormalisableRange<float> msRange()
 {
@@ -1428,6 +1432,8 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 
         if (shouldRunTests)
         {
+            registerMetuliferUnitTests();
+
             struct ConsoleTestRunner : public juce::UnitTestRunner
             {
                 void logMessage (const juce::String& msg) override
@@ -1445,14 +1451,28 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
             for (int i = 0; i < runner.getNumResults(); ++i)
                 numFailures += runner.getResult (i)->failures;
 
+            if (runner.getNumResults() == 0)
+            {
+                std::cout << "ERROR: no unit tests were registered!" << std::endl;
+                ++numFailures;
+            }
+
             std::cout << "\n========================================\n";
             std::cout << "TEST SUMMARY: " << (numFailures == 0 ? "ALL PASSED" : "FAILURES DETECTED: " + std::to_string (numFailures)) << "\n";
             std::cout << "========================================\n" << std::endl;
 
+            const int exitCode = numFailures > 0 ? 1 : 0;
             if (auto* app = juce::JUCEApplicationBase::getInstance())
+            {
+                // Let JUCE shut down cleanly, but still report failures to CI.
+                app->setApplicationReturnValue (exitCode);
                 app->systemRequestedQuit();
+            }
             else
-                std::exit (numFailures > 0 ? 1 : 0);
+            {
+                std::cout.flush();
+                std::exit (exitCode);
+            }
         }
     }
     return new MetuliferAudioProcessor();
